@@ -1,0 +1,796 @@
+/* static/style.css */
+/* THE MAGIC RESET */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #0a0a0a;
+  color: #e0e0e0;
+  font-family: "Courier New", Courier, monospace;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  position: relative;
+}
+
+h1 {
+  text-transform: uppercase;
+  border-bottom: 3px solid #ff003c;
+  padding-bottom: 10px;
+  letter-spacing: 2px;
+}
+
+h2 {
+  color: #00ff66;
+  font-size: 2em;
+}
+
+form {
+  background-color: #111;
+  padding: 20px;
+  border: 1px solid #333;
+  margin-bottom: 30px;
+}
+
+input[type="text"], input[type="password"], input[type="number"], select {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  background-color: #000;
+  color: #00ff66;
+  border: 1px solid #444;
+  font-family: inherit;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus, select:focus {
+  border-color: #ff003c;
+  outline: none;
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+button {
+  background-color: #e0e0e0;
+  color: #000;
+  padding: 15px;
+  border: none;
+  font-weight: bold;
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  text-transform: uppercase;
+  width: 100%;
+  margin-top: 20px;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #ff003c;
+  color: #fff;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  background-color: #111;
+  border-left: 4px solid #444;
+  padding: 15px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.investment-tag {
+  border-left-color: #00ff66;
+}
+
+.expense-name {
+  font-weight: bold;
+  font-size: 1.1em;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.expense-meta {
+  color: #888;
+  font-size: 0.9em;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* --- NORMALIZED ACTION BUTTONS (BULLETPROOF) --- */
+.delete-form {
+  display: contents; /* MAGIC BULLET: Makes the form invisible to Flexbox layout! */
+}
+
+.delete-btn, .edit-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  height: 36px !important;
+  padding: 0 15px !important;
+  margin: 0 !important;
+  font-size: 0.9em !important;
+  font-weight: bold !important;
+  font-family: inherit !important;
+  line-height: 1 !important; /* Stops the text from shifting down */
+  text-decoration: none !important;
+  cursor: pointer !important;
+  letter-spacing: 1px !important;
+  width: auto !important; /* Stops mobile queries from trying to stretch it */
+}
+
+/* Specific Delete Styling */
+.delete-btn {
+  background-color: transparent !important;
+  color: #ff003c !important;
+  border: 1px solid #ff003c !important;
+}
+
+/* Specific Edit Styling */
+.edit-btn {
+  background-color: transparent !important;
+  color: #00ccff !important;
+  border: 1px solid #00ccff !important;
+}
+/* Scrollable box styles */
+.scroll-box {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 10px;
+  padding-left: 20px;
+  margin-bottom: 30px;
+  border-bottom: 1px dashed #444;
+  padding-bottom: 10px;
+  overscroll-behavior: contain;
+}
+
+.scroll-box::-webkit-scrollbar {
+  width: 12px;
+}
+
+.scroll-box::-webkit-scrollbar-track {
+  background: #111;
+  border: 1px solid #333;
+}
+
+.scroll-box::-webkit-scrollbar-thumb {
+  background-color: #444;
+  border: 1px solid #111;
+}
+
+.scroll-box::-webkit-scrollbar-thumb:hover {
+  background-color: #00ff66;
+}
+
+/* System readout styles */
+.system-readout {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.stat-box {
+  flex: 1;
+  background-color: #111;
+  border: 1px solid #333;
+  padding: 15px;
+  border-left: 4px solid #ffcc00;
+}
+
+.stat-label {
+  display: block;
+  color: #888;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  display: block;
+  color: #e0e0e0;
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+/* Settings update button styles */
+.update-btn {
+  background-color: #e0e0e0;
+  color: #000;
+  padding: 15px;
+  border: none;
+  font-weight: bold;
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  text-transform: uppercase;
+  width: 100%;
+  margin-top: 20px;
+  transition: background-color 0.2s;
+}
+
+.update-btn:hover {
+  background-color: #ffcc00;
+  color: #fff;
+}
+
+/* Modal styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+/* Modal content styles */
+.modal-content {
+  background-color: #0a0a0a;
+  padding: 30px;
+  border: 1px solid #333;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  
+  /* The Magic Centering Formula */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Close button styles */
+.close-modal {
+  color: #888;
+  font-size: 1.2em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.close-modal:hover {
+  color: #ff003c;
+}
+
+/* Open modal button styles */
+.openModalBtn {
+  background-color: #00ff66;
+  color: #000;
+  font-size: 1.2em;
+  margin-bottom: 30px;
+  box-shadow: 0 0 10px rgba(0, 255, 102, 0.2);
+}
+
+.openModalBtn:hover {
+  background-color: #00cc66;
+  color: #111;
+}
+
+/* Checkbox styles */
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.checkbox-wrapper label {
+  display: inline;
+  margin: 0;
+  cursor: pointer;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #00ff66;
+}
+
+/* Currency input group styles */
+.currency-group {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.currency-group input[type="number"] {
+  flex: 3;
+  margin: 0;
+}
+
+.currency-group select {
+  flex: 1;
+  margin: 0;
+}
+
+/* Date input styles */
+/* Date input styles */
+input[type="date"] {
+  background-color: #000;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  padding: 10px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  -webkit-appearance: none;
+  display: block;
+}
+
+input[type="date"]:focus {
+  border-color: #ff003c;
+  outline: none;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(100%);
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  filter: invert(0.8) sepia(1) hue-rotate(80deg) saturate(5);
+}
+
+/* Type toggle styles */
+.type-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.type-toggle input[type="radio"] {
+  display: none;
+}
+
+.toggle-btn {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  background-color: #111;
+  color: #888;
+  border: 1px solid #333;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+input[type="radio"]:checked + .expense-toggle {
+  background-color: rgba(255, 0, 60, 0.1);
+  color: #ff003c;
+  border-color: #ff003c;
+}
+
+input[type="radio"]:checked + .income-toggle {
+  background-color: rgba(0, 255, 102, 0.1);
+  color: #00ff66;
+  border-color: #00ff66;
+}
+
+/* Transaction type styles */
+/* Income */
+.tx-income {
+  border-left-color: #00ff66 !important;
+}
+.tx-income .expense-name {
+  color: #00ff66;
+}
+
+/* Investment */
+.tx-investment {
+  border-left-color: #00ccff !important;
+}
+.tx-investment .expense-name {
+  color: #00ccff;
+}
+
+/* Expense */
+.tx-expense {
+  border-left-color: #ff003c !important;
+}
+.tx-expense .expense-name {
+  color: #ff003c;
+}
+
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner {
+  -moz-appearance: textfield;
+}
+
+/* --- HUD TARGET EDIT BUTTON --- */
+#editSavingsBtn {
+  color: #ffcc00;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.85em;
+  padding: 2px 4px; /* Tiny padding so the background color has room */
+  border: 1px solid transparent; /* Keeps it from jumping when hovered */
+  transition: all 0.1s ease-in-out; /* Ultra-fast, snappy animation */
+  display: inline-block;
+}
+
+/* THE HOVER: Color Inversion */
+#editSavingsBtn:hover {
+  background-color: #ffcc00;
+  color: #111;
+}
+
+/* THE CLICK: Tactile Mechanical Press */
+#editSavingsBtn:active {
+  transform: scale(0.85); /* Shrinks the button slightly when held down */
+}
+
+/* --- CHART MANAGE BUTTON --- */
+#manageCategoriesBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  color: #00ccff;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.85em;
+  letter-spacing: 1px;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  transition: all 0.1s ease-in-out;
+  display: inline-block;
+}
+
+/* THE HOVER: Cyan Inversion */
+#manageCategoriesBtn:hover {
+  background-color: #00ccff;
+  color: #111;
+}
+
+/* THE CLICK: Tactile Mechanical Press */
+#manageCategoriesBtn:active {
+  transform: scale(0.85);
+}
+
+/* --- RETURN HOME BUTTON --- */
+#returnHomeBtn {
+  color: #00ff66;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.1em;
+  letter-spacing: 1px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  transition: all 0.1s ease-in-out;
+  
+  /* Centers the button perfectly while keeping the hit-box tight! */
+  display: block;
+  width: fit-content;
+  margin: 40px auto; 
+}
+
+/* THE HOVER: Neon Green Inversion */
+#returnHomeBtn:hover {
+  background-color: #00ff66;
+  color: #111;
+}
+
+/* THE CLICK: Tactile Mechanical Press */
+#returnHomeBtn:active {
+  transform: scale(0.85);
+}
+
+/* --- CANCEL BUTTON NORMALIZATION --- */
+#cancelDeleteBtn, #cancelBtn, #cancelReturnBtn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  letter-spacing: 1px !important;
+  transition: all 0.1s ease-in-out !important;
+}
+
+/* Specific styling for the Edit Page Cancel Button */
+#cancelBtn, #cancelReturnBtn {
+  display: block !important;
+  width: fit-content !important;
+  margin: 40px auto !important;
+  color: #ff003c !important; 
+  font-weight: bold !important;             /* Matches Home button weight */
+  font-size: 1.1em !important;              /* Matches Home button size */
+  padding: 5px 10px !important;             /* Gives the background room to breathe */
+  border: 1px solid transparent !important; /* Prevents jitter on hover */
+}
+
+/* THE HOVER: Gray Inversion */
+#cancelDeleteBtn:hover, #cancelBtn:hover, #cancelReturnBtn:hover {
+  background-color: #ff003c !important; 
+  color: #111 !important;
+}
+
+/* THE CLICK: Tactile Mechanical Press */
+#cancelDeleteBtn:active, #cancelBtn:active, #cancelReturnBtn:active {
+  transform: scale(0.85) !important; /* Matched to the Home button's 0.85 scale */
+}
+
+/* --- SYSTEM LOGOUT BUTTON --- */
+#logoutBtn {
+  color: #ff003c;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.9em;
+  letter-spacing: 1px;
+  padding: 6px 12px;
+  border: 1px solid #ff003c;
+  transition: all 0.1s ease-in-out;
+  
+  /* Prevents the button from being squished if the title gets long on mobile */
+  flex-shrink: 0; 
+}
+
+/* THE HOVER: Red Inversion */
+#logoutBtn:hover {
+  background-color: #ff003c;
+  color: #111;
+}
+
+/* THE CLICK: Tactile Mechanical Press */
+#logoutBtn:active {
+  transform: scale(0.9);
+}
+
+/* Hide the bottom cancel button on desktop */
+.mobile-only-cancel {
+  display: none !important;
+}
+
+/* =========================================
+   THE TACTILE TERMINAL UI SYSTEM
+   ========================================= */
+
+/* 1. THE SMOOTHING ENGINE: Apply smooth color transitions to all interactive elements */
+button, 
+.edit-btn, 
+.delete-btn, 
+#logoutBtn {
+  transition: all 0.15s ease-in-out !important;
+  cursor: pointer;
+}
+
+/* 2. THE MECHANICAL PRESS: Apply the satisfying shrink animation to ALL buttons on click */
+button:active, 
+.edit-btn:active, 
+.delete-btn:active, 
+#logoutBtn:active {
+  transform: scale(0.92) !important;
+}
+
+/* =========================================
+   COLOR INVERSION HOVER STATES
+   ========================================= */
+
+/* RED Outline Buttons (Delete X, Logout) */
+.delete-btn:hover,
+#logoutBtn:hover {
+  background-color: #ff003c !important;
+  color: #111 !important;
+}
+
+/* CYAN Outline Buttons (Edit) */
+.edit-btn:hover {
+  background-color: #00d2ff !important; /* Adjust if your cyan hex code is slightly different */
+  color: #111 !important;
+}
+
+/* GREY Outline Buttons (Cancel, Close) */
+#mobileCancelBtn:hover,
+#cancelLogoutBtn:hover,
+#cancelDeleteBtn:hover {
+  background-color: #888 !important;
+  color: #111 !important;
+  border-color: #888 !important;
+}
+
+/* ========================================= */
+/* --- OPERATION ALPHA: MOBILE RESPONSIVE --- */
+/* ========================================= */
+
+@media (max-width: 768px) {
+  /* Stack the Top System Readout Boxes */
+  .system-readout {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Scale down the massive headers */
+  h1 {
+    font-size: 1.5em;
+  }
+  h2 {
+    font-size: 1.3em;
+  }
+
+  /* Stack the Side-by-Side Charts */
+  .chart-row {
+    flex-direction: column !important;
+  }
+
+  /* Reformat the Expense List Items for Touch Screens */
+  li {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 15px;
+  }
+  
+  /* Spread the price and buttons out to fill the new width */
+  li > div:nth-child(2) {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+/* --- MODAL MOBILE OPTIMIZATION --- */
+  .modal-content {
+    width: 90%;
+    padding: 25px 15px; 
+    /* margin: 10vh auto; <-- DELETED! */
+  }
+
+  /* Target the inline flexbox holding the modal buttons and stack them */
+  #deleteModal, #logoutModal, .modal-content > div {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  /* Force the buttons to take full width and match our new touch-friendly height */
+  #cancelDeleteBtn, #confirmDeleteBtn,
+  #cancelLogoutBtn, #confirmLogoutBtn {
+    width: 100% !important;
+    height: 44px !important;
+    margin: 0 !important;
+    font-size: 1em !important;
+  }
+
+  #deleteModal .modal-content > div, 
+  #logoutModal .modal-content > div {  
+    flex-direction: column-reverse !important; /* THE MAGIC FLIP! */
+    gap: 12px !important;
+  }
+
+  /* Stack the side-by-side inputs (Name/Date & Amount/Currency) */
+  .currency-group,
+  #addExpenseModal form > div[style*="display: flex"] {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  /* Force the squished inputs to stretch to full width */
+  #itemNameInput, 
+  #expenseDate,
+  .currency-group input, 
+  .currency-group select {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* 7. Stop Categories from Bleeding Off-Screen */
+  .scroll-box form {
+    flex-wrap: wrap; /* Allow the form to drop to a new line */
+    width: 100%;
+    gap: 10px;
+    margin-top: 10px !important;
+  }
+
+  .scroll-box form input[type="text"] {
+    width: 100% !important; /* Force the text input to take the whole top row */
+  }
+
+  .scroll-box form button {
+    flex: 1; /* Make [RENAME] and [DELETE] split the bottom row 50/50 */
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* --- CATEGORY MANAGER MOBILE FIX --- */
+  .scroll-box form {
+    flex-direction: row !important;
+    flex-wrap: wrap !important; /* Allows items to drop to a new line */
+    width: 100% !important;
+    gap: 10px !important;
+    margin-top: 10px !important;
+  }
+
+  .scroll-box form input[type="text"] {
+    flex: 0 0 100% !important; /* Forces the text input to take the entire top row */
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .scroll-box form button {
+    flex: 1 !important; /* Makes [RENAME] and [DELETE] split the bottom row 50/50 */
+    height: 44px !important; /* Gives them a taller, more touch-friendly height on mobile */
+    margin: 0 !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+
+  /* --- EXPENSE LIST MOBILE ALIGNMENT --- */
+  li > div:nth-child(2) {
+    width: 100% !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 12px !important; /* Push the price down away from the text */
+  }
+
+/* --- MOBILE SCROLL UNLOCK --- */
+  .scroll-box {
+    max-height: none !important; 
+    
+    /* THE FIX: Only unlock vertical, keep horizontal hidden! */
+    overflow-y: visible !important; 
+    overflow-x: hidden !important;  
+    
+    padding-right: 0 !important; 
+    border-bottom: none !important; 
+    touch-action: auto !important;
+  }
+
+  /* --- MOBILE EXPENSE ACTION BUTTONS --- */
+  .edit-btn, .delete-btn {
+    min-width: 80px !important; /* Forces the [X] button to stretch and match the [EDIT] button */
+    height: 44px !important;    /* Apple/Google standard touch-friendly height */
+  }
+
+  /* --- ADD EXPENSE MOBILE UX SWAP --- */
+  
+  /* 1. Hide the top-right [X] */
+  #addExpenseModal .close-modal {
+    display: none !important;
+  }
+
+  /* 2. Reveal the bottom cancel button */
+  .mobile-only-cancel {
+    display: block !important;
+  }
+
+  /* 3. Stack the buttons and flip them (Confirm top, Cancel bottom) */
+  .modal-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 12px !important;
+  }
+
+  /* 4. Lock them to the touch-friendly height */
+  .modal-actions button {
+    flex: 1 !important;
+    height: 44px !important;
+    margin: 0 !important;
+    font-size: 0.9em !important;
+    padding: 0 5px !important;
+  }
+}

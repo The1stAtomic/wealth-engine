@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wealth Engine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Nuke the spinners globally from the HTML level */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
+    input[type=number] { 
+      -moz-appearance: textfield; 
+    }
+  </style>
+</head>
+<body>
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #ff003c; padding-bottom: 10px; margin-bottom: 20px; gap: 15px;">
+    
+    <h1 style="border-bottom: none; padding-bottom: 0; margin: 0;">Root Access Wealth Engine</h1>
+    
+    <a href="{{ url_for('logout') }}" id="logoutBtn">[LOGOUT]</a>
+    
+  </div>
+  <h2>Remaining Budget: ${{ "%.2f"|format(budget | default(0, true)) }}</h2>
+  
+
+  <!-- System Readouts -->
+  <div class="system-readout">
+    <div class="stat-box" style="border-left-color: #00ff66;">
+      <span class="stat-label">Total Cash In</span>
+      <span class="stat-value">${{ "%.2f"|format(total_income | default(0, true)) }}</span>
+    </div>
+    <div class="stat-box" style="border-left-color: #ff003c;">
+      <span class="stat-label">Total Cash Out</span>
+      {% set total_out = namespace(value=0) %}
+      {% for e in expenses if e.get('type', 'expense') == 'expense' %}
+        {% set total_out.value = total_out.value + e.amount %}
+      {% endfor %}
+      <span class="stat-value">${{ "%.2f"|format(total_out.value | default(0, true)) }}</span>
+    </div>
+    
+    <!-- Target Savings with inline editing -->
+    <div class="stat-box no-spinner" style="border-left-color: #ffcc00; display: flex; flex-direction: column; justify-content: space-between;">
+      
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <span class="stat-label">Saving Target ({{ target_savings_percentage }}%)</span>
+        <a href="#" id="editSavingsBtn">[EDIT]</a>
+      </div>
+      
+      <span class="stat-value" id="savingsDisplayValue">${{ "%.2f"|format(target_savings | default(0, true)) }}</span>
+
+      <form action="/update_savings" method="post" id="savingsEditForm" style="display: none; align-items: stretch; margin: 0; padding: 0; border: none; background: none; gap: 8px; height: 32px; box-shadow: none;">
+        
+        <div style="position: relative; width: 170px;">
+          <input type="number" class="no-spinners" id="savingsPercentInput" name="target_savings_percentage" step="0.01" inputmode="decimal" value="{{ target_savings_percentage }}" style="width: 100%; height: 100%; padding: 5px 25px 5px 10px; background-color: #000; color: #ffcc00; border: 1px solid #444; font-family: 'Courier New', monospace; font-size: 1.1em; outline: none; box-sizing: border-box; text-align: right; margin: 0;" required>
+          <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #666; font-size: 0.9em; pointer-events: none;">%</span>
+        </div>
+        
+        <button type="submit" style="margin: 0; padding: 0 15px; background-color: rgba(255, 204, 0, 0.1); color: #ffcc00; border: 1px solid #444; cursor: pointer; font-family: inherit; font-weight: bold; font-size: 0.9em; flex-grow: 1; transition: 0.2s;" onmouseover="this.style.borderColor='#ffcc00'" onmouseout="this.style.borderColor='#444'">SAVE</button>
+      </form>
+
+    </div>
+    <!-- <div class="stat-box" style="border-left-color: #00ccff;">
+      <span class="stat-label">Total Transactions</span>
+      <span class="stat-value">{{ expenses|length }}</span>
+    </div> -->
+  </div>
+
+  <!-- Add Expense Button -->
+  <button id="openModalBtn" class="openModalBtn">
+    [+ LOG NEW TRANSACTION]
+  </button>
+
+  <!-- Analytics Charts -->
+  <div class="chart-row" style="display: flex; gap: 20px; margin-bottom: 30px; max-width: 100%;">
+    <div style="flex: 1; background-color: #111; padding: 15px; border: 1px solid #333; position: relative; height: 300px;">
+      <a href="{{ url_for('manage_categories') }}" id="manageCategoriesBtn">[MANAGE]</a>
+      
+      <canvas id="categoryChart"></canvas>
+    </div>
+    <div style="flex: 1; background-color: #111; padding: 15px; border: 1px solid #333; position: relative; height: 300px;">
+      <canvas id="investmentChart"></canvas>
+    </div>
+  </div>
+  <div style="background-color: #111; padding: 15px; border: 1px solid #333; margin-bottom: 30px; position: relative; height: 300px; width: 100%; box-sizing: border-box;">
+    <canvas id="trendChart"></canvas>
+  </div>
+
+  <!-- Expense List with Sorting and Filtering -->
+  <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+
+    <h3 style="margin: 0;">Expenses <span style="color: #888; font-size: 0.6em;">[{{ expenses|length }}] RECORDED</span></h3>
+
+    <form action="/" method="get" style="margin: 0; background: none; border: none; padding: 0; box-shadow: none; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; width: 100%; max-width: fit-content;">
+      
+      <select name="sort" onchange="this.form.submit()" style="padding: 5px; font-size: 0.8em; background-color: #111; color: #00ccff; border: 1px solid #00ccff; cursor: pointer; outline: none; flex: 1; min-width: 140px;">
+        <option value="date_desc" {% if current_sort == 'date_desc' %}selected{% endif %}>Date (Newest First)</option>
+        <option value="date_asc" {% if current_sort == 'date_asc' %}selected{% endif %}>Date (Oldest First)</option>
+        <option value="amount_desc" {% if current_sort == 'amount_desc' %}selected{% endif %}>Amount (High to Low)</option>
+        <option value="amount_asc" {% if current_sort == 'amount_asc' %}selected{% endif %}>Amount (Low to High)</option>
+        <option value="category_asc" {% if current_sort == 'category_asc' %}selected{% endif %}>Category (A-Z)</option>
+      </select>
+
+      <select name="timeframe" onchange="this.form.submit()" style="padding: 5px; font-size: 0.8em; background-color: #111; color: #ffcc00; border: 1px solid #ffcc00; cursor: pointer; outline: none; flex: 1; min-width: 120px;">
+        <option value="last_24_hours" {% if current_timeframe == 'last_24_hours' %}selected{% endif %}>Last 24 Hours</option>
+        <option value="last_7_days" {% if current_timeframe == 'last_7_days' %}selected{% endif %}>Last 7 Days</option>
+        <option value="last_30_days" {% if current_timeframe == 'last_30_days' %}selected{% endif %}>Last 30 Days</option>
+        <option value="last_90_days" {% if current_timeframe == 'last_90_days' %}selected{% endif %}>Last 90 Days</option>
+        <option value="all_time" {% if current_timeframe == 'all_time' %}selected{% endif %}>All Time</option>
+      </select>
+      
+    </form>
+
+  </div>
+
+  <!-- Expense List -->
+  <div class="scroll-box">
+    <ul>
+      {% for expense in expenses %}
+
+        {% set tx_class = 'tx-expense' %}
+        {% set tx_prefix = '[-]' %}
+
+        {% if expense.get('type') == 'income' %}
+          {% set tx_class = 'tx-income' %}
+          {% set tx_prefix = '[+]' %}
+        {% elif expense.is_investment %}
+          {% set tx_class = 'tx-investment' %}
+          {% set tx_prefix = '[+]' %}
+        {% endif %}
+
+        <li class="{{ tx_class }}" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+          
+          <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;">
+            <span class="expense-name" style="font-size: 1.1em;">
+              <strong>{{ tx_prefix }}</strong> {{ expense.name }}
+            </span>
+            <span class="expense-meta" style="color: #666; font-size: 0.85em;">
+              [{{ expense.category }}] // [{{ (expense.timestamp | string)[:10] }}]
+            </span>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 20px;">
+            <strong style="font-size: 1.1em; letter-spacing: 1px;">
+              ${{ "%.2f"|format(expense.amount | default(0, true)) }}
+            </strong>
+
+            <div style="display: flex; gap: 10px;">
+              <a href="{{ url_for('edit_expense', expense_id=expense.id) }}" class="edit-btn">[EDIT]</a>
+
+              <form action="{{ url_for('delete_expense', expense_id=expense.id) }}" method="post" class="delete-form" style="margin: 0; padding: 0; border: none; background: none;">
+                <button type="submit" class="delete-btn">[X]</button>
+              </form>
+            </div>
+          </div>
+
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Modal for Confirming Deletion -->
+  <div class="modal" id="deleteModal">
+    <div class="modal-content" style="border: 2px solid #ff003c; max-width: 400px; text-align: center;">
+
+      <h2 style="color: #ff003c; margin-top: 0; text-transform: uppercase;">System Warning</h2>
+      <p style="color: #e0e0e0; margin-bottom: 30px;">Are you sure you want to permanently delete this transaction? This action cannot be undone.</p>
+
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button type="button" id="cancelDeleteBtn" style="background-color: #111; color: #888; border: 1px solid #555; flex: 1;">[CANCEL]</button>
+        <button type="button" id="confirmDeleteBtn" style="background-color: rgba(255, 0, 60, 0.1); color: #ff003c; border: 1px solid #ff003c; flex: 1;">[DELETE]</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal for Adding New Expense -->
+  <div class="modal" id="addExpenseModal">
+    <div class="modal-content">
+      
+      <!-- Modal Header -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
+        <h2 style="margin: 0; color: #e0e0e0; font-size: 1.5em; text-transform: uppercase;">Execute Transaction</h2>
+        <span class="close-modal" id="closeModalBtn">[X]</span>
+      </div>
+
+      <!-- Form for adding new expense/income -->
+      <form method="post">
+        <div class="type-toggle">
+          <input type="radio" id="expenseType" name="entry_type" value="expense" checked>
+          <label for="expenseType" class="toggle-btn expense-toggle">[EXPENSE]</label>
+
+          <input type="radio" id="incomeType" name="entry_type" value="income">
+          <label for="incomeType" class="toggle-btn income-toggle">[INCOME]</label>
+        </div>
+        <div style="display: flex; gap: 10px; margin: 10px 0;">
+          <input type="text" name="item_name" autocapitalize="words" id="itemNameInput" placeholder="Expense Name" style="flex: 2; margin: 0;" required>
+          <input type="date" name="date" id="expenseDate" style="flex: 1; margin: 0;" required>
+        </div>
+        
+        <div class="currency-group">
+          <input type="number" name="cost" class="no-spinner" step="0.01" inputmode="decimal" placeholder="Amount" required>
+          <select name="currency">
+            <option value="USD">USD</option>
+            <option value="KHR">KHR</option>
+          </select>
+        </div>
+        
+        <select name="category_dropdown" id="expenseCategorySelect" required>
+          <option value="" disabled selected>Select an expense category...</option>
+          {% for category in expense_categories %}
+            <option value="{{ category }}">{{ category }}</option>
+          {% endfor %}
+          <option value="add_new">Add new category...</option>
+        </select>
+
+        <select name="category_dropdown" id="incomeCategorySelect" disabled style="display: none;" required>
+          <option value="" disabled selected>Select an income type...</option>
+          {% for category in income_categories %}
+            <option value="{{ category }}">{{ category }}</option>
+          {% endfor %}
+          <option value="add_new">Add new category...</option>
+        </select>
+        
+        <input type="text" autocapitalize="words" name="new_category" id="new_category_input" placeholder="Type new category here..." style="display: none;">
+        
+        <div class="checkbox-wrapper" id="investmentWrapper">
+          <label for="is_investment">Is this an investment?</label>
+          <input type="checkbox" name="is_investment" id="is_investment">
+        </div>
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button type="button" id="mobileCancelBtn" class="mobile-only-cancel" style="background-color: #111; color: #888; border: 1px solid #555;">[CANCEL]</button>
+          
+          <button type="submit" id="submitBtn" style="margin: 0;">ADD EXPENSE</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal for Confirming Logout -->
+  <div class="modal" id="logoutModal">
+    <div class="modal-content" style="border: 2px solid #ffcc00; max-width: 400px; text-align: center;">
+
+      <h2 style="color: #ffcc00; margin-top: 0; text-transform: uppercase;">Terminate Session</h2>
+      <p style="color: #e0e0e0; margin-bottom: 30px;">Are you sure you want to securely disconnect from the Wealth Engine?</p>
+
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button type="button" id="cancelLogoutBtn" style="background-color: #111; color: #888; border: 1px solid #555; flex: 1;">[CANCEL]</button>
+        <button type="button" id="confirmLogoutBtn" style="background-color: rgba(255, 204, 0, 0.1); color: #ffcc00; border: 1px solid #ffcc00; flex: 1;">[DISCONNECT]</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // --- HUD SHAPE-SHIFTER & LIVE PREVIEW ENGINE ---
+    const editSavingsBtn = document.getElementById('editSavingsBtn');
+    const savingsDisplayValue = document.getElementById('savingsDisplayValue');
+    const savingsEditForm = document.getElementById('savingsEditForm');
+    const savingsPercentInput = document.getElementById('savingsPercentInput');
+
+    // We pull the dynamic income and original settings straight from Jinja/Python!
+    const totalDynamicIncome = {{ total_income | default(0, true) }};
+    const originalPercentage = {{ target_savings_percentage | default(0, true) }};
+    const originalAmountText = '${{ "%.2f"|format(target_savings) }}';
+
+    editSavingsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      
+      if (savingsEditForm.style.display === 'none') {
+        // OPEN MODE: Reveal the form, but DO NOT hide the big number anymore!
+        savingsEditForm.style.display = 'flex';
+        editSavingsBtn.innerText = '[CANCEL]';
+      } else {
+        // CANCEL MODE: Hide the form and reset the preview data back to reality
+        savingsEditForm.style.display = 'none';
+        editSavingsBtn.innerText = '[EDIT]';
+        
+        savingsPercentInput.value = originalPercentage;
+        savingsDisplayValue.innerText = originalAmountText;
+        savingsDisplayValue.style.color = '#e0e0e0'; // Reset color back to default
+      }
+    });
+
+    // LIVE PREVIEW MATH
+    savingsPercentInput.addEventListener('input', (e) => {
+      // Grab what the user is typing (fallback to 0 if they delete everything)
+      let currentPercent = parseFloat(e.target.value) || 0;
+      
+      // Check if the input perfectly matches the database reality
+      if (currentPercent === originalPercentage) {
+        // MATCH: Revert to original text and default color
+        savingsDisplayValue.innerText = originalAmountText;
+        savingsDisplayValue.style.color = '#e0e0e0'; 
+      } else {
+        // Calculate the live dollar amount and turn it warning yellow
+        let newDollarAmount = (currentPercent / 100) * totalDynamicIncome;
+        savingsDisplayValue.innerText = '$' + newDollarAmount.toFixed(2);
+        savingsDisplayValue.style.color = '#ffcc00'; 
+      }
+    });
+
+    // Modal functionality
+    const modal = document.getElementById('addExpenseModal');
+    const openModalBtn = document.getElementById('openModalBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const mobileCancelBtn = document.getElementById('mobileCancelBtn');
+
+    openModalBtn.addEventListener('click', () => {
+      modal.style.display = 'block';
+      document.getElementById('expenseDate').valueAsDate = new Date();
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+
+    if (mobileCancelBtn) {
+      mobileCancelBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+      });
+    }
+
+    window.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+
+    const deleteModal = document.getElementById('deleteModal');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    const deleteForms = document.querySelectorAll('.delete-form');
+    let formToSubmit = null;
+
+    deleteForms.forEach(form => {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        formToSubmit = form;
+        deleteModal.style.display = 'block';
+      });
+    });
+
+    cancelDeleteBtn.addEventListener('click', () => {
+      deleteModal.style.display = 'none';
+      formToSubmit = null;
+    });
+
+    confirmDeleteBtn.addEventListener('click', () => {
+      if (formToSubmit) {
+        formToSubmit.submit();
+      }
+    });
+
+    window.addEventListener('click', (event) => {
+      if (event.target === deleteModal) {
+        deleteModal.style.display = 'none';
+        formToSubmit = null;
+      }
+    });
+
+    // Category dropdown functionality
+    const typeRadio = document.querySelectorAll('input[name="entry_type"]');
+    const itemNameInput = document.getElementById('itemNameInput');
+    const investmentWrapper = document.getElementById('investmentWrapper');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const expenseCategorySelect = document.getElementById('expenseCategorySelect');
+    const incomeCategorySelect = document.getElementById('incomeCategorySelect');
+    const newCategoryInput = document.getElementById('new_category_input');
+
+    // Initialize form state
+    typeRadio.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const isInvestmentCheckbox = document.getElementById('is_investment');
+
+        if (e.target.value === 'income') {
+          itemNameInput.placeholder = 'Payer / Client (e.g., Tech Corp, John Doe)';
+          
+          // FIX 1: Hide AND uncheck the investment box to prevent phantom data
+          investmentWrapper.style.display = 'none';
+          isInvestmentCheckbox.checked = false; 
+          
+          submitBtn.textContent = 'ADD INCOME';
+
+          // Swap active dropdowns
+          expenseCategorySelect.style.display = 'none';
+          expenseCategorySelect.disabled = true;
+          incomeCategorySelect.style.display = 'block';
+          incomeCategorySelect.disabled = false;
+
+          // FIX 2: Re-evaluate the "Add New" input based on the newly active dropdown
+          handleCategoryChange(incomeCategorySelect);
+          
+        } else {
+          itemNameInput.placeholder = 'Expense Name';
+          investmentWrapper.style.display = 'flex';
+          submitBtn.textContent = 'ADD EXPENSE';
+
+          // Swap active dropdowns
+          expenseCategorySelect.style.display = 'block';
+          expenseCategorySelect.disabled = false;
+          incomeCategorySelect.style.display = 'none';
+          incomeCategorySelect.disabled = true;
+
+          // FIX 2: Re-evaluate the "Add New" input based on the newly active dropdown
+          handleCategoryChange(expenseCategorySelect);
+        }
+      });
+    });
+
+    // Handle category selection changes for both expense and income
+    function handleCategoryChange(selectElement) {
+      if (selectElement.value === 'add_new') {
+        newCategoryInput.style.display = 'block';
+        newCategoryInput.focus();
+        newCategoryInput.required = true;
+      } else {
+        newCategoryInput.style.display = 'none';
+        newCategoryInput.required = false;
+        newCategoryInput.value = '';
+      }
+    }
+
+    // Attach change event listeners to both category selects
+    expenseCategorySelect.addEventListener('change', function() {
+      handleCategoryChange(this);
+    });
+    incomeCategorySelect.addEventListener('change', function() {
+      handleCategoryChange(this);
+    });
+
+    // Chart data from Flask
+    const categoryData = {{ category_totals|tojson }};
+    const investmentData = {{ investment_totals|tojson }};
+    const trendData = {{ trend_data|tojson }};
+
+    Chart.defaults.color = '#e0e0e0';
+    Chart.defaults.font.family = '"Courier New", Courier, monospace';
+
+    // Category Distribution Chart
+    const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+    new Chart(ctxCategory, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(categoryData),
+        datasets: [{
+          data: Object.values(categoryData),
+          backgroundColor: ['#ff003c', '#00ff66', '#00ccff', '#ffcc00', '#9900ff', '#e0e0e0'],
+          borderColor: '#0a0a0a',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: { display: true, text: 'EXPENSES BY CATEGORY'}
+        }
+      }
+    });
+
+    // Investment vs Sunk Costs Chart
+    const ctxInvestment = document.getElementById('investmentChart').getContext('2d');
+    new Chart(ctxInvestment, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(investmentData),
+        datasets: [{
+          label: 'Total USD',
+          data: Object.values(investmentData),
+          backgroundColor: ['#00ff66', '#444444'],
+          borderColor: '#0a0a0a',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: { display: true, text: 'INVESTMENTS VS SUNK COSTS'},
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#333' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // Expense Trend Line Chart
+    const ctxTrend = document.getElementById('trendChart').getContext('2d');
+    new Chart(ctxTrend, {
+      type: 'line',
+      data: {
+        labels: Object.keys(trendData),
+        datasets: [{
+          label: 'Total Spent ($)',
+          data: Object.values(trendData),
+          borderColor: '#00ccff',
+          backgroundColor: 'rgba(0, 204, 255, 0.2)',
+          borderWidth: 2,
+          pointBackgroundColor: '#ffcc00',
+          pointBorderColor: '#111',
+          pointRadius: 4,
+          fill: true,
+          tension: 0.1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: { display: true, text: 'EXPENSE TRENDS OVER TIME'},
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: '#333' }
+          },
+          x: {
+            grid: { color: '#222' },
+          }
+        }
+      }
+    });
+
+    // --- LOGOUT MODAL ENGINE ---
+    const logoutBtn = document.getElementById('logoutBtn');
+    const logoutModal = document.getElementById('logoutModal');
+    const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
+    const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+
+    // 1. Intercept the click on the logout link
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault(); // Stop the browser from following the link
+        logoutModal.style.display = 'block'; // Show our new modal
+      });
+    }
+
+    // 2. Cancel button closes the modal
+    if (cancelLogoutBtn) {
+      cancelLogoutBtn.addEventListener('click', () => {
+        logoutModal.style.display = 'none';
+      });
+    }
+
+    // 3. Confirm button executes the actual logout
+    if (confirmLogoutBtn) {
+      confirmLogoutBtn.addEventListener('click', () => {
+        // Grab the original URL from the logout button and go there
+        window.location.href = logoutBtn.href; 
+      });
+    }
+
+    // 4. Close if the user clicks the dark background
+    window.addEventListener('click', (event) => {
+      if (event.target === logoutModal) {
+        logoutModal.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

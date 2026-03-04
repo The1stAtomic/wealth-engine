@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Expense | Wealth Engine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <h1>Edit Record</h1>
+  <h2>ID: <span style="font-size: 0.4em; color: #888;">{{ expense.id }}</span></h2>
+
+  <form method="post">
+    <label>Transaction Details:</label>
+    <div style="display: flex; gap: 10px; margin: 10px 0;">
+      <input type="text" name="item_name" autocapitalize="words" value="{{ expense.name }}" style="flex: 2; margin: 0;" required>
+
+      <input type="date" name="date" value="{{ expense.timestamp[:10] }}" style="flex: 1; margin: 0;" required>
+    </div>
+
+    <label>Amount:</label>
+    <div class="currency-group">
+      {% if expense.currency == 'KHR' %}
+        <input type="number" name="cost" step="0.01" inputmode="decimal" class="no-spinner" value="{{ expense.amount * exchange_rates['KHR'] }}" required>
+      {% else %}
+        <input type="number" name="cost" step="0.01" inputmode="decimal" class="no-spinner" value="{{ expense.amount }}" required>
+      {% endif %}
+
+      <select name="currency">
+        <option value="USD" {% if expense.currency == 'USD' %}selected{% endif %}>USD</option>
+        <option value="KHR" {% if expense.currency == 'KHR' %}selected{% endif %}>KHR</option>
+      </select>
+    </div>
+
+    <label>Category:</label>
+    <select name="category_dropdown" required>
+      {% for category in known_categories %}
+        <option value="{{ category }}" {% if expense.category == category %}selected{% endif %}>{{ category }}</option>
+      {% endfor %}
+      
+      <option value="add_new" {% if expense.category not in known_categories %}selected{% endif %}>Add new category...</option>
+    </select>
+    <input style="display: none;" type="text" autocapitalize="words" name="new_category" id="new_category_input" placeholder="New category name" {% if expense.category not in known_categories %}value="{{ expense.category }}"{% endif %}>
+
+    <label style="margin-top: 20px;">
+      <input type="checkbox" name="is_investment" {% if expense.is_investment %}checked{% endif %}>
+      Mark as Investment
+    </label>
+    <button type="submit">Update Record</button>
+  </form>
+  <a href="{{ url_for('home') }}" id="cancelReturnBtn">[CANCEL AND RETURN]</a>
+
+  <script>
+    const categoryDropdown = document.querySelector('select[name="category_dropdown"]');
+    const newCategoryInput = document.getElementById('new_category_input');
+
+    categoryDropdown.addEventListener('change', function() {
+      if (this.value === 'add_new') {
+        newCategoryInput.style.display = 'block';
+        newCategoryInput.focus();
+        newCategoryInput.required = true;
+      } else {
+        newCategoryInput.style.display = 'none';
+        newCategoryInput.required = false;
+        newCategoryInput.value = '';
+      }
+    });
+  </script>
+</body>
+</html>

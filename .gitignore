@@ -1,0 +1,39 @@
+# Block the entire Flask instance folder and ALL databases
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Python bytecode (generated automatically)
+__pycache__/
+*.pyc
+
+# Your virtual environment (can be reinstalled using requirements.txt)
+venv/
+env/
+.venv/
+
+# Environment variables and secrets
+.env
+secret_key.txt
+
+# The SQLite database!
+wealth_engine.db
+
+# VS Code / IDE settings
+.vscode/
+.idea/
+
+# Initial JSON migrations
+settings.json
+expense_log.json
+
+# Block the exact V1 files
+Budget_calculator_v1.py
+
+analytics.py
+wealthEngineV1.py
+seed.py
+
+# Local log files
+*.log

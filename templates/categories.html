@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Categories | Wealth Engine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <h1>Manage Categories</h1>
+  <h2>Bulk Actions</h2>
+
+  <p style="color: #888; font-size: 0.9em; margin-bottom: 30px;">Warning: Renaming a category updates ALL past expenses with that category. Deleting a category converts those expenses to "Uncategorized" but keeps your expense history intact.</p>
+
+  <div class="scroll-box">
+    <ul>
+      {% for category in categories %}
+        <li style="align-items: center; border-left: 4px solid #00ccff;">
+          <div style="flex-grow: 1;">
+            <strong style="font-size: 1.2em;">{{ category }}</strong>
+          </div>
+
+          <form method="post" style="margin: 0; padding: 0; border: none; background: none; display: flex; gap: 10px; align-items: center;">
+            <input type="hidden" name="old_category" autocapitalize="words" value="{{ category }}">
+
+            <input type="text" name="new_category" autocapitalize="words" placeholder="New name..." style="width: 150px; margin: 0; padding: 8px;">
+
+            <button type="submit" name="action" value="rename" class="edit-btn" style="margin: 0; padding: 8px 12px; width: auto;">[RENAME]</button>
+            <button type="submit" name="action" value="delete" class="delete-btn" style="margin: 0; padding: 8px 12px; width: auto;">[DELETE]</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="modal" id="deleteModal">
+    <div class="modal-content" style="border: 2px solid #ff003c; max-width: 400px; text-align: center;">
+      <h2 style="color: #ff003c; margin-top: 0; text-transform: uppercase;">Category Purge</h2>
+      <p style="color: #e0e0e0; margin-bottom: 30px;">Are you sure? Deleting this category will mark all associated transactions as "Uncategorized".</p>
+      
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button type="button" id="cancelDeleteBtn" style="background-color: #111; color: #888; border: 1px solid #555; flex: 1;">[CANCEL]</button>
+        <button type="button" id="confirmDeleteBtn" style="background-color: rgba(255, 0, 60, 0.1); color: #ff003c; border: 1px solid #ff003c; flex: 1;">[CONFIRM DELETE]</button>
+      </div>
+    </div>
+  </div>
+
+  <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a>
+
+  <script>
+    const deleteModal = document.getElementById('deleteModal');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    let formToSubmit = null;
+
+    // Listen for all clicks on the page
+    document.addEventListener('click', function(e) {
+      // Check if the clicked element is a delete button
+      if (e.target && e.target.classList.contains('delete-btn')) {
+        e.preventDefault(); // Stop the form immediately
+        formToSubmit = e.target.closest('form'); // Grab the parent form
+        
+        // Create a hidden input so the backend knows the action is "delete"
+        // (Since we stopped the button click, we have to manually re-add the value)
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'delete';
+        formToSubmit.appendChild(actionInput);
+
+        deleteModal.style.display = 'block';
+      }
+    });
+
+    cancelDeleteBtn.addEventListener('click', () => {
+      deleteModal.style.display = 'none';
+      // Remove that temporary hidden input if they cancel
+      const tempInput = formToSubmit.querySelector('input[name="action"][type="hidden"]');
+      if (tempInput) tempInput.remove();
+      formToSubmit = null;
+    });
+
+    confirmDeleteBtn.addEventListener('click', () => {
+      if (formToSubmit) {
+        formToSubmit.submit();
+      }
+    });
+
+    // Close on background click
+    window.addEventListener('click', (event) => {
+      if (event.target === deleteModal) {
+        deleteModal.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
