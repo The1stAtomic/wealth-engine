@@ -1,5 +1,7 @@
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, Response, session
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 import json
@@ -40,6 +42,13 @@ os.makedirs(instance_path, exist_ok=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_path, 'wealth_engine.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+# Initialize Rate Limiter (In-Memory tracking)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    storage_uri="memory://"
+)
 
 # Define database models
 class Category(db.Model):
@@ -102,6 +111,7 @@ def internal_error(error):
     return "Internal Server Error. The admin has been notified in the logs.", 500
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def login():
     error = None
     if request.method == 'POST':
@@ -121,6 +131,11 @@ def logout():
     # Destroy the session cookie
     session.pop('logged_in', None)
     return redirect(url_for('login'))
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    # e.description contains the "5 per 1 minute" message
+    return render_template('429.html', error=e.description), 429
 
 # Route for the home page
 @app.route('/', methods=['GET', 'POST'])
@@ -435,4 +450,4 @@ with app.app_context():
           pass
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
