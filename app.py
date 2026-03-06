@@ -365,8 +365,8 @@ def delete_expense(expense_id):
     logger.info(f"Transaction Deleted: ID {expense_id}")
   return redirect(url_for('home'))
 
-# Route to handle expense editing
-@app.route('/edit/<expense_id>', methods=['GET', 'POST'])
+# Route to handle expense editing (POST ONLY NOW)
+@app.route('/edit/<expense_id>', methods=['POST'])
 @requires_auth
 def edit_expense(expense_id):
     expense_to_edit = Transaction.query.get(expense_id)
@@ -374,69 +374,60 @@ def edit_expense(expense_id):
         logger.warning(f"EDIT REJECTED: Transaction ID {expense_id} not found.")
         return redirect(url_for('home'))
   
-    if request.method == 'POST':
-        # 1. SANITIZE NAME (Keep old name if new one is empty/whitespace)
-        new_name = request.form.get('item_name', '').strip()
-        if new_name:
-            expense_to_edit.name = new_name
-        
-        # 2. SANITIZE CATEGORY
-        category_choice = request.form.get('category_dropdown')
-        if category_choice == "add_new":
-            new_cat = request.form.get('new_category', '').strip().title()
-            if new_cat:
-                expense_to_edit.category_name = new_cat
-                # Ensure the new category actually exists in the Category table
-                if not Category.query.filter_by(name=new_cat).first():
-                    db.session.add(Category(name=new_cat, type=expense_to_edit.type))
-        elif category_choice:
-            expense_to_edit.category_name = category_choice
-
-        # 3. SANITIZE COST (The Crash Shield)
-        try:
-            raw_cost = request.form.get('cost')
-            if raw_cost:
-                new_price = float(raw_cost)
-                currency = request.form.get('currency', 'USD')
-                
-                # Apply your ground currency logic
-                if currency == "KHR":
-                    new_price /= 4000.0
-                
-                expense_to_edit.amount = new_price
-                expense_to_edit.currency = currency
-        except (ValueError, TypeError):
-            logger.error(f"EDIT FAILURE: Invalid cost '{raw_cost}' for ID {expense_id}. Reverting to original value.")
-            # We don't change expense_to_edit.amount here, effectively keeping the old data.
-
-        # 4. SANITIZE DATE
-        user_date = request.form.get('date')
-        if user_date:
-            try:
-                # Maintain the original time of the transaction, just update the day
-                old_timestamp = expense_to_edit.timestamp
-                old_time = old_timestamp.split(" ")[1] if " " in old_timestamp else datetime.now().strftime("%H:%M:%S")
-                expense_to_edit.timestamp = f"{user_date} {old_time}"
-            except Exception:
-                logger.warning(f"DATE ERROR: Could not parse date '{user_date}'. Keeping original timestamp.")
-
-        expense_to_edit.is_investment = request.form.get('is_investment') == 'on'
-        
-        try:
-            db.session.commit()
-            logger.info(f"SUCCESS: Transaction {expense_id} updated by Admin.")
-        except Exception as e:
-            db.session.rollback()
-            logger.critical(f"DATABASE FATAL: Update failed for {expense_id}. Error: {str(e)}")
-            
-        return redirect(url_for('home'))
-  
-    # Send a flat list of category names to keep edit.html happy
-    known_categories = [c.name for c in Category.query.order_by(Category.name).all()]
-    exchange_rates = {"USD": 1.0, "KHR": 4000.0}
+    # 1. SANITIZE NAME (Keep old name if new one is empty/whitespace)
+    new_name = request.form.get('item_name', '').strip()
+    if new_name:
+        expense_to_edit.name = new_name
     
-    return render_template('edit.html', expense=expense_to_edit, categories=known_categories, exchange_rates=exchange_rates)
+    # 2. SANITIZE CATEGORY
+    category_choice = request.form.get('category_dropdown')
+    if category_choice == "add_new":
+        new_cat = request.form.get('new_category', '').strip().title()
+        if new_cat:
+            expense_to_edit.category_name = new_cat
+            # Ensure the new category actually exists in the Category table
+            if not Category.query.filter_by(name=new_cat).first():
+                db.session.add(Category(name=new_cat, type=expense_to_edit.type))
+    elif category_choice:
+        expense_to_edit.category_name = category_choice
 
+    # 3. SANITIZE COST (The Crash Shield)
+    try:
+        raw_cost = request.form.get('cost')
+        if raw_cost:
+            new_price = float(raw_cost)
+            currency = request.form.get('currency', 'USD')
+            
+            # Apply your ground currency logic
+            if currency == "KHR":
+                new_price /= 4000.0
+            
+            expense_to_edit.amount = new_price
+            expense_to_edit.currency = currency
+    except (ValueError, TypeError):
+        logger.error(f"EDIT FAILURE: Invalid cost '{raw_cost}' for ID {expense_id}. Reverting to original value.")
+
+    # 4. SANITIZE DATE
+    user_date = request.form.get('date')
+    if user_date:
+        try:
+            # Maintain the original time of the transaction, just update the day
+            old_timestamp = expense_to_edit.timestamp
+            old_time = old_timestamp.split(" ")[1] if " " in old_timestamp else datetime.now().strftime("%H:%M:%S")
+            expense_to_edit.timestamp = f"{user_date} {old_time}"
+        except Exception:
+            logger.warning(f"DATE ERROR: Could not parse date '{user_date}'. Keeping original timestamp.")
+
+    expense_to_edit.is_investment = request.form.get('is_investment') == 'on'
+    
+    try:
+        db.session.commit()
+        logger.info(f"SUCCESS: Transaction {expense_id} updated by Admin.")
+    except Exception as e:
+        db.session.rollback()
+        logger.critical(f"DATABASE FATAL: Update failed for {expense_id}. Error: {str(e)}")
+        
+    return redirect(url_for('home'))
 # Route to manage categories
 @app.route('/categories', methods=['GET', 'POST'])
 @requires_auth
