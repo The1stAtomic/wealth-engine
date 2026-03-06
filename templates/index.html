@@ -95,30 +95,64 @@
   </div>
 
   <!-- Expense List with Sorting and Filtering -->
-  <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-
-    <h3 style="margin: 0;">Expenses <span style="color: #888; font-size: 0.6em;">[{{ expenses|length }}] RECORDED</span></h3>
-
-    <form action="/" method="get" style="margin: 0; background: none; border: none; padding: 0; box-shadow: none; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; width: 100%; max-width: fit-content;">
+  <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; width: 100%;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+      <h3 style="margin: 0;">Ledger <span style="color: #888; font-size: 0.6em;">[{{ pagination.total }}] RECORDS FOUND</span></h3>
       
-      <select name="sort" onchange="this.form.submit()" style="padding: 5px; font-size: 0.8em; background-color: #111; color: #00ccff; border: 1px solid #00ccff; cursor: pointer; outline: none; flex: 1; min-width: 140px;">
-        <option value="date_desc" {% if current_sort == 'date_desc' %}selected{% endif %}>Date (Newest First)</option>
-        <option value="date_asc" {% if current_sort == 'date_asc' %}selected{% endif %}>Date (Oldest First)</option>
-        <option value="amount_desc" {% if current_sort == 'amount_desc' %}selected{% endif %}>Amount (High to Low)</option>
-        <option value="amount_asc" {% if current_sort == 'amount_asc' %}selected{% endif %}>Amount (Low to High)</option>
-        <option value="category_asc" {% if current_sort == 'category_asc' %}selected{% endif %}>Category (A-Z)</option>
-      </select>
+      {% if current_search or current_category_filter != 'all' or current_timeframe != 'all_time' or current_sort != 'date_desc' %}
+        <a href="{{ url_for('home') }}" style="color: #ff003c; text-decoration: none; font-size: 0.8em; font-weight: bold; border: 1px solid #ff003c; padding: 2px 8px;">[CLEAR ALL]</a>
+      {% endif %}
+    </div>
 
-      <select name="timeframe" onchange="this.form.submit()" style="padding: 5px; font-size: 0.8em; background-color: #111; color: #ffcc00; border: 1px solid #ffcc00; cursor: pointer; outline: none; flex: 1; min-width: 120px;">
-        <option value="last_24_hours" {% if current_timeframe == 'last_24_hours' %}selected{% endif %}>Last 24 Hours</option>
-        <option value="last_7_days" {% if current_timeframe == 'last_7_days' %}selected{% endif %}>Last 7 Days</option>
-        <option value="last_30_days" {% if current_timeframe == 'last_30_days' %}selected{% endif %}>Last 30 Days</option>
-        <option value="last_90_days" {% if current_timeframe == 'last_90_days' %}selected{% endif %}>Last 90 Days</option>
-        <option value="all_time" {% if current_timeframe == 'all_time' %}selected{% endif %}>All Time</option>
-      </select>
+    <form action="/" method="get" id="searchForm" style="margin: 0; background: none; border: none; padding: 0; box-shadow: none; display: flex; flex-direction: column; width: 100%;">
       
+      <div style="display: flex; gap: 10px; width: 100%; height: 36px;">
+        
+        <input type="text" name="search" placeholder="Search..." value="{{ current_search }}" onfocus="this.select()" style="margin: 0; flex-grow: 1; padding: 8px 12px; font-size: 0.9em; background-color: #000; color: #00ff66; border: 1px solid #00ff66; font-family: inherit; outline: none; box-sizing: border-box; min-width: 0;" autocomplete="off">
+        
+        <button type="submit" style="margin: 0; padding: 0 15px; width: auto; background-color: rgba(0, 255, 102, 0.1); color: #00ff66; border: 1px solid #00ff66; font-family: inherit; font-weight: bold; cursor: pointer; flex-shrink: 0;">[GO]</button>
+        
+        <button type="button" id="toggleFiltersBtn" style="margin: 0; padding: 0 15px; width: auto; background-color: #111; color: #00ccff; border: 1px solid #00ccff; font-family: inherit; font-weight: bold; cursor: pointer; flex-shrink: 0;">[+] FILTERS</button>
+        
+      </div>
+
+      {% set filters_active = current_category_filter != 'all' or current_timeframe != 'all_time' or current_sort != 'date_desc' %}
+      
+      <div id="advancedFiltersPanel" style="display: {{ 'flex' if filters_active else 'none' }}; flex-wrap: wrap; gap: 10px; width: 100%; margin-top: 10px;">
+        
+        <select name="category" onchange="this.form.submit()" style="padding: 8px; font-size: 0.8em; background-color: #111; color: #00ccff; border: 1px solid #00ccff; cursor: pointer; outline: none; flex: 1; min-width: 140px; margin: 0; box-sizing: border-box;">
+          <option value="all" {% if current_category_filter == 'all' %}selected{% endif %}>All Categories</option>
+          <optgroup label="Expenses">
+            {% for cat in expense_categories %}
+              <option value="{{ cat }}" {% if current_category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </optgroup>
+          <optgroup label="Income">
+            {% for cat in income_categories %}
+              <option value="{{ cat }}" {% if current_category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </optgroup>
+        </select>
+
+        <select name="timeframe" onchange="this.form.submit()" style="padding: 8px; font-size: 0.8em; background-color: #111; color: #ffcc00; border: 1px solid #ffcc00; cursor: pointer; outline: none; flex: 1; min-width: 120px; margin: 0; box-sizing: border-box;">
+          <option value="last_24_hours" {% if current_timeframe == 'last_24_hours' %}selected{% endif %}>Last 24 Hours</option>
+          <option value="last_7_days" {% if current_timeframe == 'last_7_days' %}selected{% endif %}>Last 7 Days</option>
+          <option value="last_30_days" {% if current_timeframe == 'last_30_days' %}selected{% endif %}>Last 30 Days</option>
+          <option value="last_90_days" {% if current_timeframe == 'last_90_days' %}selected{% endif %}>Last 90 Days</option>
+          <option value="all_time" {% if current_timeframe == 'all_time' %}selected{% endif %}>All Time</option>
+        </select>
+
+        <select name="sort" onchange="this.form.submit()" style="padding: 8px; font-size: 0.8em; background-color: #111; color: #888; border: 1px solid #444; cursor: pointer; outline: none; flex: 1; min-width: 140px; margin: 0; box-sizing: border-box;">
+          <option value="date_desc" {% if current_sort == 'date_desc' %}selected{% endif %}>Date (Newest First)</option>
+          <option value="date_asc" {% if current_sort == 'date_asc' %}selected{% endif %}>Date (Oldest First)</option>
+          <option value="amount_desc" {% if current_sort == 'amount_desc' %}selected{% endif %}>Amount (High to Low)</option>
+          <option value="amount_asc" {% if current_sort == 'amount_asc' %}selected{% endif %}>Amount (Low to High)</option>
+          <option value="category_asc" {% if current_sort == 'category_asc' %}selected{% endif %}>Category (A-Z)</option>
+        </select>
+        
+      </div>
     </form>
-
   </div>
 
   <!-- Expense List -->
@@ -182,7 +216,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-top: 1px solid #333; margin-top: 10px; width: 100%; flex-wrap: nowrap;">
       
       {% if pagination.has_prev %}
-        <a href="{{ url_for('home', page=pagination.prev_num, sort=current_sort, timeframe=current_timeframe) }}" class="page-btn">[ ⬅ PREV ]</a>
+        <a href="{{ url_for('home', page=pagination.prev_num, sort=current_sort, timeframe=current_timeframe, search=current_search, category=current_category_filter) }}" class="page-btn">[ ⬅ PREV ]</a>
       {% else %}
         <span class="page-btn disabled-btn">[ ⬅ PREV ]</span>
       {% endif %}
@@ -190,7 +224,7 @@
       <span style="color: #888; font-size: 0.85em; letter-spacing: 1px; white-space: nowrap;">PAGE {{ pagination.page }} OF {{ pagination.pages }}</span>
 
       {% if pagination.has_next %}
-        <a href="{{ url_for('home', page=pagination.next_num, sort=current_sort, timeframe=current_timeframe) }}" class="page-btn">[ NEXT ➡ ]</a>
+        <a href="{{ url_for('home', page=pagination.next_num, sort=current_sort, timeframe=current_timeframe, search=current_search, category=current_category_filter) }}" class="page-btn">[ NEXT ➡ ]</a>
       {% else %}
         <span class="page-btn disabled-btn">[ NEXT ➡ ]</span>
       {% endif %}
@@ -893,6 +927,30 @@
         logoutModal.style.display = 'none';
       }
     });
+
+    // --- ADVANCED FILTERS TOGGLE ENGINE ---
+    const toggleFiltersBtn = document.getElementById('toggleFiltersBtn');
+    const advancedFiltersPanel = document.getElementById('advancedFiltersPanel');
+
+    // On page load, if the Jinja logic determined the panel should be open, update the button text
+    if (advancedFiltersPanel && advancedFiltersPanel.style.display === 'flex') {
+      toggleFiltersBtn.innerText = '[-] FILTERS';
+      toggleFiltersBtn.style.backgroundColor = 'rgba(0, 204, 255, 0.1)';
+    }
+
+    if (toggleFiltersBtn && advancedFiltersPanel) {
+      toggleFiltersBtn.addEventListener('click', () => {
+        if (advancedFiltersPanel.style.display === 'none') {
+          advancedFiltersPanel.style.display = 'flex';
+          toggleFiltersBtn.innerText = '[-] FILTERS';
+          toggleFiltersBtn.style.backgroundColor = 'rgba(0, 204, 255, 0.1)';
+        } else {
+          advancedFiltersPanel.style.display = 'none';
+          toggleFiltersBtn.innerText = '[+] FILTERS';
+          toggleFiltersBtn.style.backgroundColor = '#111';
+        }
+      });
+    }
   </script>
 </body>
 </html>

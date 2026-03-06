@@ -278,6 +278,18 @@ def home():
     elif sort_by == 'amount_asc': tx_query = tx_query.order_by(Transaction.amount.asc())
     elif sort_by == 'category_asc': tx_query = tx_query.order_by(Transaction.category_name.asc())
     
+    # 5. THE QUERY ENGINE: FUZZY SEARCH
+    search_query = request.args.get('search', '').strip()
+    if search_query:
+        # .ilike() is case-insensitive. The % signs act as wildcards.
+        # '%coffee%' matches "Morning Coffee", "coffee beans", and "COFFEE"
+        tx_query = tx_query.filter(Transaction.name.ilike(f"%{search_query}%"))
+
+    # 6. THE QUERY ENGINE: CATEGORY FILTER
+    category_filter = request.args.get('category', 'all').strip()
+    if category_filter and category_filter != 'all':
+        tx_query = tx_query.filter(Transaction.category_name == category_filter)
+    
     # 4. PAGINATION ENGINE
     try:
         page = int(request.args.get('page', 1))
@@ -340,7 +352,7 @@ def home():
     expense_categories = [c.name for c in Category.query.filter_by(type='expense').order_by(Category.name).all()]
     income_categories = [c.name for c in Category.query.filter_by(type='income').order_by(Category.name).all()]
 
-    return render_template('index.html', budget=allowable_expenses, expenses=display_log, expense_categories=expense_categories, income_categories=income_categories, category_totals=category_totals, investment_totals=investment_totals, total_income=dynamic_income, target_savings=target_savings, target_savings_percentage=target_savings_percentage, current_sort=sort_by, current_timeframe=timeframe, trend_data=trend_data, pagination=pagination)
+    return render_template('index.html', budget=allowable_expenses, expenses=display_log, expense_categories=expense_categories, income_categories=income_categories, category_totals=category_totals, investment_totals=investment_totals, total_income=dynamic_income, target_savings=target_savings, target_savings_percentage=target_savings_percentage, current_sort=sort_by, current_timeframe=timeframe, trend_data=trend_data, pagination=pagination, current_category_filter=category_filter, current_search=search_query)
 
 # Route to handle expense deletion
 @app.route('/delete/<expense_id>', methods=['POST'])
