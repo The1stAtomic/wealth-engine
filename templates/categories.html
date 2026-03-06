@@ -15,19 +15,38 @@
   <div class="scroll-box">
     <ul>
       {% for category in categories %}
-        <li style="align-items: center; border-left: 4px solid #00ccff;">
-          <div style="flex-grow: 1;">
-            <strong style="font-size: 1.2em;">{{ category }}</strong>
+        <li style="align-items: center; border-left: 4px solid #00ccff; padding: 15px; display: flex; transition: 0.2s; width: 100%; box-sizing: border-box;">
+          
+          <div class="display-mode" style="display: flex; flex-grow: 1; justify-content: space-between; align-items: center; gap: 15px; width: 100%;">
+            
+            <strong style="font-size: 1.2em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-grow: 1;" title="{{ category }}">{{ category }}</strong>
+            
+            <div style="display: flex; gap: 10px; flex-shrink: 0; align-items: center;">
+              
+              <button type="button" class="edit-btn toggle-edit-btn">[EDIT]</button>
+              
+              <form method="post" class="delete-form" style="display: contents;">
+                <input type="hidden" name="old_category" value="{{ category }}">
+                <button type="submit" name="action" value="delete" class="delete-btn">[X]</button>
+              </form>
+              
+            </div>
           </div>
 
-          <form method="post" style="margin: 0; padding: 0; border: none; background: none; display: flex; gap: 10px; align-items: center;">
-            <input type="hidden" name="old_category" autocapitalize="words" value="{{ category }}">
-
-            <input type="text" name="new_category" autocapitalize="words" placeholder="New name..." style="width: 150px; margin: 0; padding: 8px;">
-
-            <button type="submit" name="action" value="rename" class="edit-btn" style="margin: 0; padding: 8px 12px; width: auto;">[RENAME]</button>
-            <button type="submit" name="action" value="delete" class="delete-btn" style="margin: 0; padding: 8px 12px; width: auto;">[DELETE]</button>
+          <form class="edit-mode" method="post" style="display: none; flex-grow: 1; gap: 10px; align-items: center; margin: 0; padding: 0; border: none; background: none; width: 100%;">
+            <input type="hidden" name="old_category" value="{{ category }}">
+            
+            <input type="text" name="new_category" autocapitalize="words" value="{{ category }}" style="flex-grow: 1; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 1.1em; background: #000; color: #fff; border: 1px solid #444; min-width: 50px;" maxlength="50" required>
+            
+            <div style="display: flex; gap: 10px; flex-shrink: 0; align-items: center;">
+              
+              <button type="submit" name="action" value="rename" class="edit-btn" style="color: #00ff66 !important; border-color: #00ff66 !important;">[SAVE]</button>
+              
+              <button type="button" class="toggle-edit-btn" style="display: inline-flex; align-items: center; justify-content: center; height: 36px; box-sizing: border-box; padding: 0 15px; margin: 0; color: #888; border: 1px solid #444; background: transparent; font-family: inherit; font-weight: bold; font-size: 0.9em; letter-spacing: 1px; cursor: pointer; transition: 0.2s;" onmouseover="this.style.color='#fff'; this.style.borderColor='#fff'" onmouseout="this.style.color='#888'; this.style.borderColor='#444'">[CANCEL]</button>
+              
+            </div>
           </form>
+
         </li>
       {% endfor %}
     </ul>
@@ -39,8 +58,11 @@
       <p style="color: #e0e0e0; margin-bottom: 30px;">Are you sure? Deleting this category will mark all associated transactions as "Uncategorized".</p>
       
       <div style="display: flex; gap: 15px; justify-content: center;">
-        <button type="button" id="cancelDeleteBtn" style="background-color: #111; color: #888; border: 1px solid #555; flex: 1;">[CANCEL]</button>
-        <button type="button" id="confirmDeleteBtn" style="background-color: rgba(255, 0, 60, 0.1); color: #ff003c; border: 1px solid #ff003c; flex: 1;">[CONFIRM DELETE]</button>
+        
+        <button type="button" id="cancelDeleteBtn" style="background-color: #111; color: #888; border: 1px solid #555; cursor: pointer; padding: 10px 20px; white-space: nowrap; flex: 1; margin: 0;">[CANCEL]</button>
+        
+        <button type="button" id="confirmDeleteBtn" style="background-color: rgba(255, 0, 60, 0.1); color: #ff003c; border: 1px solid #ff003c; cursor: pointer; font-weight: bold; padding: 10px 20px; white-space: nowrap; flex: 1; margin: 0;">[CONFIRM DELETE]</button>
+        
       </div>
     </div>
   </div>
@@ -84,6 +106,48 @@
       if (formToSubmit) {
         formToSubmit.submit();
       }
+    });
+
+    // --- INLINE EDIT TOGGLE (Highlander Protocol) ---
+    document.querySelectorAll('.toggle-edit-btn').forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault(); 
+        
+        const currentLi = this.closest('li');
+        const displayMode = currentLi.querySelector('.display-mode');
+        const editMode = currentLi.querySelector('.edit-mode');
+        const inputField = editMode.querySelector('input[type="text"]');
+        const originalName = editMode.querySelector('input[name="old_category"]').value;
+
+        // If the user clicked [CANCEL] on a row that is already open
+        if (displayMode.style.display === 'none') {
+          displayMode.style.display = 'flex';
+          editMode.style.display = 'none';
+          inputField.value = originalName; // Revert any unsaved typing
+          return; // Stop execution here
+        } 
+
+        // If the user clicked [EDIT], first close EVERY other open row on the page
+        document.querySelectorAll('li').forEach(li => {
+          const otherDisplay = li.querySelector('.display-mode');
+          const otherEdit = li.querySelector('.edit-mode');
+          if (otherEdit && otherDisplay && otherDisplay.style.display === 'none') {
+            // Force it closed
+            otherDisplay.style.display = 'flex';
+            otherEdit.style.display = 'none';
+            // Wipe out any abandoned text they typed
+            const otherInput = otherEdit.querySelector('input[type="text"]');
+            const otherOriginal = otherEdit.querySelector('input[name="old_category"]').value;
+            otherInput.value = otherOriginal;
+          }
+        });
+
+        // Finally, open the row they actually clicked
+        displayMode.style.display = 'none';
+        editMode.style.display = 'flex';
+        inputField.focus();
+        inputField.select(); 
+      });
     });
 
     // Close on background click

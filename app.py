@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, Response, session
+from flask import Flask, render_template, request, redirect, url_for, Response, session, make_response
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
@@ -121,10 +121,19 @@ def login():
         else:
             # Success! Set the session cookie and send them to the dashboard
             session['logged_in'] = True
-            print(f"{GREEN}SUCCESS: Admin logged in.{RESET}")
+            logger.info("SUCCESS: Admin logged in.")
             return redirect(url_for('home'))
             
-    return render_template('login.html', error=error)
+    # --- THE BFCache KILLER ---
+    # Convert the template into a formal Response object so we can inject HTTP headers
+    resp = make_response(render_template('login.html', error=error))
+    
+    # Tell the browser: "Do not save a snapshot of this secure page. Always fetch fresh."
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    
+    return resp
 
 @app.route('/logout')
 def logout():
@@ -142,19 +151,31 @@ def ratelimit_handler(e):
 @requires_auth
 def home():
   # Handle new expense submission
+    # Handle new expense submission
     if request.method == 'POST':
-        expense_name = request.form.get('item_name')
-        price = float(request.form.get('cost'))
-        
+        # 1. SANITIZE STRING INPUTS (Prevent null errors and strip whitespace)
+        expense_name = request.form.get('item_name', 'Unnamed Transaction').strip()
+        if not expense_name:
+            expense_name = 'Unnamed Transaction'
+            
+        # 2. SANITIZE FLOAT INPUTS (The Crash Preventer)
+        try:
+            raw_cost = request.form.get('cost')
+            price = float(raw_cost) if raw_cost else 0.0
+        except (ValueError, TypeError):
+            logger.warning(f"SECURITY/DATA WARNING: Invalid cost submitted: '{raw_cost}'. Defaulting to 0.0")
+            price = 0.0
+
         category_choice = request.form.get('category_dropdown')
         entry_type = request.form.get('entry_type', 'expense')
         
+        # 3. SANITIZE CATEGORIES
         if category_choice == "add_new":
-            category = request.form.get('new_category').title()
+            category = request.form.get('new_category', '').strip().title()
             if not category:
                 category = "Uncategorized"
         else:
-            category = category_choice
+            category = category_choice if category_choice else "Uncategorized"
         
         currency = request.form.get('currency')
         is_investment = request.form.get('is_investment') == 'on'
@@ -222,15 +243,19 @@ def home():
     target_savings = (target_savings_percentage / 100) * dynamic_income
     allowable_expenses = dynamic_income - target_savings - dynamic_expenses
     
-    # 2. TIMEFRAME FILTERING
+    # 2. TIMEFRAME FILTERING (Sanitized with a Whitelist)
     timeframe = request.args.get('timeframe', 'all_time')
-    now = datetime.now()
+    valid_timeframes = ['all_time', 'last_24_hours', 'last_7_days', 'last_30_days', 'last_90_days']
     
-    # Start a base query for our expenses list
+    if timeframe not in valid_timeframes:
+        logger.warning(f"SPOOFING ATTEMPT: Invalid timeframe '{timeframe}' requested. Resetting to all_time.")
+        timeframe = 'all_time'
+
+    now = datetime.now()
     tx_query = Transaction.query
     
-    # If not all_time, calculate the cutoff date and apply it to the SQL query
     if timeframe != 'all_time':
+        # (Your existing cutoff logic is fine as long as 'timeframe' is validated above)
         if timeframe == 'last_24_hours': cutoff = now - timedelta(days=1)
         elif timeframe == 'last_7_days': cutoff = now - timedelta(days=7)
         elif timeframe == 'last_30_days': cutoff = now - timedelta(days=30)
@@ -238,9 +263,14 @@ def home():
         
         cutoff_str = cutoff.strftime("%Y-%m-%d %H:%M:%S")
         tx_query = tx_query.filter(Transaction.timestamp >= cutoff_str)
-        
-    # 3. SORTING (Done by the database engine)
+
+    # 3. SORTING (Sanitized with a Whitelist)
     sort_by = request.args.get('sort', 'date_desc')
+    valid_sorts = ['date_desc', 'date_asc', 'amount_desc', 'amount_asc', 'category_asc']
+
+    if sort_by not in valid_sorts:
+        logger.warning(f"SPOOFING ATTEMPT: Invalid sort '{sort_by}' requested. Resetting to date_desc.")
+        sort_by = 'date_desc'
     
     if sort_by == 'date_desc': tx_query = tx_query.order_by(Transaction.timestamp.desc())
     elif sort_by == 'date_asc': tx_query = tx_query.order_by(Transaction.timestamp.asc())
@@ -248,8 +278,17 @@ def home():
     elif sort_by == 'amount_asc': tx_query = tx_query.order_by(Transaction.amount.asc())
     elif sort_by == 'category_asc': tx_query = tx_query.order_by(Transaction.category_name.asc())
     
-    # Execute the query to get our final list of transactions
-    transactions = tx_query.all()
+    # 4. PAGINATION ENGINE
+    try:
+        page = int(request.args.get('page', 1))
+    except (ValueError, TypeError):
+        page = 1
+        
+    per_page = 25  # Number of items per "chunk"
+    
+    # error_out=False prevents a 404 if someone types page=999999
+    pagination = tx_query.paginate(page=page, per_page=per_page, error_out=False)
+    transactions = pagination.items
     
     # Convert SQLAlchemy objects to dictionaries so we don't break your Jinja HTML
     display_log = [
@@ -301,7 +340,7 @@ def home():
     expense_categories = [c.name for c in Category.query.filter_by(type='expense').order_by(Category.name).all()]
     income_categories = [c.name for c in Category.query.filter_by(type='income').order_by(Category.name).all()]
 
-    return render_template('index.html', budget=allowable_expenses, expenses=display_log, expense_categories=expense_categories, income_categories=income_categories, category_totals=category_totals, investment_totals=investment_totals, total_income=dynamic_income, target_savings=target_savings, target_savings_percentage=target_savings_percentage, current_sort=sort_by, current_timeframe=timeframe, trend_data=trend_data)
+    return render_template('index.html', budget=allowable_expenses, expenses=display_log, expense_categories=expense_categories, income_categories=income_categories, category_totals=category_totals, investment_totals=investment_totals, total_income=dynamic_income, target_savings=target_savings, target_savings_percentage=target_savings_percentage, current_sort=sort_by, current_timeframe=timeframe, trend_data=trend_data, pagination=pagination)
 
 # Route to handle expense deletion
 @app.route('/delete/<expense_id>', methods=['POST'])
@@ -318,49 +357,73 @@ def delete_expense(expense_id):
 @app.route('/edit/<expense_id>', methods=['GET', 'POST'])
 @requires_auth
 def edit_expense(expense_id):
-  expense_to_edit = Transaction.query.get(expense_id)
-  if not expense_to_edit:
-    return redirect(url_for('home'))
+    expense_to_edit = Transaction.query.get(expense_id)
+    if not expense_to_edit:
+        logger.warning(f"EDIT REJECTED: Transaction ID {expense_id} not found.")
+        return redirect(url_for('home'))
   
-  if request.method == 'POST':
-    expense_to_edit.name = request.form.get('item_name')
-    
-    category_choice = request.form.get('category_dropdown')
-    if category_choice == "add_new":
-      category = request.form.get('new_category').title()
-      if not category:
-        category = "Uncategorized"
-      expense_to_edit.category_name = category
-      
-      if not Category.query.filter_by(name=category).first():
-        db.session.add(Category(name=category, type=expense_to_edit.type))
-    else:
-      expense_to_edit.category_name = category_choice
-      
-    new_price = float(request.form.get('cost'))
-    currency = request.form.get('currency')
-    if currency == "KHR":
-      new_price /= 4000.0
-      
-    expense_to_edit.amount = new_price
-    expense_to_edit.currency = currency
-    
-    user_date = request.form.get('date')
-    if user_date:
-      old_timestamp = expense_to_edit.timestamp
-      old_time = old_timestamp.split(" ")[1] if " " in old_timestamp else datetime.now().strftime("%H:%M:%S")
-      expense_to_edit.timestamp = f"{user_date} {old_time}"
-      
-    expense_to_edit.is_investment = request.form.get('is_investment') == 'on'
-    
-    db.session.commit()
-    return redirect(url_for('home'))
+    if request.method == 'POST':
+        # 1. SANITIZE NAME (Keep old name if new one is empty/whitespace)
+        new_name = request.form.get('item_name', '').strip()
+        if new_name:
+            expense_to_edit.name = new_name
+        
+        # 2. SANITIZE CATEGORY
+        category_choice = request.form.get('category_dropdown')
+        if category_choice == "add_new":
+            new_cat = request.form.get('new_category', '').strip().title()
+            if new_cat:
+                expense_to_edit.category_name = new_cat
+                # Ensure the new category actually exists in the Category table
+                if not Category.query.filter_by(name=new_cat).first():
+                    db.session.add(Category(name=new_cat, type=expense_to_edit.type))
+        elif category_choice:
+            expense_to_edit.category_name = category_choice
+
+        # 3. SANITIZE COST (The Crash Shield)
+        try:
+            raw_cost = request.form.get('cost')
+            if raw_cost:
+                new_price = float(raw_cost)
+                currency = request.form.get('currency', 'USD')
+                
+                # Apply your ground currency logic
+                if currency == "KHR":
+                    new_price /= 4000.0
+                
+                expense_to_edit.amount = new_price
+                expense_to_edit.currency = currency
+        except (ValueError, TypeError):
+            logger.error(f"EDIT FAILURE: Invalid cost '{raw_cost}' for ID {expense_id}. Reverting to original value.")
+            # We don't change expense_to_edit.amount here, effectively keeping the old data.
+
+        # 4. SANITIZE DATE
+        user_date = request.form.get('date')
+        if user_date:
+            try:
+                # Maintain the original time of the transaction, just update the day
+                old_timestamp = expense_to_edit.timestamp
+                old_time = old_timestamp.split(" ")[1] if " " in old_timestamp else datetime.now().strftime("%H:%M:%S")
+                expense_to_edit.timestamp = f"{user_date} {old_time}"
+            except Exception:
+                logger.warning(f"DATE ERROR: Could not parse date '{user_date}'. Keeping original timestamp.")
+
+        expense_to_edit.is_investment = request.form.get('is_investment') == 'on'
+        
+        try:
+            db.session.commit()
+            logger.info(f"SUCCESS: Transaction {expense_id} updated by Admin.")
+        except Exception as e:
+            db.session.rollback()
+            logger.critical(f"DATABASE FATAL: Update failed for {expense_id}. Error: {str(e)}")
+            
+        return redirect(url_for('home'))
   
-  # Send a flat list of category names to keep edit.html happy
-  known_categories = [c.name for c in Category.query.order_by(Category.name).all()]
-  exchange_rates = {"USD": 1.0, "KHR": 4000.0}
-  
-  return render_template('edit.html', expense=expense_to_edit, categories=known_categories, exchange_rates=exchange_rates)
+    # Send a flat list of category names to keep edit.html happy
+    known_categories = [c.name for c in Category.query.order_by(Category.name).all()]
+    exchange_rates = {"USD": 1.0, "KHR": 4000.0}
+    
+    return render_template('edit.html', expense=expense_to_edit, categories=known_categories, exchange_rates=exchange_rates)
 
 # Route to manage categories
 @app.route('/categories', methods=['GET', 'POST'])
@@ -371,7 +434,7 @@ def manage_categories():
       old_category = request.form.get('old_category')
       
       if action == 'rename':
-        new_category = request.form.get('new_category').title()
+        new_category = request.form.get('new_category', '').strip().title()
         if new_category and new_category != old_category:
             # Check if the target category name already exists
             existing_cat = Category.query.filter_by(name=new_category).first()
@@ -386,6 +449,7 @@ def manage_categories():
                 Category.query.filter_by(name=old_category).update({"name": new_category})
                 
             db.session.commit()
+            logger.info(f"CAT_MGMT: Renamed '{old_category}' to '{new_category}'")
         
       return redirect(url_for('manage_categories'))
     
@@ -396,14 +460,53 @@ def manage_categories():
 @app.route('/update_savings', methods=['GET', 'POST'])
 @requires_auth
 def update_savings():
-  settings_obj = Setting.query.first()
-  if not settings_obj:
-    settings_obj = Setting(target_savings_percentage=0.0)
-    db.session.add(settings_obj)
+    settings_obj = Setting.query.first()
+    if not settings_obj:
+        settings_obj = Setting(target_savings_percentage=0.0)
+        db.session.add(settings_obj)
   
-  settings_obj.target_savings_percentage = float(request.form.get('target_savings_percentage', 0.0))
-  db.session.commit()
-  return redirect(url_for('home'))
+    try:
+        raw_percentage = request.form.get('target_savings_percentage')
+        # We clamp it between 0 and 100 because negative savings makes no sense
+        new_val = float(raw_percentage) if raw_percentage else 0.0
+        settings_obj.target_savings_percentage = max(0, min(100, new_val))
+        db.session.commit()
+        logger.info(f"SETTINGS: Savings target updated to {settings_obj.target_savings_percentage}%")
+    except (ValueError, TypeError):
+        logger.warning(f"SETTINGS ERROR: Invalid percentage '{raw_percentage}' submitted.")
+        db.session.rollback()
+
+    return redirect(url_for('home'))
+
+@app.route('/export_data', methods=['GET'])
+@requires_auth
+def export_data():
+    transaction = Transaction.query.order_by(Transaction.timestamp.asc()).all()
+    
+    export_list = []
+    for t in transaction:
+        export_list.append({
+            "id": t.id,
+            "type": t.type,
+            "name": t.name,
+            "amount": t.amount,
+            "currency": t.currency,
+            "category": t.category_name,
+            "timestamp": t.timestamp,
+            "is_investment": t.is_investment
+        })
+    json_data = json.dumps(export_list, indent=4)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"wealth_engine_backup_{timestamp}.json"
+    
+    logger.info(f"SECURITY EVENT: Admin triggered full database export -> {filename}")
+    
+    return Response(
+        json_data,
+        mimetype='application/json',
+        headers={'Content-Disposition': f'attachment;filename={filename}'}
+    )
 
 # Initialize the database and migrate existing JSON data if needed
 with app.app_context():

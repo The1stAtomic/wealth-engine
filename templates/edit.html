@@ -13,7 +13,7 @@
   <form method="post">
     <label>Transaction Details:</label>
     <div style="display: flex; gap: 10px; margin: 10px 0;">
-      <input type="text" name="item_name" autocapitalize="words" value="{{ expense.name }}" style="flex: 2; margin: 0;" required>
+      <input type="text" name="item_name" autocapitalize="words" value="{{ expense.name }}" style="flex: 2; margin: 0;" maxlength="100" required>
 
       <input type="date" name="date" value="{{ expense.timestamp[:10] }}" style="flex: 1; margin: 0;" required>
     </div>

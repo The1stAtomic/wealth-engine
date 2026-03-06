@@ -20,21 +20,22 @@
   </style>
 </head>
 <body>
-  <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #ff003c; padding-bottom: 10px; margin-bottom: 20px; gap: 15px;">
-    
+  <div style="border-bottom: 3px solid #ff003c; padding-bottom: 10px; margin-bottom: 20px;">
     <h1 style="border-bottom: none; padding-bottom: 0; margin: 0;">Root Access Wealth Engine</h1>
-    
-    <a href="{{ url_for('logout') }}" id="logoutBtn">[LOGOUT]</a>
-    
   </div>
-  <h2>Remaining Budget: ${{ "%.2f"|format(budget | default(0, true)) }}</h2>
+
+  <div class="financial-controls-container">
+    <h2 style="margin: 0;">Remaining Budget: <span class="money" data-usd="{{ budget | default(0, true) }}">${{ "%.2f"|format(budget | default(0, true)) }}</span></h2>
+    
+    <button id="currencyToggleBtn" class="hud-toggle-btn">[ ⇄ TO KHR ]</button>
+  </div>
   
 
   <!-- System Readouts -->
   <div class="system-readout">
     <div class="stat-box" style="border-left-color: #00ff66;">
       <span class="stat-label">Total Cash In</span>
-      <span class="stat-value">${{ "%.2f"|format(total_income | default(0, true)) }}</span>
+      <span class="stat-value money" data-usd="{{ total_income | default(0, true) }}">${{ "%.2f"|format(total_income | default(0, true)) }}</span>
     </div>
     <div class="stat-box" style="border-left-color: #ff003c;">
       <span class="stat-label">Total Cash Out</span>
@@ -42,7 +43,7 @@
       {% for e in expenses if e.get('type', 'expense') == 'expense' %}
         {% set total_out.value = total_out.value + e.amount %}
       {% endfor %}
-      <span class="stat-value">${{ "%.2f"|format(total_out.value | default(0, true)) }}</span>
+      <span class="stat-value money" data-usd="{{ total_out.value | default(0, true) }}">${{ "%.2f"|format(total_out.value | default(0, true)) }}</span>
     </div>
     
     <!-- Target Savings with inline editing -->
@@ -53,16 +54,17 @@
         <a href="#" id="editSavingsBtn">[EDIT]</a>
       </div>
       
-      <span class="stat-value" id="savingsDisplayValue">${{ "%.2f"|format(target_savings | default(0, true)) }}</span>
+      <span class="stat-value money" id="savingsDisplayValue" data-usd="{{ target_savings | default(0, true) }}">${{ "%.2f"|format(target_savings | default(0, true)) }}</span>
 
-      <form action="/update_savings" method="post" id="savingsEditForm" style="display: none; align-items: stretch; margin: 0; padding: 0; border: none; background: none; gap: 8px; height: 32px; box-shadow: none;">
+      <form action="/update_savings" method="post" id="savingsEditForm" style="display: none; align-items: center; margin: 0; padding: 0; border: none; background: none; gap: 8px; width: fit-content;">
         
-        <div style="position: relative; width: 170px;">
+        <div style="position: relative; width: 100px; height: 36px; flex-shrink: 0;">
           <input type="number" class="no-spinners" id="savingsPercentInput" name="target_savings_percentage" step="0.01" inputmode="decimal" value="{{ target_savings_percentage }}" style="width: 100%; height: 100%; padding: 5px 25px 5px 10px; background-color: #000; color: #ffcc00; border: 1px solid #444; font-family: 'Courier New', monospace; font-size: 1.1em; outline: none; box-sizing: border-box; text-align: right; margin: 0;" required>
           <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #666; font-size: 0.9em; pointer-events: none;">%</span>
         </div>
         
-        <button type="submit" style="margin: 0; padding: 0 15px; background-color: rgba(255, 204, 0, 0.1); color: #ffcc00; border: 1px solid #444; cursor: pointer; font-family: inherit; font-weight: bold; font-size: 0.9em; flex-grow: 1; transition: 0.2s;" onmouseover="this.style.borderColor='#ffcc00'" onmouseout="this.style.borderColor='#444'">SAVE</button>
+        <button type="submit" style="margin: 0; padding: 0 15px; background-color: rgba(255, 204, 0, 0.1); color: #ffcc00; border: 1px solid #444; cursor: pointer; font-family: inherit; font-weight: bold; font-size: 0.9em; flex-shrink: 0; transition: 0.2s; height: 36px; width: auto;" onmouseover="this.style.borderColor='#ffcc00'" onmouseout="this.style.borderColor='#444'">SAVE</button>
+      
       </form>
 
     </div>
@@ -135,19 +137,23 @@
           {% set tx_prefix = '[+]' %}
         {% endif %}
 
-        <li class="{{ tx_class }}" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+        <li class="{{ tx_class }}" style="display: flex; align-items: center; justify-content: space-between; padding: 15px; gap: 20px;">
           
-          <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;">
-            <span class="expense-name" style="font-size: 1.1em;">
-              <strong>{{ tx_prefix }}</strong> {{ expense.name }}
-            </span>
-            <span class="expense-meta" style="color: #666; font-size: 0.85em;">
-              [{{ expense.category }}] // [{{ (expense.timestamp | string)[:10] }}]
-            </span>
+          <div style="display: flex; gap: 10px; align-items: baseline; flex-grow: 1; min-width: 0;">
+            
+            <strong class="expense-name" style="font-size: 1.1em; flex-shrink: 0;">{{ tx_prefix }}</strong>
+            
+            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+              <span class="expense-name" style="font-size: 1.1em; word-break: break-word; overflow-wrap: break-word;">{{ expense.name }}</span>
+              <span class="expense-meta" style="color: #666; font-size: 0.85em;">
+                [{{ expense.category }}] // [{{ (expense.timestamp | string)[:10] }}]
+              </span>
+            </div>
+
           </div>
           
-          <div style="display: flex; align-items: center; gap: 20px;">
-            <strong style="font-size: 1.1em; letter-spacing: 1px;">
+          <div style="display: flex; align-items: center; gap: 20px; flex-shrink: 0;">
+            <strong class="money" data-usd="{{ expense.amount | default(0, true) }}" style="font-size: 1.1em; letter-spacing: 1px; white-space: nowrap;">
               ${{ "%.2f"|format(expense.amount | default(0, true)) }}
             </strong>
 
@@ -163,6 +169,25 @@
         </li>
       {% endfor %}
     </ul>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-top: 1px solid #333; margin-top: 10px; width: 100%; flex-wrap: nowrap;">
+      
+      {% if pagination.has_prev %}
+        <a href="{{ url_for('home', page=pagination.prev_num, sort=current_sort, timeframe=current_timeframe) }}" class="page-btn">[ ⬅ PREV ]</a>
+      {% else %}
+        <span class="page-btn disabled-btn">[ ⬅ PREV ]</span>
+      {% endif %}
+
+      <span style="color: #888; font-size: 0.85em; letter-spacing: 1px; white-space: nowrap;">PAGE {{ pagination.page }} OF {{ pagination.pages }}</span>
+
+      {% if pagination.has_next %}
+        <a href="{{ url_for('home', page=pagination.next_num, sort=current_sort, timeframe=current_timeframe) }}" class="page-btn">[ NEXT ➡ ]</a>
+      {% else %}
+        <span class="page-btn disabled-btn">[ NEXT ➡ ]</span>
+      {% endif %}
+      
+    </div>
+
   </div>
 
   <!-- Modal for Confirming Deletion -->
@@ -200,7 +225,7 @@
           <label for="incomeType" class="toggle-btn income-toggle">[INCOME]</label>
         </div>
         <div style="display: flex; gap: 10px; margin: 10px 0;">
-          <input type="text" name="item_name" autocapitalize="words" id="itemNameInput" placeholder="Expense Name" style="flex: 2; margin: 0;" required>
+          <input type="text" name="item_name" autocapitalize="words" id="itemNameInput" placeholder="Expense Name" style="flex: 2; margin: 0;" maxlength="100" required>
           <input type="date" name="date" id="expenseDate" style="flex: 1; margin: 0;" required>
         </div>
         
@@ -230,10 +255,14 @@
         
         <input type="text" autocapitalize="words" name="new_category" id="new_category_input" placeholder="Type new category here..." style="display: none;">
         
-        <div class="checkbox-wrapper" id="investmentWrapper">
-          <label for="is_investment">Is this an investment?</label>
-          <input type="checkbox" name="is_investment" id="is_investment">
+        <div class="checkbox-wrapper" id="investmentWrapper" style="align-items: flex-start;">
+          <input type="checkbox" name="is_investment" id="is_investment" style="margin-top: 2px;">
+          <label for="is_investment" style="display: flex; flex-direction: column;">
+            <span>Is this an investment?</span>
+            <span style="color: #666; font-size: 0.8em; font-weight: normal; margin-top: 4px; letter-spacing: 0.5px;">> Separates assets from daily expenses</span>
+          </label>
         </div>
+
         <div class="modal-actions" style="margin-top: 20px;">
           <button type="button" id="mobileCancelBtn" class="mobile-only-cancel" style="background-color: #111; color: #888; border: 1px solid #555;">[CANCEL]</button>
           
@@ -256,6 +285,20 @@
       </div>
 
     </div>
+  </div>
+
+  <div style="margin-top: 50px; padding-top: 30px; border-top: 1px dashed #444; display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 30px;">
+    
+    <span style="color: #555; font-size: 0.85em; letter-spacing: 3px; font-weight: bold; pointer-events: none;">/// ROOT SYSTEM CONTROLS ///</span>
+
+    <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; width: 100%;">
+      
+      <a href="{{ url_for('export_data') }}" id="exportBtn" style="padding: 10px 20px; font-size: 1.1em; border-width: 2px; color: #00ff66; border: 1px solid #00ff66; text-decoration: none; font-weight: bold; letter-spacing: 1px; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-sizing: border-box;">[ EXPORT DATA ]</a>
+      
+      <a href="{{ url_for('logout') }}" id="logoutBtn" style="padding: 10px 20px; font-size: 1.1em; border-width: 2px; color: #ff0033; border: 1px solid #ff0033; text-decoration: none; font-weight: bold; letter-spacing: 1px; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; box-sizing: border-box;">[ DISCONNECT SYSTEM ]</a>
+      
+    </div>
+
   </div>
 
   <script>
@@ -305,6 +348,94 @@
         savingsDisplayValue.style.color = '#ffcc00'; 
       }
     });
+
+    // --- MULTI-CURRENCY HOLOGRAPHIC ENGINE ---
+    const currencyToggleBtn = document.getElementById('currencyToggleBtn');
+    let isUSD = true;
+    const KHR_RATE = 4000;
+
+    currencyToggleBtn.addEventListener('click', () => {
+      isUSD = !isUSD;
+      
+      // Flip the button aesthetics
+      // Flip the button aesthetics
+      // Flip the button text
+      currencyToggleBtn.innerText = isUSD ? '[ ⇄ TO KHR ]' : '[ ⇄ TO USD ]';
+      
+      // THE FIX: Let CSS handle the colors. Just toggle a state class.
+      currencyToggleBtn.classList.toggle('khr-mode', !isUSD);
+
+      // Sweep the DOM and update every tagged money element
+      document.querySelectorAll('.money').forEach(el => {
+        let baseUsd = parseFloat(el.getAttribute('data-usd'));
+        if (isNaN(baseUsd)) return;
+
+        if (isUSD) {
+          el.innerText = '$' + baseUsd.toFixed(2);
+        } else {
+          // KHR doesn't use decimals, and we add commas for readability
+          let khrValue = Math.round(baseUsd * KHR_RATE);
+          el.innerText = khrValue.toLocaleString() + ' ៛';
+        }
+      });
+
+      // --- HOLOGRAPHIC CHART REDRAW PROTOCOL ---
+      
+      // 1. Recalculate and update the Category Doughnut
+      catChart.data.datasets[0].data = Object.values(categoryData).map(v => 
+        isUSD ? v : Math.round(v * KHR_RATE)
+      );
+      catChart.update();
+
+      // 2. Recalculate and update the Investment Bar Chart
+      invChart.data.datasets[0].data = Object.values(investmentData).map(v => 
+        isUSD ? v : Math.round(v * KHR_RATE)
+      );
+      invChart.data.datasets[0].label = isUSD ? 'Total USD' : 'Total KHR';
+      invChart.update();
+
+      // 3. Recalculate and update the Trend Line Chart
+      trnChart.data.datasets[0].data = Object.values(trendData).map(v => 
+        isUSD ? v : Math.round(v * KHR_RATE)
+      );
+      trnChart.data.datasets[0].label = isUSD ? 'Total Spent ($)' : 'Total Spent (៛)';
+      trnChart.update();
+    });
+
+    // --- PATCH FOR THE SAVINGS LIVE PREVIEW ---
+    // Update your existing savingsPercentInput event listener to respect the active currency
+    savingsPercentInput.addEventListener('input', (e) => {
+      let currentPercent = parseFloat(e.target.value) || 0;
+      
+      if (currentPercent === originalPercentage) {
+        // We trigger the toggle click logic manually to reset it to the correct active currency state
+        savingsDisplayValue.style.color = '#e0e0e0'; 
+        let baseUsd = parseFloat(savingsDisplayValue.getAttribute('data-usd'));
+        savingsDisplayValue.innerText = isUSD ? '$' + baseUsd.toFixed(2) : (Math.round(baseUsd * KHR_RATE)).toLocaleString() + ' ៛';
+      } else {
+        let newDollarAmount = (currentPercent / 100) * totalDynamicIncome;
+        savingsDisplayValue.style.color = '#ffcc00'; 
+        savingsDisplayValue.innerText = isUSD ? '$' + newDollarAmount.toFixed(2) : (Math.round(newDollarAmount * KHR_RATE)).toLocaleString() + ' ៛';
+      }
+    });
+
+    // --- TRANSACTION LOCKOUT PROTOCOL (Anti-Double Submit) ---
+    const addExpenseForm = document.querySelector('#addExpenseModal form');
+    const submitExpenseBtn = document.getElementById('submitBtn');
+
+    if (addExpenseForm && submitExpenseBtn) {
+      addExpenseForm.addEventListener('submit', () => {
+        // Instantly disable the button so it cannot be clicked again
+        submitExpenseBtn.disabled = true;
+        
+        // Change the aesthetics to show processing state
+        submitExpenseBtn.style.backgroundColor = '#444';
+        submitExpenseBtn.style.color = '#888';
+        submitExpenseBtn.style.borderColor = '#444';
+        submitExpenseBtn.style.cursor = 'not-allowed';
+        submitExpenseBtn.textContent = '[ PROCESSING... ]';
+      });
+    }
 
     // Modal functionality
     const modal = document.getElementById('addExpenseModal');
@@ -381,7 +512,7 @@
         const isInvestmentCheckbox = document.getElementById('is_investment');
 
         if (e.target.value === 'income') {
-          itemNameInput.placeholder = 'Payer / Client (e.g., Tech Corp, John Doe)';
+          itemNameInput.placeholder = 'Income Name';
           
           // FIX 1: Hide AND uncheck the investment box to prevent phantom data
           investmentWrapper.style.display = 'none';
@@ -400,7 +531,7 @@
           
         } else {
           itemNameInput.placeholder = 'Expense Name';
-          investmentWrapper.style.display = 'flex';
+          investmentWrapper.style.display = '';
           submitBtn.textContent = 'ADD EXPENSE';
 
           // Swap active dropdowns
@@ -446,7 +577,7 @@
 
     // Category Distribution Chart
     const ctxCategory = document.getElementById('categoryChart').getContext('2d');
-    new Chart(ctxCategory, {
+    let catChart = new Chart(ctxCategory, {
       type: 'doughnut',
       data: {
         labels: Object.keys(categoryData),
@@ -468,7 +599,7 @@
 
     // Investment vs Sunk Costs Chart
     const ctxInvestment = document.getElementById('investmentChart').getContext('2d');
-    new Chart(ctxInvestment, {
+    let invChart = new Chart(ctxInvestment, {
       type: 'bar',
       data: {
         labels: Object.keys(investmentData),
@@ -496,7 +627,7 @@
 
     // Expense Trend Line Chart
     const ctxTrend = document.getElementById('trendChart').getContext('2d');
-    new Chart(ctxTrend, {
+    let trnChart = new Chart(ctxTrend, {
       type: 'line',
       data: {
         labels: Object.keys(trendData),
