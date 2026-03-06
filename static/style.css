@@ -857,7 +857,8 @@ button:active,
   /* --- ADD EXPENSE MOBILE UX SWAP --- */
   
   /* 1. Hide the top-right [X] */
-  #addExpenseModal .close-modal {
+  #addExpenseModal .close-modal,
+  #editModal .close-modal {
     display: none !important;
   }
 

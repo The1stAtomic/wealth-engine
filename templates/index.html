@@ -158,7 +158,16 @@
             </strong>
 
             <div style="display: flex; gap: 10px;">
-              <a href="{{ url_for('edit_expense', expense_id=expense.id) }}" class="edit-btn">[EDIT]</a>
+              <button type="button" class="edit-btn trigger-edit-modal"
+                data-id="{{ expense.id }}"
+                data-name="{{ expense.name }}"
+                data-amount="{{ expense.amount }}"
+                data-date="{{ (expense.timestamp | string)[:10] }}"
+                data-type="{{ expense.get('type', 'expense') }}"
+                data-category="{{ expense.category }}"
+                data-invest="{{ 'true' if expense.is_investment else 'false' }}">
+                [EDIT]
+              </button>
 
               <form action="{{ url_for('delete_expense', expense_id=expense.id) }}" method="post" class="delete-form" style="margin: 0; padding: 0; border: none; background: none;">
                 <button type="submit" class="delete-btn">[X]</button>
@@ -272,6 +281,72 @@
     </div>
   </div>
 
+  <!-- Modal for Editing Existing Expense -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
+        <h2 style="margin: 0; color: #e0e0e0; font-size: 1.5em; text-transform: uppercase;">Edit Record</h2>
+        <span class="close-modal" id="closeEditModalBtn">[X]</span>
+      </div>
+
+      <div style="margin-bottom: 20px; font-weight: bold; font-size: 1.2em; line-height: 1.4;">
+        <span style="color: #00ff66;">ID:</span> <span id="editIdDisplay" style="color: #888; font-size: 0.8em; font-family: 'Courier New', monospace; word-break: break-all;"></span>
+      </div>
+
+      <form method="post" id="editForm" action="">
+        
+        <div style="display: none;">
+          <input type="radio" id="editExpenseType" name="entry_type" value="expense">
+          <input type="radio" id="editIncomeType" name="entry_type" value="income">
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin: 10px 0;">
+          <input type="text" name="item_name" id="editItemName" autocapitalize="words" placeholder="Transaction Name" style="flex: 2; margin: 0;" maxlength="100" required>
+          <input type="date" name="date" id="editExpenseDate" style="flex: 1; margin: 0;" required>
+        </div>
+        
+        <div class="currency-group">
+          <input type="number" name="cost" id="editCost" class="no-spinner" step="0.01" inputmode="decimal" placeholder="Amount" required>
+          <select name="currency" style="pointer-events: none; background-color: #222; color: #888;">
+            <option value="USD" selected>USD</option>
+          </select>
+        </div>
+        
+        <select name="category_dropdown" id="editExpenseCategorySelect" required>
+          <option value="" disabled>Select an expense category...</option>
+          {% for category in expense_categories %}
+            <option value="{{ category }}">{{ category }}</option>
+          {% endfor %}
+          <option value="add_new">Add new category...</option>
+        </select>
+
+        <select name="category_dropdown" id="editIncomeCategorySelect" disabled style="display: none;" required>
+          <option value="" disabled>Select an income type...</option>
+          {% for category in income_categories %}
+            <option value="{{ category }}">{{ category }}</option>
+          {% endfor %}
+          <option value="add_new">Add new category...</option>
+        </select>
+        
+        <input type="text" autocapitalize="words" name="new_category" id="edit_new_category_input" placeholder="Type new category here..." style="display: none;">
+        
+        <div class="checkbox-wrapper" id="editInvestmentWrapper" style="align-items: flex-start;">
+          <input type="checkbox" name="is_investment" id="edit_is_investment" style="margin-top: 2px;">
+          <label for="edit_is_investment" style="display: flex; flex-direction: column;">
+            <span>Mark as Investment</span>
+          </label>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button type="button" id="editCancelBtn" class="mobile-only-cancel" style="background-color: #111; color: #888; border: 1px solid #555;">[CANCEL]</button>
+          <button type="submit" id="editSubmitBtn" style="margin: 0;">UPDATE RECORD</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
   <!-- Modal for Confirming Logout -->
   <div class="modal" id="logoutModal">
     <div class="modal-content" style="border: 2px solid #ffcc00; max-width: 400px; text-align: center;">
@@ -287,6 +362,7 @@
     </div>
   </div>
 
+  <!-- Root System Controls -->
   <div style="margin-top: 50px; padding-top: 30px; border-top: 1px dashed #444; display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 30px;">
     
     <span style="color: #555; font-size: 0.85em; letter-spacing: 3px; font-weight: bold; pointer-events: none;">/// ROOT SYSTEM CONTROLS ///</span>
@@ -567,6 +643,125 @@
       handleCategoryChange(this);
     });
 
+    // --- THE INJECTION ENGINE: DYNAMIC EDIT MODAL ---
+    const editModal = document.getElementById('editModal');
+    const closeEditModalBtn = document.getElementById('closeEditModalBtn');
+    const editCancelBtn = document.getElementById('editCancelBtn');
+    const editForm = document.getElementById('editForm');
+    const editIdDisplay = document.getElementById('editIdDisplay');
+    
+    // The Modal Inputs
+    const editItemName = document.getElementById('editItemName');
+    const editCost = document.getElementById('editCost');
+    const editExpenseDate = document.getElementById('editExpenseDate');
+    const editExpenseType = document.getElementById('editExpenseType');
+    const editIncomeType = document.getElementById('editIncomeType');
+    const editExpenseCategorySelect = document.getElementById('editExpenseCategorySelect');
+    const editIncomeCategorySelect = document.getElementById('editIncomeCategorySelect');
+    const editInvestmentWrapper = document.getElementById('editInvestmentWrapper');
+    const editIsInvestment = document.getElementById('edit_is_investment');
+    const editNewCategoryInput = document.getElementById('edit_new_category_input');
+
+    // Attach listeners to every smart button
+    document.querySelectorAll('.trigger-edit-modal').forEach(button => {
+      button.addEventListener('click', function() {
+        // 1. Extract the payload from the button's data attributes
+        const id = this.dataset.id;
+        const name = this.dataset.name;
+        const amount = this.dataset.amount;
+        const date = this.dataset.date;
+        const type = this.dataset.type;
+        const category = this.dataset.category;
+        const isInvest = this.dataset.invest === 'true';
+
+        // 2. Inject the URL into the form action and display a truncated "Short Hash" ID
+        editForm.action = `/edit/${id}`;
+        editIdDisplay.innerText = String(id).substring(0, 8).toUpperCase();
+        editIdDisplay.title = id;
+
+        // 3. Inject text and numbers
+        editItemName.value = name;
+        editCost.value = parseFloat(amount).toFixed(2);
+        editExpenseDate.value = date;
+
+        // 4. Synchronize Dropdowns & Radio Buttons
+        if (type === 'income') {
+          editIncomeType.checked = true;
+          editInvestmentWrapper.style.display = 'none';
+          editIsInvestment.checked = false;
+          
+          editExpenseCategorySelect.style.display = 'none';
+          editExpenseCategorySelect.disabled = true;
+          
+          editIncomeCategorySelect.style.display = 'block';
+          editIncomeCategorySelect.disabled = false;
+          editIncomeCategorySelect.value = category;
+        } else {
+          editExpenseType.checked = true;
+          editInvestmentWrapper.style.display = '';
+          editIsInvestment.checked = isInvest;
+          
+          editIncomeCategorySelect.style.display = 'none';
+          editIncomeCategorySelect.disabled = true;
+          
+          editExpenseCategorySelect.style.display = 'block';
+          editExpenseCategorySelect.disabled = false;
+          editExpenseCategorySelect.value = category;
+        }
+
+        // Hide "new category" input by default on open
+        editNewCategoryInput.style.display = 'none';
+        editNewCategoryInput.required = false;
+
+        // 5. Fire the Modal
+        editModal.style.display = 'block';
+      });
+    });
+
+    // Close Modal Logic
+    const closeEdit = () => { editModal.style.display = 'none'; };
+    closeEditModalBtn.addEventListener('click', closeEdit);
+    if (editCancelBtn) editCancelBtn.addEventListener('click', closeEdit);
+    window.addEventListener('click', (e) => { if (e.target === editModal) closeEdit(); });
+
+    // Sync Radio Button toggles inside the Edit Modal
+    document.querySelectorAll('input[name="entry_type"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        // Only run this if we are interacting with the Edit Modal's radios
+        if(e.target.id !== 'editExpenseType' && e.target.id !== 'editIncomeType') return;
+
+        if (e.target.value === 'income') {
+          editInvestmentWrapper.style.display = 'none';
+          editIsInvestment.checked = false;
+          editExpenseCategorySelect.style.display = 'none';
+          editExpenseCategorySelect.disabled = true;
+          editIncomeCategorySelect.style.display = 'block';
+          editIncomeCategorySelect.disabled = false;
+        } else {
+          editInvestmentWrapper.style.display = '';
+          editIncomeCategorySelect.style.display = 'none';
+          editIncomeCategorySelect.disabled = true;
+          editExpenseCategorySelect.style.display = 'block';
+          editExpenseCategorySelect.disabled = false;
+        }
+      });
+    });
+
+    // Handle "Add New" category logic for Edit Modal
+    const handleEditCategoryChange = (selectElement) => {
+      if (selectElement.value === 'add_new') {
+        editNewCategoryInput.style.display = 'block';
+        editNewCategoryInput.focus();
+        editNewCategoryInput.required = true;
+      } else {
+        editNewCategoryInput.style.display = 'none';
+        editNewCategoryInput.required = false;
+        editNewCategoryInput.value = '';
+      }
+    };
+
+    editExpenseCategorySelect.addEventListener('change', function() { handleEditCategoryChange(this); });
+    editIncomeCategorySelect.addEventListener('change', function() { handleEditCategoryChange(this); });
     // Chart data from Flask
     const categoryData = {{ category_totals|tojson }};
     const investmentData = {{ investment_totals|tojson }};
