@@ -25,7 +25,12 @@
   </div>
 
   <div class="financial-controls-container">
-    <h2 style="margin: 0;">Remaining Budget: <span class="money" data-usd="{{ budget | default(0, true) }}">${{ "%.2f"|format(budget | default(0, true)) }}</span></h2>
+    
+    <div style="display: flex; flex-direction: column; min-width: 0;">
+      <span style="color: #888; font-size: 0.85em; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; font-weight: bold;">Remaining Budget</span>
+      
+      <h2 style="margin: 0; color: #00ff66; line-height: 1;" class="money" data-usd="{{ budget | default(0, true) }}">${{ "%.2f"|format(budget | default(0, true)) }}</h2>
+    </div>
     
     <button id="currencyToggleBtn" class="hud-toggle-btn">[ ⇄ TO KHR ]</button>
   </div>
@@ -80,6 +85,9 @@
   </button>
 
   <!-- Analytics Charts -->
+  <div style="display: flex; justify-content: flex-end; margin-bottom: 10px; width: 100%;">
+    <button id="chartModeToggleBtn" class="hud-toggle-btn mode-expense" style="margin: 0;">[ MODE: BURN RATE ]</button>
+  </div>
   <div class="chart-row" style="display: flex; gap: 20px; margin-bottom: 30px; max-width: 100%;">
     <div style="flex: 1; background-color: #111; padding: 15px; border: 1px solid #333; position: relative; height: 300px;">
       <a href="{{ url_for('manage_categories') }}" id="manageCategoriesBtn">[MANAGE]</a>
@@ -119,45 +127,55 @@
 
       {% set filters_active = current_category_filter != 'all' or current_timeframe != 'all_time' or current_sort != 'date_desc' %}
       
-      <div id="advancedFiltersPanel" style="display: {{ 'flex' if filters_active else 'none' }}; flex-wrap: wrap; gap: 10px; width: 100%; margin-top: 10px;">
-        
-        <select name="category" onchange="this.form.submit()" style="padding: 8px; font-size: 0.8em; background-color: #111; color: #00ccff; border: 1px solid #00ccff; cursor: pointer; outline: none; flex: 1; min-width: 140px; margin: 0; box-sizing: border-box;">
-          <option value="all" {% if current_category_filter == 'all' %}selected{% endif %}>All Categories</option>
-          <optgroup label="Expenses">
-            {% for cat in expense_categories %}
-              <option value="{{ cat }}" {% if current_category_filter == cat %}selected{% endif %}>{{ cat }}</option>
-            {% endfor %}
-          </optgroup>
-          <optgroup label="Income">
-            {% for cat in income_categories %}
-              <option value="{{ cat }}" {% if current_category_filter == cat %}selected{% endif %}>{{ cat }}</option>
-            {% endfor %}
-          </optgroup>
-        </select>
+      <div id="filterDrawerWrapper" class="filter-drawer-wrapper {{ 'is-open' if filters_active else '' }}">
+        <div class="filter-drawer-inner">
+          
+          <div id="advancedFiltersPanel" style="display: flex; flex-wrap: wrap; gap: 10px; width: 100%; margin-top: 15px; padding: 15px; background-color: #0d0d0d; border: 1px dashed #333; border-left: 3px solid #00ccff; box-sizing: border-box;">
+            
+            <div style="width: 100%; margin-bottom: 5px;">
+              <span style="color: #666; font-size: 0.75em; text-transform: uppercase; letter-spacing: 2px;">/// Advanced Filters</span>
+            </div>
+            
+            <select name="category" onchange="this.form.submit()" style="padding: 8px; font-size: 0.8em; background-color: #111; color: #00ccff; border: 1px solid #00ccff; cursor: pointer; outline: none; flex: 1; min-width: 140px; margin: 0; box-sizing: border-box;">
+              <option value="all" {% if current_category_filter == 'all' %}selected{% endif %}>ALL CATEGORIES</option>
+              <optgroup label="Expenses">
+                {% for cat in expense_categories %}
+                  <option value="{{ cat }}" {% if current_category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+              </optgroup>
+              <optgroup label="Income">
+                {% for cat in income_categories %}
+                  <option value="{{ cat }}" {% if current_category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+              </optgroup>
+            </select>
 
-        <select name="timeframe" onchange="this.form.submit()" style="padding: 8px; font-size: 0.8em; background-color: #111; color: #ffcc00; border: 1px solid #ffcc00; cursor: pointer; outline: none; flex: 1; min-width: 120px; margin: 0; box-sizing: border-box;">
-          <option value="last_24_hours" {% if current_timeframe == 'last_24_hours' %}selected{% endif %}>Last 24 Hours</option>
-          <option value="last_7_days" {% if current_timeframe == 'last_7_days' %}selected{% endif %}>Last 7 Days</option>
-          <option value="last_30_days" {% if current_timeframe == 'last_30_days' %}selected{% endif %}>Last 30 Days</option>
-          <option value="last_90_days" {% if current_timeframe == 'last_90_days' %}selected{% endif %}>Last 90 Days</option>
-          <option value="all_time" {% if current_timeframe == 'all_time' %}selected{% endif %}>All Time</option>
-        </select>
+            <select name="timeframe" onchange="this.form.submit()" style="padding: 8px; font-size: 0.8em; background-color: #111; color: #ffcc00; border: 1px solid #ffcc00; cursor: pointer; outline: none; flex: 1; min-width: 120px; margin: 0; box-sizing: border-box;">
+              <option value="last_24_hours" {% if current_timeframe == 'last_24_hours' %}selected{% endif %}>Last 24 Hours</option>
+              <option value="last_7_days" {% if current_timeframe == 'last_7_days' %}selected{% endif %}>Last 7 Days</option>
+              <option value="last_30_days" {% if current_timeframe == 'last_30_days' %}selected{% endif %}>Last 30 Days</option>
+              <option value="last_90_days" {% if current_timeframe == 'last_90_days' %}selected{% endif %}>Last 90 Days</option>
+              <option value="all_time" {% if current_timeframe == 'all_time' %}selected{% endif %}>All Time</option>
+            </select>
 
-        <select name="sort" onchange="this.form.submit()" style="padding: 8px; font-size: 0.8em; background-color: #111; color: #888; border: 1px solid #444; cursor: pointer; outline: none; flex: 1; min-width: 140px; margin: 0; box-sizing: border-box;">
-          <option value="date_desc" {% if current_sort == 'date_desc' %}selected{% endif %}>Date (Newest First)</option>
-          <option value="date_asc" {% if current_sort == 'date_asc' %}selected{% endif %}>Date (Oldest First)</option>
-          <option value="amount_desc" {% if current_sort == 'amount_desc' %}selected{% endif %}>Amount (High to Low)</option>
-          <option value="amount_asc" {% if current_sort == 'amount_asc' %}selected{% endif %}>Amount (Low to High)</option>
-          <option value="category_asc" {% if current_sort == 'category_asc' %}selected{% endif %}>Category (A-Z)</option>
-        </select>
-        
+            <select name="sort" onchange="this.form.submit()" style="padding: 8px; font-size: 0.8em; background-color: #111; color: #888; border: 1px solid #444; cursor: pointer; outline: none; flex: 1; min-width: 140px; margin: 0; box-sizing: border-box;">
+              <option value="date_desc" {% if current_sort == 'date_desc' %}selected{% endif %}>Date (Newest First)</option>
+              <option value="date_asc" {% if current_sort == 'date_asc' %}selected{% endif %}>Date (Oldest First)</option>
+              <option value="amount_desc" {% if current_sort == 'amount_desc' %}selected{% endif %}>Amount (High to Low)</option>
+              <option value="amount_asc" {% if current_sort == 'amount_asc' %}selected{% endif %}>Amount (Low to High)</option>
+              <option value="category_asc" {% if current_sort == 'category_asc' %}selected{% endif %}>Category (A-Z)</option>
+            </select>
+            
+          </div>
+          
+        </div>
       </div>
     </form>
   </div>
 
   <!-- Expense List -->
   <div class="scroll-box">
-    <ul>
+    <ul style="list-style-type: none; padding: 0; margin: 0;">
       {% for expense in expenses %}
 
         {% set tx_class = 'tx-expense' %}
@@ -216,17 +234,17 @@
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-top: 1px solid #333; margin-top: 10px; width: 100%; flex-wrap: nowrap;">
       
       {% if pagination.has_prev %}
-        <a href="{{ url_for('home', page=pagination.prev_num, sort=current_sort, timeframe=current_timeframe, search=current_search, category=current_category_filter) }}" class="page-btn">[ ⬅ PREV ]</a>
+        <a href="{{ url_for('home', page=pagination.prev_num, sort=current_sort, timeframe=current_timeframe, search=current_search, category=current_category_filter) }}" class="page-btn">[ &#9664; PREV ]</a>
       {% else %}
-        <span class="page-btn disabled-btn">[ ⬅ PREV ]</span>
+        <span class="page-btn disabled-btn">[ &#9664; PREV ]</span>
       {% endif %}
 
       <span style="color: #888; font-size: 0.85em; letter-spacing: 1px; white-space: nowrap;">PAGE {{ pagination.page }} OF {{ pagination.pages }}</span>
 
       {% if pagination.has_next %}
-        <a href="{{ url_for('home', page=pagination.next_num, sort=current_sort, timeframe=current_timeframe, search=current_search, category=current_category_filter) }}" class="page-btn">[ NEXT ➡ ]</a>
+        <a href="{{ url_for('home', page=pagination.next_num, sort=current_sort, timeframe=current_timeframe, search=current_search, category=current_category_filter) }}" class="page-btn">[ NEXT &#9654; ]</a>
       {% else %}
-        <span class="page-btn disabled-btn">[ NEXT ➡ ]</span>
+        <span class="page-btn disabled-btn">[ NEXT &#9654; ]</span>
       {% endif %}
       
     </div>
@@ -467,12 +485,8 @@
     currencyToggleBtn.addEventListener('click', () => {
       isUSD = !isUSD;
       
-      // Flip the button aesthetics
-      // Flip the button aesthetics
-      // Flip the button text
+      // Flip the button text and CSS state
       currencyToggleBtn.innerText = isUSD ? '[ ⇄ TO KHR ]' : '[ ⇄ TO USD ]';
-      
-      // THE FIX: Let CSS handle the colors. Just toggle a state class.
       currencyToggleBtn.classList.toggle('khr-mode', !isUSD);
 
       // Sweep the DOM and update every tagged money element
@@ -487,30 +501,69 @@
           let khrValue = Math.round(baseUsd * KHR_RATE);
           el.innerText = khrValue.toLocaleString() + ' ៛';
         }
-      });
+      }); // <-- FOREACH LOOP ENDS HERE
 
-      // --- HOLOGRAPHIC CHART REDRAW PROTOCOL ---
+      // Fire the master chart redraw exactly ONCE after the loop is done
+      if (typeof redrawMasterCharts === 'function') {
+        redrawMasterCharts();
+      }
+    }); // <-- CURRENCY LISTENER ENDS HERE
+
+    // --- CHART MODE STATE ENGINE ---
+    let chartMode = 'expense';
+    const chartModeToggleBtn = document.getElementById('chartModeToggleBtn');
+
+    if (chartModeToggleBtn) {
+      chartModeToggleBtn.addEventListener('click', () => {
+        // 1. Flip the state
+        chartMode = chartMode === 'expense' ? 'income' : 'expense';
+        
+        // 2. Flip the aesthetics using strict CSS classes
+        if (chartMode === 'income') {
+          chartModeToggleBtn.innerText = '[ MODE: CASH FLOW ]';
+          chartModeToggleBtn.classList.remove('mode-expense');
+          chartModeToggleBtn.classList.add('mode-income');
+        } else {
+          chartModeToggleBtn.innerText = '[ MODE: BURN RATE ]';
+          chartModeToggleBtn.classList.remove('mode-income');
+          chartModeToggleBtn.classList.add('mode-expense');
+        }
+        
+        // 3. Command the charts to redraw based on the new state
+        if (typeof redrawMasterCharts === 'function') {
+          redrawMasterCharts();
+        }
+      });
+    }
+    // --- HOLOGRAPHIC CHART REDRAW PROTOCOL ---
+    function redrawMasterCharts() {
+      // 1. Determine active payload based on state
+      const activeCatData = chartMode === 'expense' ? categoryData : incCategoryData;
+      const activeTrendData = chartMode === 'expense' ? trendData : incTrendData;
       
-      // 1. Recalculate and update the Category Doughnut
-      catChart.data.datasets[0].data = Object.values(categoryData).map(v => 
-        isUSD ? v : Math.round(v * KHR_RATE)
-      );
+      // 2. Set dynamic neon colors based on state
+      const trendColor = chartMode === 'expense' ? '#00ccff' : '#00ff66';
+      const trendBg = chartMode === 'expense' ? 'rgba(0, 204, 255, 0.2)' : 'rgba(0, 255, 102, 0.2)';
+
+      // 3. Update Category Doughnut
+      catChart.data.labels = Object.keys(activeCatData);
+      catChart.data.datasets[0].data = Object.values(activeCatData).map(v => isUSD ? v : Math.round(v * KHR_RATE));
+      catChart.options.plugins.title.text = chartMode === 'expense' ? 'EXPENSES BY CATEGORY' : 'INCOME STREAMS';
       catChart.update();
 
-      // 2. Recalculate and update the Investment Bar Chart
-      invChart.data.datasets[0].data = Object.values(investmentData).map(v => 
-        isUSD ? v : Math.round(v * KHR_RATE)
-      );
+      // 4. Update Investment Bar (This remains an expense metric, but we update its currency)
+      invChart.data.datasets[0].data = Object.values(investmentData).map(v => isUSD ? v : Math.round(v * KHR_RATE));
       invChart.data.datasets[0].label = isUSD ? 'Total USD' : 'Total KHR';
       invChart.update();
 
-      // 3. Recalculate and update the Trend Line Chart
-      trnChart.data.datasets[0].data = Object.values(trendData).map(v => 
-        isUSD ? v : Math.round(v * KHR_RATE)
-      );
-      trnChart.data.datasets[0].label = isUSD ? 'Total Spent ($)' : 'Total Spent (៛)';
+      // 5. Update Trend Line Chart
+      trnChart.data.labels = Object.keys(activeTrendData);
+      trnChart.data.datasets[0].data = Object.values(activeTrendData).map(v => isUSD ? v : Math.round(v * KHR_RATE));
+      trnChart.data.datasets[0].borderColor = trendColor;
+      trnChart.data.datasets[0].backgroundColor = trendBg;
+      trnChart.options.plugins.title.text = chartMode === 'expense' ? 'BURN RATE OVER TIME' : 'CASH FLOW OVER TIME';
       trnChart.update();
-    });
+    }
 
     // --- PATCH FOR THE SAVINGS LIVE PREVIEW ---
     // Update your existing savingsPercentInput event listener to respect the active currency
@@ -543,7 +596,7 @@
         submitExpenseBtn.style.color = '#888';
         submitExpenseBtn.style.borderColor = '#444';
         submitExpenseBtn.style.cursor = 'not-allowed';
-        submitExpenseBtn.textContent = '[ PROCESSING... ]';
+        submitExpenseBtn.textContent = '[ SAVING ]';
       });
     }
 
@@ -800,6 +853,8 @@
     const categoryData = {{ category_totals|tojson }};
     const investmentData = {{ investment_totals|tojson }};
     const trendData = {{ trend_data|tojson }};
+    const incCategoryData = {{ income_category_totals|tojson }};
+    const incTrendData = {{ income_trend_data|tojson }};
 
     Chart.defaults.color = '#e0e0e0';
     Chart.defaults.font.family = '"Courier New", Courier, monospace';
@@ -930,22 +985,23 @@
 
     // --- ADVANCED FILTERS TOGGLE ENGINE ---
     const toggleFiltersBtn = document.getElementById('toggleFiltersBtn');
-    const advancedFiltersPanel = document.getElementById('advancedFiltersPanel');
+    const filterDrawerWrapper = document.getElementById('filterDrawerWrapper');
 
-    // On page load, if the Jinja logic determined the panel should be open, update the button text
-    if (advancedFiltersPanel && advancedFiltersPanel.style.display === 'flex') {
+    // On page load, if Jinja determined the panel should be open, update the button colors
+    if (filterDrawerWrapper && filterDrawerWrapper.classList.contains('is-open')) {
       toggleFiltersBtn.innerText = '[-] FILTERS';
       toggleFiltersBtn.style.backgroundColor = 'rgba(0, 204, 255, 0.1)';
     }
 
-    if (toggleFiltersBtn && advancedFiltersPanel) {
+    if (toggleFiltersBtn && filterDrawerWrapper) {
       toggleFiltersBtn.addEventListener('click', () => {
-        if (advancedFiltersPanel.style.display === 'none') {
-          advancedFiltersPanel.style.display = 'flex';
+        // .toggle() returns true if the class was added, false if it was removed
+        const isOpen = filterDrawerWrapper.classList.toggle('is-open');
+        
+        if (isOpen) {
           toggleFiltersBtn.innerText = '[-] FILTERS';
           toggleFiltersBtn.style.backgroundColor = 'rgba(0, 204, 255, 0.1)';
         } else {
-          advancedFiltersPanel.style.display = 'none';
           toggleFiltersBtn.innerText = '[+] FILTERS';
           toggleFiltersBtn.style.backgroundColor = '#111';
         }

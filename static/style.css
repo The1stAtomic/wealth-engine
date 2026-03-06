@@ -43,6 +43,8 @@ input[type="text"], input[type="password"], input[type="number"], select {
   font-family: inherit;
   font-size: 16px;
   box-sizing: border-box;
+  border-radius: 0 !important;
+  -webkit-border-radius: 0 !important;
 }
 
 input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus, select:focus {
@@ -162,13 +164,14 @@ li {
   color: #00ccff !important;
   border: 1px solid #00ccff !important;
 }
+
 /* Scrollable box styles */
 .scroll-box {
   max-height: 400px;
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 10px;
-  padding-left: 20px;
+  padding-left: 0;
   margin-bottom: 30px;
   padding-bottom: 10px;
   overscroll-behavior: contain;
@@ -663,14 +666,37 @@ button:active,
   border-color: #888 !important;
 }
 
-/* --- HUD TOGGLE BUTTON --- */
+/* --- HUD TOGGLE BUTTON CONTAINER --- */
 .financial-controls-container {
   display: flex; 
   justify-content: space-between; 
   align-items: center; 
   margin-bottom: 20px; 
-  flex-wrap: wrap; 
+  
+  /* LOCKDOWN: We absolutely forbid wrapping again */
+  flex-wrap: nowrap; 
   gap: 15px;
+  width: 100%;
+}
+
+/* THE MAGIC: Fluid Typography WITHOUT Truncation */
+.financial-controls-container h2 {
+  margin: 0;
+  white-space: nowrap; 
+  
+  /* The font scales dynamically from 1.5rem up to 2.5em depending on screen width */
+  font-size: clamp(1.5rem, 5vw, 2.5em); 
+}
+
+/* Align the toggle button to the bottom of the container so it matches the numbers */
+.financial-controls-container {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: flex-end; 
+  margin-bottom: 20px; 
+  flex-wrap: nowrap; 
+  gap: 15px;
+  width: 100%;
 }
 
 /* --- HUD TOGGLE BUTTON (DEFAULT: USD CYAN) --- */
@@ -683,13 +709,12 @@ button:active,
   font-weight: bold; 
   cursor: pointer; 
   white-space: nowrap; 
-  flex-shrink: 0; 
+  flex-shrink: 0; /* Prevents the button from being squished */
   letter-spacing: 1px;
   width: auto; 
   margin: 0; 
   transition: all 0.2s ease-in-out;
 }
-
 .hud-toggle-btn:hover {
   background-color: #00ccff;
   color: #111;
@@ -704,6 +729,25 @@ button:active,
 .hud-toggle-btn.khr-mode:hover {
   background-color: #ffcc00;
   color: #111;
+}
+
+/* --- CHART MODE TOGGLE BUTTON STATES --- */
+.mode-expense {
+  color: #ff003c !important;
+  border-color: #ff003c !important;
+}
+.mode-expense:hover {
+  background-color: #ff003c !important;
+  color: #111 !important;
+}
+
+.mode-income {
+  color: #00ff66 !important;
+  border-color: #00ff66 !important;
+}
+.mode-income:hover {
+  background-color: #00ff66 !important;
+  color: #111 !important;
 }
 
   /* --- PAGINATION BUTTONS --- */
@@ -735,6 +779,28 @@ button:active,
   border-color: #222;
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Forbids any money text from breaking across multiple lines */
+.money {
+  white-space: nowrap;
+}
+
+/* --- FILTER DRAWER ANIMATION ENGINE --- */
+.filter-drawer-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+}
+
+.filter-drawer-wrapper.is-open {
+  grid-template-rows: 1fr;
+}
+
+.filter-drawer-inner {
+  overflow: hidden;
+  min-height: 0; /* Prevents flexbox children from breaking the grid collapse */
 }
 
 /* ========================================= */
@@ -905,26 +971,29 @@ button:active,
     gap: 12px !important;
   }
 
-  /* 4. Lock them to the touch-friendly height */
+  /* 4. Lock them to the touch-friendly height and forbid text wrapping */
   .modal-actions button {
     flex: 1 !important;
     height: 44px !important;
     margin: 0 !important;
-    font-size: 0.9em !important;
+    font-size: 0.85em !important; /* Scaled down slightly for safety */
     padding: 0 5px !important;
+    white-space: nowrap !important; /* THE FIX: Forbid line breaks */
   }
 
-  /* Stack the budget and toggle button on mobile */
+  /* Keep the budget and toggle side-by-side, but tighten the grid */
   .financial-controls-container {
-    flex-direction: column !important;
-    align-items: flex-start !important;
+    flex-direction: row !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
     gap: 10px !important;
   }
 
-  /* Force the toggle to become a massive, touch-friendly bar */
+  /* Shrink the utility toggle to a discrete, tactical pill */
   .hud-toggle-btn {
-    width: 100% !important;
-    text-align: center !important;
-    padding: 12px !important; /* Taller hit-box for thumbs */
+    width: auto !important;
+    padding: 6px 12px !important;
+    font-size: 0.85em !important;
+    margin-bottom: 2px !important; /* Perfectly aligns the baseline with the big numbers */
   }
 }

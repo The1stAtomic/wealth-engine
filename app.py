@@ -333,7 +333,13 @@ def home():
     for is_inv, amt in inv_results.group_by(Transaction.is_investment).all():
         if is_inv: investment_totals["Investment"] += amt
         else: investment_totals["Sunk Cost"] += amt
-
+    
+    # --- INCOME CATEGORY TOTALS ---
+    inc_cat_results = db.session.query(Transaction.category_name, func.sum(Transaction.amount))\
+        .filter(Transaction.type == 'income')
+    if timeframe != 'all_time': inc_cat_results = inc_cat_results.filter(Transaction.timestamp >= cutoff_str)
+    income_category_totals = {row[0]: row[1] for row in inc_cat_results.group_by(Transaction.category_name).all()}
+    
     # C. Trend Data: Grouping by Date Substrings
     char_length = 7 if timeframe in ['last_90_days', 'all_time'] else 10 # YYYY-MM vs YYYY-MM-DD
     
@@ -342,8 +348,17 @@ def home():
         func.sum(Transaction.amount)
     ).filter(Transaction.type == 'expense')
     
-    if timeframe != 'all_time': trend_results = trend_results.filter(Transaction.timestamp >= cutoff_str)
+    # --- NEW: INCOME TREND DATA ---
+    inc_trend_results = db.session.query(
+        func.substr(Transaction.timestamp, 1, char_length).label('date_group'),
+        func.sum(Transaction.amount)
+    ).filter(Transaction.type == 'income')
+    
+    if timeframe != 'all_time': inc_trend_results = inc_trend_results.filter(Transaction.timestamp >= cutoff_str)
         
+    inc_trend_data_query = inc_trend_results.group_by('date_group').order_by('date_group').all()
+    income_trend_data = {row[0]: row[1] for row in inc_trend_data_query}
+    
     # Group by the parsed date string and order chronologically
     trend_data_query = trend_results.group_by('date_group').order_by('date_group').all()
     trend_data = {row[0]: row[1] for row in trend_data_query}
@@ -352,7 +367,7 @@ def home():
     expense_categories = [c.name for c in Category.query.filter_by(type='expense').order_by(Category.name).all()]
     income_categories = [c.name for c in Category.query.filter_by(type='income').order_by(Category.name).all()]
 
-    return render_template('index.html', budget=allowable_expenses, expenses=display_log, expense_categories=expense_categories, income_categories=income_categories, category_totals=category_totals, investment_totals=investment_totals, total_income=dynamic_income, target_savings=target_savings, target_savings_percentage=target_savings_percentage, current_sort=sort_by, current_timeframe=timeframe, trend_data=trend_data, pagination=pagination, current_category_filter=category_filter, current_search=search_query)
+    return render_template('index.html', budget=allowable_expenses, expenses=display_log, expense_categories=expense_categories, income_categories=income_categories, category_totals=category_totals, investment_totals=investment_totals, total_income=dynamic_income, target_savings=target_savings, target_savings_percentage=target_savings_percentage, current_sort=sort_by, current_timeframe=timeframe, trend_data=trend_data, pagination=pagination, current_category_filter=category_filter, current_search=search_query, income_category_totals=income_category_totals, income_trend_data=income_trend_data)
 
 # Route to handle expense deletion
 @app.route('/delete/<expense_id>', methods=['POST'])
