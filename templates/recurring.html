@@ -1,0 +1,211 @@
+{% macro category_options(categories) %}
+  {% for cat in categories %}
+    <option value="{{ cat }}">{{ cat }}</option>
+  {% endfor %}
+  <option value="add_new">Add new category...</option>
+{% endmacro %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recurring Transactions | Wealth Engine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <h1>Recurring Transactions</h1>
+
+  <p style="color: #888; font-size: 0.9em; margin-bottom: 20px;">Scheduled transactions are automatically created when you open the dashboard. Capped at 24 cycles per visit to prevent runaway backfill.</p>
+
+  <button id="openAddRecurringBtn" style="width: 100%; margin-bottom: 20px;">[+ ADD RECURRING]</button>
+
+  <!-- Existing Templates -->
+  <div class="scroll-box">
+    {% if templates %}
+    <ul>
+      {% for tmpl in templates %}
+        <li style="border-left: 4px solid {% if tmpl.type == 'income' %}#00ff66{% else %}#00ccff{% endif %}; padding: 15px; display: flex; justify-content: space-between; align-items: center; gap: 15px;">
+
+          <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex-grow: 1;">
+            <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ tmpl.name }}">{{ tmpl.name }}</strong>
+            <span style="color: #888; font-size: 0.8em;">
+              ${{ "%.2f"|format(tmpl.amount) }} &middot;
+              <span style="color: {% if tmpl.type == 'income' %}#00ff66{% else %}#00ccff{% endif %};">{{ tmpl.frequency }}</span> &middot;
+              {{ tmpl.category_name }} &middot;
+              next: <span style="color: #ffcc00;">{{ tmpl.next_due }}</span>
+            </span>
+          </div>
+
+          <form method="post" action="{{ url_for('delete_recurring', tmpl_id=tmpl.id) }}" class="delete-form" style="display: contents;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="button" class="delete-btn" style="flex-shrink: 0;">[X]</button>
+          </form>
+
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      <p style="color: #555; text-align: center; padding: 30px 0;">No recurring transactions configured.</p>
+    {% endif %}
+  </div>
+
+  <!-- Add Recurring Modal -->
+  <div class="modal" id="addRecurringModal">
+    <div class="modal-content">
+
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
+        <h2 style="margin: 0; color: #e0e0e0; font-size: 1.5em; text-transform: uppercase;">Add Recurring</h2>
+        <span class="close-modal" id="closeAddRecurringBtn">[X]</span>
+      </div>
+
+      <form method="post" id="addRecurringForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="type-toggle">
+          <input type="radio" name="entry_type" value="expense" id="recurExpenseType" checked>
+          <label for="recurExpenseType" class="toggle-btn expense-toggle">[EXPENSE]</label>
+          <input type="radio" name="entry_type" value="income" id="recurIncomeType">
+          <label for="recurIncomeType" class="toggle-btn income-toggle">[INCOME]</label>
+        </div>
+
+        <input type="text" name="item_name" placeholder="Transaction Name" maxlength="100" autocapitalize="words" required style="width: 100%;">
+
+        <div class="currency-group">
+          <input type="number" name="cost" placeholder="0.00" step="0.01" min="0" inputmode="decimal" required>
+          <select name="currency">
+            <option value="USD">USD</option>
+            <option value="KHR">KHR</option>
+          </select>
+        </div>
+
+        <select name="frequency" style="width: 100%; margin-bottom: 15px;">
+          <option value="monthly">Monthly</option>
+          <option value="weekly">Weekly</option>
+          <option value="daily">Daily</option>
+        </select>
+
+        <label style="display: block; color: #888; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">First Due Date</label>
+        <input type="date" name="start_date" id="recurStartDate" required style="width: 100%; margin-bottom: 15px;">
+
+        <select name="category_dropdown" id="recurExpenseCategorySelect" required>
+          <option value="" disabled selected>Select an expense category...</option>
+          {{ category_options(expense_categories) }}
+        </select>
+        <select name="category_dropdown" id="recurIncomeCategorySelect" disabled style="display: none;" required>
+          <option value="" disabled selected>Select an income type...</option>
+          {{ category_options(income_categories) }}
+        </select>
+        <input type="text" name="new_category" id="recurNewCategoryInput" placeholder="New category name" maxlength="50" autocapitalize="words" style="display: none; width: 100%;">
+
+        <div class="checkbox-wrapper" id="recurInvestmentWrapper">
+          <input type="checkbox" name="is_investment" id="recurIsInvestment">
+          <label for="recurIsInvestment">Mark as Investment</label>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button type="button" id="cancelAddRecurringBtn" class="mobile-only-cancel" style="background-color: #111; color: #888; border: 1px solid #555;">[CANCEL]</button>
+          <button type="submit" style="margin: 0;">[ + ADD ]</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal" id="deleteModal">
+    <div class="modal-content" style="border: 2px solid #ff003c; max-width: 400px; text-align: center;">
+      <h2 style="color: #ff003c; margin-top: 0; text-transform: uppercase;">Delete Template</h2>
+      <p style="color: #e0e0e0; margin-bottom: 30px;">Remove this recurring template? Past transactions are unaffected.</p>
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button type="button" id="cancelDeleteBtn" style="background-color: #111; color: #888; border: 1px solid #555; cursor: pointer; padding: 10px 20px; flex: 1; margin: 0;">[CANCEL]</button>
+        <button type="button" id="confirmDeleteBtn" style="background-color: rgba(255,0,60,0.1); color: #ff003c; border: 1px solid #ff003c; cursor: pointer; font-weight: bold; padding: 10px 20px; flex: 1; margin: 0;">[CONFIRM DELETE]</button>
+      </div>
+    </div>
+  </div>
+
+  <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a>
+
+  <script>
+    // --- ADD RECURRING MODAL ---
+    const addRecurringModal = document.getElementById('addRecurringModal');
+    const openAddRecurringBtn = document.getElementById('openAddRecurringBtn');
+    const closeAddRecurringBtn = document.getElementById('closeAddRecurringBtn');
+    const cancelAddRecurringBtn = document.getElementById('cancelAddRecurringBtn');
+
+    openAddRecurringBtn.addEventListener('click', () => {
+      document.getElementById('recurStartDate').valueAsDate = new Date();
+      addRecurringModal.style.display = 'block';
+    });
+
+    const closeAddModal = () => addRecurringModal.style.display = 'none';
+    closeAddRecurringBtn.addEventListener('click', closeAddModal);
+    if (cancelAddRecurringBtn) cancelAddRecurringBtn.addEventListener('click', closeAddModal);
+
+    // --- DELETE MODAL ---
+    const deleteModal = document.getElementById('deleteModal');
+    let formToSubmit = null;
+
+    document.addEventListener('click', function(e) {
+      if (e.target && e.target.classList.contains('delete-btn')) {
+        e.preventDefault();
+        formToSubmit = e.target.closest('form');
+        deleteModal.style.display = 'block';
+      }
+    });
+
+    document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+      deleteModal.style.display = 'none';
+      formToSubmit = null;
+    });
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+      if (formToSubmit) formToSubmit.submit();
+    });
+
+    // Backdrop clicks
+    window.addEventListener('click', (e) => {
+      if (e.target === deleteModal) { deleteModal.style.display = 'none'; formToSubmit = null; }
+      if (e.target === addRecurringModal) closeAddModal();
+    });
+
+    // --- CATEGORY DROPDOWN + NEW CATEGORY INPUT ---
+    const recurExpenseSelect = document.getElementById('recurExpenseCategorySelect');
+    const recurIncomeSelect = document.getElementById('recurIncomeCategorySelect');
+    const recurNewCatInput = document.getElementById('recurNewCategoryInput');
+    const recurInvestmentWrapper = document.getElementById('recurInvestmentWrapper');
+
+    function handleCategoryChange(selectEl, newCatInput) {
+      const show = selectEl.value === 'add_new';
+      newCatInput.style.display = show ? 'block' : 'none';
+      newCatInput.required = show;
+      if (!show) newCatInput.value = '';
+      if (show) newCatInput.focus();
+    }
+
+    recurExpenseSelect.addEventListener('change', function() { handleCategoryChange(this, recurNewCatInput); });
+    recurIncomeSelect.addEventListener('change', function() { handleCategoryChange(this, recurNewCatInput); });
+
+    // --- TYPE RADIO TOGGLE ---
+    document.querySelectorAll('input[name="entry_type"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.value === 'income') {
+          recurExpenseSelect.style.display = 'none';
+          recurExpenseSelect.disabled = true;
+          recurIncomeSelect.style.display = 'block';
+          recurIncomeSelect.disabled = false;
+          recurInvestmentWrapper.style.display = 'none';
+          document.getElementById('recurIsInvestment').checked = false;
+          handleCategoryChange(recurIncomeSelect, recurNewCatInput);
+        } else {
+          recurIncomeSelect.style.display = 'none';
+          recurIncomeSelect.disabled = true;
+          recurExpenseSelect.style.display = 'block';
+          recurExpenseSelect.disabled = false;
+          recurInvestmentWrapper.style.display = '';
+          handleCategoryChange(recurExpenseSelect, recurNewCatInput);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

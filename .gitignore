@@ -38,9 +38,7 @@ seed.py
 # Local log files
 *.log
 
-trash/
-*.html
-*.css
+trash/*.html
 
 CLAUDE.md
 
