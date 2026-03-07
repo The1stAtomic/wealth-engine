@@ -1,12 +1,36 @@
 /* static/style.css */
-/* THE MAGIC RESET */
+
+/* ==========================================
+   DESIGN TOKENS
+   ========================================== */
+:root {
+  --color-bg: #0a0a0a;
+  --color-card: #111;
+  --color-border: #333;
+  --color-border-muted: #444;
+  --color-text: #e0e0e0;
+  --color-text-muted: #888;
+  --color-red: #ff003c;
+  --color-green: #00ff66;
+  --color-cyan: #00ccff;
+  --color-yellow: #ffcc00;
+  --transition-fast: all 0.1s ease-in-out;
+  --transition-std: all 0.15s ease-in-out;
+}
+
+/* ==========================================
+   RESET
+   ========================================== */
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
+/* ==========================================
+   BASE
+   ========================================== */
 body {
-  background-color: #0a0a0a;
-  color: #e0e0e0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
   font-family: "Courier New", Courier, monospace;
   max-width: 800px;
   margin: 0 auto;
@@ -16,56 +40,48 @@ body {
 
 h1 {
   text-transform: uppercase;
-  border-bottom: 3px solid #ff003c;
+  border-bottom: 3px solid var(--color-red);
   padding-bottom: 10px;
   letter-spacing: 2px;
 }
 
 h2 {
-  color: #00ff66;
+  color: var(--color-green);
   font-size: 2em;
 }
 
+/* ==========================================
+   FORMS
+   ========================================== */
 form {
-  background-color: #111;
+  background-color: var(--color-card);
   padding: 20px;
-  border: 1px solid #333;
+  border: 1px solid var(--color-border);
   margin-bottom: 30px;
 }
 
-input[type="text"], input[type="password"], input[type="number"], select {
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select {
   width: 100%;
   padding: 12px;
   margin: 10px 0;
   background-color: #000;
-  color: #00ff66;
-  border: 1px solid #444;
+  color: var(--color-green);
+  border: 1px solid var(--color-border-muted);
   font-family: inherit;
   font-size: 16px;
-  box-sizing: border-box;
-  border-radius: 0 !important;
-  -webkit-border-radius: 0 !important;
+  border-radius: 0;
 }
 
-input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus, select:focus {
-  border-color: #ff003c;
-  outline: none;
-}
-
-/* =========================================
-   INPUT FOCUS STATES (Semantic Override) 
-   ========================================= */
-input:focus, select:focus, textarea:focus {
-  /* 1. Kill the browser's default ugly glow */
-  outline: none !important; 
-  
-  /* 2. Apply the semantic 'Active/Listening' color */
-  border-color: #00ccff !important; 
-  
-  /* 3. Optional: Add a very subtle terminal phosphor glow so it pops */
+/* Unified focus state for all inputs — kills browser glow, applies active color */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  border-color: var(--color-cyan) !important;
   box-shadow: 0 0 8px rgba(0, 204, 255, 0.2) !important;
-  
-  /* 4. Smooth transition so it doesn't flash aggressively */
   transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
@@ -75,8 +91,11 @@ label {
   font-weight: bold;
 }
 
+/* ==========================================
+   BUTTONS (base)
+   ========================================== */
 button {
-  background-color: #e0e0e0;
+  background-color: var(--color-text);
   color: #000;
   padding: 15px;
   border: none;
@@ -87,50 +106,26 @@ button {
   text-transform: uppercase;
   width: 100%;
   margin-top: 20px;
-  transition: background-color 0.2s;
 }
 
 button:hover {
-  background-color: #ff003c;
+  background-color: var(--color-red);
   color: #fff;
 }
 
-ul {
-  list-style-type: none;
-  padding: 0;
+/* .update-btn is always on a <button>; only the hover color differs from the base */
+.update-btn:hover {
+  background-color: var(--color-yellow);
+  color: #fff;
 }
 
-li {
-  background-color: #111;
-  border-left: 4px solid #444;
-  padding: 15px;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: space-between;
-}
+/* ==========================================
+   ACTION BUTTONS (Delete / Edit)
+   ========================================== */
 
-.investment-tag {
-  border-left-color: #00ff66;
-}
-
-.expense-name {
-  font-weight: bold;
-  font-size: 1.1em;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
-}
-
-.expense-meta {
-  color: #888;
-  font-size: 0.9em;
-  word-break: break-word;
-  overflow-wrap: break-word;
-}
-
-/* --- NORMALIZED ACTION BUTTONS (BULLETPROOF) --- */
+/* Makes the wrapping form invisible to flexbox layout */
 .delete-form {
-  display: contents; /* MAGIC BULLET: Makes the form invisible to Flexbox layout! */
+  display: contents;
 }
 
 .delete-btn, .edit-btn {
@@ -144,28 +139,97 @@ li {
   font-size: 0.9em !important;
   font-weight: bold !important;
   font-family: inherit !important;
-  line-height: 1 !important; /* Stops the text from shifting down */
+  line-height: 1 !important;
   text-decoration: none !important;
   cursor: pointer !important;
   letter-spacing: 1px !important;
-  width: auto !important; /* Stops mobile queries from trying to stretch it */
+  width: auto !important;
 }
 
-/* Specific Delete Styling */
 .delete-btn {
   background-color: transparent !important;
-  color: #ff003c !important;
-  border: 1px solid #ff003c !important;
+  color: var(--color-red) !important;
+  border: 1px solid var(--color-red) !important;
 }
 
-/* Specific Edit Styling */
 .edit-btn {
   background-color: transparent !important;
-  color: #00ccff !important;
-  border: 1px solid #00ccff !important;
+  color: var(--color-cyan) !important;
+  border: 1px solid var(--color-cyan) !important;
 }
 
-/* Scrollable box styles */
+.save-btn {
+  color: var(--color-green) !important;
+  border-color: var(--color-green) !important;
+}
+.edit-btn.save-btn:hover {
+  background-color: var(--color-green) !important;
+  color: var(--color-card) !important;
+}
+
+.cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  box-sizing: border-box;
+  padding: 0 15px;
+  margin: 0;
+  color: #888;
+  border: 1px solid #444;
+  background: transparent;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 0.9em;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.cancel-btn:hover {
+  background-color: #333;
+  color: #fff;
+  border-color: #555;
+}
+
+/* ==========================================
+   LISTS
+   ========================================== */
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  background-color: var(--color-card);
+  border-left: 4px solid var(--color-border-muted);
+  padding: 15px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.investment-tag {
+  border-left-color: var(--color-green);
+}
+
+.expense-name {
+  font-weight: bold;
+  font-size: 1.1em;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.expense-meta {
+  color: var(--color-text-muted);
+  font-size: 0.9em;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ==========================================
+   SCROLL BOX
+   ========================================== */
 .scroll-box {
   max-height: 400px;
   overflow-y: auto;
@@ -177,25 +241,31 @@ li {
   overscroll-behavior: contain;
 }
 
-.scroll-box::-webkit-scrollbar {
+.scroll-box::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar {
   width: 12px;
 }
 
-.scroll-box::-webkit-scrollbar-track {
-  background: #111;
-  border: 1px solid #333;
+.scroll-box::-webkit-scrollbar-track,
+.modal-content::-webkit-scrollbar-track {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
 }
 
-.scroll-box::-webkit-scrollbar-thumb {
-  background-color: #444;
-  border: 1px solid #111;
+.scroll-box::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-muted);
+  border: 1px solid var(--color-card);
 }
 
-.scroll-box::-webkit-scrollbar-thumb:hover {
-  background-color: #00ff66;
+.scroll-box::-webkit-scrollbar-thumb:hover,
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-green);
 }
 
-/* System readout styles */
+/* ==========================================
+   SYSTEM READOUT (HUD stat boxes)
+   ========================================== */
 .system-readout {
   display: flex;
   gap: 15px;
@@ -204,15 +274,15 @@ li {
 
 .stat-box {
   flex: 1;
-  background-color: #111;
-  border: 1px solid #333;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
   padding: 15px;
-  border-left: 4px solid #ffcc00;
+  border-left: 4px solid var(--color-yellow);
 }
 
 .stat-label {
   display: block;
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 0.8em;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -221,33 +291,14 @@ li {
 
 .stat-value {
   display: block;
-  color: #e0e0e0;
+  color: var(--color-text);
   font-size: 1.5em;
   font-weight: bold;
 }
 
-/* Settings update button styles */
-.update-btn {
-  background-color: #e0e0e0;
-  color: #000;
-  padding: 15px;
-  border: none;
-  font-weight: bold;
-  font-family: inherit;
-  font-size: 16px;
-  cursor: pointer;
-  text-transform: uppercase;
-  width: 100%;
-  margin-top: 20px;
-  transition: background-color 0.2s;
-}
-
-.update-btn:hover {
-  background-color: #ffcc00;
-  color: #fff;
-}
-
-/* Modal styles */
+/* ==========================================
+   MODAL
+   ========================================== */
 .modal {
   display: none;
   position: fixed;
@@ -261,33 +312,30 @@ li {
   animation: backdropFade 0.15s ease-out forwards;
 }
 
-/* =========================================
-   HARDWARE BOOT SEQUENCE (Modal Animation) 
-   ========================================= */
 @keyframes modalSnap {
-  0% {
+  from {
     opacity: 0;
-    /* Notice we keep the -50% X translation so it stays centered! */
-    transform: translate(-50%, -45%) scale(0.95); 
+    transform: translate(-50%, -45%) scale(0.95);
   }
-  100% {
+  to {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
 }
 
 @keyframes backdropFade {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-/* Modal content styles */
 .modal-content {
-  background-color: #0a0a0a;
+  background-color: var(--color-bg);
   padding: 30px;
-  border: 1px solid #333;
+  border: 1px solid var(--color-border);
   width: 90%;
   max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   position: absolute;
   top: 50%;
@@ -296,9 +344,8 @@ li {
   animation: modalSnap 0.15s cubic-bezier(0.0, 0.0, 0.2, 1) forwards;
 }
 
-/* Close button styles */
 .close-modal {
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 1.2em;
   font-weight: bold;
   cursor: pointer;
@@ -306,12 +353,11 @@ li {
 }
 
 .close-modal:hover {
-  color: #ff003c;
+  color: var(--color-red);
 }
 
-/* Open modal button styles */
 .openModalBtn {
-  background-color: #00ff66;
+  background-color: var(--color-green);
   color: #000;
   font-size: 1.2em;
   margin-bottom: 30px;
@@ -320,10 +366,12 @@ li {
 
 .openModalBtn:hover {
   background-color: #00cc66;
-  color: #111;
+  color: var(--color-card);
 }
 
-/* Checkbox styles */
+/* ==========================================
+   FORM CONTROLS
+   ========================================== */
 .checkbox-wrapper {
   display: flex;
   align-items: center;
@@ -342,10 +390,9 @@ li {
   height: 20px;
   margin: 0;
   cursor: pointer;
-  accent-color: #00ff66;
+  accent-color: var(--color-green);
 }
 
-/* Currency input group styles */
 .currency-group {
   display: flex;
   gap: 10px;
@@ -363,25 +410,17 @@ li {
 }
 
 /* Date input styles */
-/* Date input styles */
 input[type="date"] {
   background-color: #000;
-  color: #e0e0e0;
-  border: 1px solid #333;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   padding: 10px;
   font-family: inherit;
-  outline: none;
-  box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   -webkit-appearance: none;
   display: block;
-}
-
-input[type="date"]:focus {
-  border-color: #ff003c;
-  outline: none;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
@@ -393,7 +432,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   filter: invert(0.8) sepia(1) hue-rotate(80deg) saturate(5);
 }
 
-/* Type toggle styles */
+/* Type toggle */
 .type-toggle {
   display: flex;
   gap: 10px;
@@ -408,9 +447,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   flex: 1;
   text-align: center;
   padding: 10px;
-  background-color: #111;
-  color: #888;
-  border: 1px solid #333;
+  background-color: var(--color-card);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
   cursor: pointer;
   font-weight: bold;
   transition: 0.2s;
@@ -418,41 +457,43 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 input[type="radio"]:checked + .expense-toggle {
   background-color: rgba(255, 0, 60, 0.1);
-  color: #ff003c;
-  border-color: #ff003c;
+  color: var(--color-red);
+  border-color: var(--color-red);
 }
 
 input[type="radio"]:checked + .income-toggle {
   background-color: rgba(0, 255, 102, 0.1);
-  color: #00ff66;
-  border-color: #00ff66;
+  color: var(--color-green);
+  border-color: var(--color-green);
 }
 
-/* Transaction type styles */
-/* Income */
+/* ==========================================
+   TRANSACTION TYPE COLORS
+   ========================================== */
 .tx-income {
-  border-left-color: #00ff66 !important;
+  border-left-color: var(--color-green) !important;
 }
 .tx-income .expense-name {
-  color: #00ff66;
+  color: var(--color-green);
 }
 
-/* Investment */
 .tx-investment {
-  border-left-color: #00ccff !important;
+  border-left-color: var(--color-cyan) !important;
 }
 .tx-investment .expense-name {
-  color: #00ccff;
+  color: var(--color-cyan);
 }
 
-/* Expense */
 .tx-expense {
-  border-left-color: #ff003c !important;
+  border-left-color: var(--color-red) !important;
 }
 .tx-expense .expense-name {
-  color: #ff003c;
+  color: var(--color-red);
 }
 
+/* ==========================================
+   UTILITY
+   ========================================== */
 .no-spinner::-webkit-inner-spin-button,
 .no-spinner::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -463,86 +504,93 @@ input[type="radio"]:checked + .income-toggle {
   -moz-appearance: textfield;
 }
 
-/* --- HUD TARGET EDIT BUTTON --- */
+/* Forbids money amounts from breaking across lines */
+.money {
+  white-space: nowrap;
+}
+
+/* Hidden on desktop; revealed via mobile media query */
+.mobile-only-cancel {
+  display: none !important;
+}
+
+/* ==========================================
+   INLINE LINK BUTTONS
+   ========================================== */
 #editSavingsBtn {
-  color: #ffcc00;
+  color: var(--color-yellow);
   text-decoration: none;
   font-weight: bold;
   font-size: 0.85em;
-  padding: 2px 4px; /* Tiny padding so the background color has room */
-  border: 1px solid transparent; /* Keeps it from jumping when hovered */
-  transition: all 0.1s ease-in-out; /* Ultra-fast, snappy animation */
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  transition: var(--transition-fast);
   display: inline-block;
 }
 
-/* THE HOVER: Color Inversion */
 #editSavingsBtn:hover {
-  background-color: #ffcc00;
-  color: #111;
+  background-color: var(--color-yellow);
+  color: var(--color-card);
 }
 
-/* THE CLICK: Tactile Mechanical Press */
 #editSavingsBtn:active {
-  transform: scale(0.85); /* Shrinks the button slightly when held down */
+  transform: scale(0.85);
 }
 
-/* --- CHART MANAGE BUTTON --- */
+/* Positioned top-right of chart panel */
 #manageCategoriesBtn {
   position: absolute;
   top: 10px;
   right: 10px;
   z-index: 10;
-  color: #00ccff;
+  color: var(--color-cyan);
   text-decoration: none;
   font-weight: bold;
   font-size: 0.85em;
   letter-spacing: 1px;
   padding: 2px 4px;
   border: 1px solid transparent;
-  transition: all 0.1s ease-in-out;
+  transition: var(--transition-fast);
   display: inline-block;
 }
 
-/* THE HOVER: Cyan Inversion */
 #manageCategoriesBtn:hover {
-  background-color: #00ccff;
-  color: #111;
+  background-color: var(--color-cyan);
+  color: var(--color-card);
 }
 
-/* THE CLICK: Tactile Mechanical Press */
 #manageCategoriesBtn:active {
   transform: scale(0.85);
 }
 
-/* --- RETURN HOME BUTTON --- */
 #returnHomeBtn {
-  color: #00ff66;
+  color: var(--color-green);
   text-decoration: none;
   font-weight: bold;
   font-size: 1.1em;
   letter-spacing: 1px;
   padding: 5px 10px;
   border: 1px solid transparent;
-  transition: all 0.1s ease-in-out;
-  
-  /* Centers the button perfectly while keeping the hit-box tight! */
+  transition: var(--transition-fast);
   display: block;
   width: fit-content;
-  margin: 40px auto; 
+  margin: 40px auto;
 }
 
-/* THE HOVER: Neon Green Inversion */
 #returnHomeBtn:hover {
-  background-color: #00ff66;
-  color: #111;
+  background-color: var(--color-green);
+  color: var(--color-card);
 }
 
-/* THE CLICK: Tactile Mechanical Press */
 #returnHomeBtn:active {
   transform: scale(0.85);
 }
 
-/* --- CANCEL BUTTON NORMALIZATION --- */
+/* ==========================================
+   CANCEL BUTTONS
+   ========================================== */
+
+/* Base normalization for all cancel buttons */
 #cancelDeleteBtn, #cancelBtn, #cancelReturnBtn {
   display: inline-flex !important;
   align-items: center !important;
@@ -552,222 +600,185 @@ input[type="radio"]:checked + .income-toggle {
   text-decoration: none !important;
   cursor: pointer !important;
   letter-spacing: 1px !important;
-  transition: all 0.1s ease-in-out !important;
+  transition: var(--transition-fast) !important;
 }
 
-/* Specific styling for the Edit Page Cancel Button */
+/* Edit-page cancel buttons (block-centered, red) */
 #cancelBtn, #cancelReturnBtn {
   display: block !important;
   width: fit-content !important;
   margin: 40px auto !important;
-  color: #ff003c !important; 
-  font-weight: bold !important;             /* Matches Home button weight */
-  font-size: 1.1em !important;              /* Matches Home button size */
-  padding: 5px 10px !important;             /* Gives the background room to breathe */
-  border: 1px solid transparent !important; /* Prevents jitter on hover */
+  color: var(--color-red) !important;
+  font-weight: bold !important;
+  font-size: 1.1em !important;
+  padding: 5px 10px !important;
+  border: 1px solid transparent !important;
 }
 
-/* THE HOVER: Gray Inversion */
-#cancelDeleteBtn:hover, #cancelBtn:hover, #cancelReturnBtn:hover {
-  background-color: #ff003c !important; 
-  color: #111 !important;
+#cancelBtn:hover, #cancelReturnBtn:hover {
+  background-color: var(--color-red) !important;
+  color: var(--color-card) !important;
 }
 
-/* THE CLICK: Tactile Mechanical Press */
 #cancelDeleteBtn:active, #cancelBtn:active, #cancelReturnBtn:active {
-  transform: scale(0.85) !important; /* Matched to the Home button's 0.85 scale */
+  transform: scale(0.85) !important;
 }
 
-/* --- SYSTEM LOGOUT BUTTON --- */
+/* ==========================================
+   LOGOUT BUTTON
+   ========================================== */
 #logoutBtn {
-  color: #ff003c;
+  color: var(--color-red);
   text-decoration: none;
   font-weight: bold;
-  font-size: 0.9em;
   letter-spacing: 1px;
-  padding: 6px 12px;
-  border: 1px solid #ff003c;
-  transition: all 0.1s ease-in-out;
-  
-  /* Prevents the button from being squished if the title gets long on mobile */
-  flex-shrink: 0; 
+  border: 1px solid var(--color-red);
+  width: auto;
 }
 
-/* THE HOVER: Red Inversion */
-#logoutBtn:hover {
-  background-color: #ff003c;
-  color: #111;
-}
-
-/* THE CLICK: Tactile Mechanical Press */
-#logoutBtn:active {
-  transform: scale(0.9);
-}
-
-/* Hide the bottom cancel button on desktop */
-.mobile-only-cancel {
-  display: none !important;
-}
-
-/* =========================================
-   THE TACTILE TERMINAL UI SYSTEM
-   ========================================= */
-
-/* 1. THE SMOOTHING ENGINE: Apply smooth color transitions to all interactive elements */
-button, 
-.edit-btn, 
-.delete-btn, 
+/* ==========================================
+   GLOBAL INTERACTION SYSTEM
+   Transitions and press effects for all interactive elements.
+   ========================================== */
+button,
+.edit-btn,
+.delete-btn,
 #logoutBtn {
-  transition: all 0.15s ease-in-out !important;
+  transition: var(--transition-std) !important;
   cursor: pointer;
 }
 
-/* 2. THE MECHANICAL PRESS: Apply the satisfying shrink animation to ALL buttons on click */
-button:active, 
-.edit-btn:active, 
-.delete-btn:active, 
+button:active,
+.edit-btn:active,
+.delete-btn:active,
 #logoutBtn:active {
   transform: scale(0.92) !important;
 }
 
-/* =========================================
-   COLOR INVERSION HOVER STATES
-   ========================================= */
-
-/* RED Outline Buttons (Delete X, Logout) */
+/* Color inversion hover states */
 .delete-btn:hover,
 #logoutBtn:hover {
-  background-color: #ff003c !important;
-  color: #111 !important;
+  background-color: var(--color-red) !important;
+  color: var(--color-card) !important;
 }
 
-/* CYAN Outline Buttons (Edit) */
 .edit-btn:hover {
-  background-color: #00d2ff !important; /* Adjust if your cyan hex code is slightly different */
-  color: #111 !important;
+  background-color: var(--color-cyan) !important;
+  color: var(--color-card) !important;
 }
 
-/* GREEN Outline Buttons (Export) */
 #exportBtn:hover {
-  background-color: #00ff66 !important;
-  color: #111 !important;
+  background-color: var(--color-green) !important;
+  color: var(--color-card) !important;
 }
 
 #exportBtn:active {
   transform: scale(0.92) !important;
 }
 
-/* GREY Outline Buttons (Cancel, Close) */
+/* Grey inversion for neutral cancel/close buttons */
 #mobileCancelBtn:hover,
 #cancelLogoutBtn:hover,
 #cancelDeleteBtn:hover {
-  background-color: #888 !important;
-  color: #111 !important;
-  border-color: #888 !important;
+  background-color: var(--color-text-muted) !important;
+  color: var(--color-card) !important;
+  border-color: var(--color-text-muted) !important;
 }
 
-/* --- HUD TOGGLE BUTTON CONTAINER --- */
+/* ==========================================
+   FINANCIAL CONTROLS CONTAINER
+   ========================================== */
 .financial-controls-container {
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-bottom: 20px; 
-  
-  /* LOCKDOWN: We absolutely forbid wrapping again */
-  flex-wrap: nowrap; 
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 20px;
+  flex-wrap: nowrap;
   gap: 15px;
   width: 100%;
 }
 
-/* THE MAGIC: Fluid Typography WITHOUT Truncation */
 .financial-controls-container h2 {
   margin: 0;
-  white-space: nowrap; 
-  
-  /* The font scales dynamically from 1.5rem up to 2.5em depending on screen width */
-  font-size: clamp(1.5rem, 5vw, 2.5em); 
+  white-space: nowrap;
+  font-size: clamp(1.5rem, 5vw, 2.5em);
 }
 
-/* Align the toggle button to the bottom of the container so it matches the numbers */
-.financial-controls-container {
-  display: flex; 
-  justify-content: space-between; 
-  align-items: flex-end; 
-  margin-bottom: 20px; 
-  flex-wrap: nowrap; 
-  gap: 15px;
-  width: 100%;
-}
-
-/* --- HUD TOGGLE BUTTON (DEFAULT: USD CYAN) --- */
+/* ==========================================
+   HUD TOGGLE BUTTON
+   ========================================== */
 .hud-toggle-btn {
-  background-color: transparent; 
-  color: #00ccff; 
-  border: 1px solid #00ccff; 
-  padding: 8px 16px; 
-  font-family: inherit; 
-  font-weight: bold; 
-  cursor: pointer; 
-  white-space: nowrap; 
-  flex-shrink: 0; /* Prevents the button from being squished */
+  background-color: transparent;
+  color: var(--color-cyan);
+  border: 1px solid var(--color-cyan);
+  padding: 8px 16px;
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   letter-spacing: 1px;
-  width: auto; 
-  margin: 0; 
-  transition: all 0.2s ease-in-out;
-}
-.hud-toggle-btn:hover {
-  background-color: #00ccff;
-  color: #111;
+  width: auto;
+  margin: 0;
+  transition: var(--transition-std);
 }
 
-/* --- HUD TOGGLE BUTTON (STATE: KHR YELLOW) --- */
+.hud-toggle-btn:hover {
+  background-color: var(--color-cyan);
+  color: var(--color-card);
+}
+
 .hud-toggle-btn.khr-mode {
-  color: #ffcc00;
-  border-color: #ffcc00;
+  color: var(--color-yellow);
+  border-color: var(--color-yellow);
 }
 
 .hud-toggle-btn.khr-mode:hover {
-  background-color: #ffcc00;
-  color: #111;
+  background-color: var(--color-yellow);
+  color: var(--color-card);
 }
 
-/* --- CHART MODE TOGGLE BUTTON STATES --- */
+/* ==========================================
+   CHART MODE TOGGLE
+   ========================================== */
 .mode-expense {
-  color: #ff003c !important;
-  border-color: #ff003c !important;
+  color: var(--color-red) !important;
+  border-color: var(--color-red) !important;
 }
 .mode-expense:hover {
-  background-color: #ff003c !important;
-  color: #111 !important;
+  background-color: var(--color-red) !important;
+  color: var(--color-card) !important;
 }
 
 .mode-income {
-  color: #00ff66 !important;
-  border-color: #00ff66 !important;
+  color: var(--color-green) !important;
+  border-color: var(--color-green) !important;
 }
 .mode-income:hover {
-  background-color: #00ff66 !important;
-  color: #111 !important;
+  background-color: var(--color-green) !important;
+  color: var(--color-card) !important;
 }
 
-  /* --- PAGINATION BUTTONS --- */
+/* ==========================================
+   PAGINATION
+   ========================================== */
 .page-btn {
-  color: #00ccff;
+  color: var(--color-cyan);
   text-decoration: none;
-  border: 1px solid #00ccff;
+  border: 1px solid var(--color-cyan);
   padding: 6px 10px;
   font-weight: bold;
   font-size: 0.85em;
   white-space: nowrap;
-  transition: all 0.2s ease-in-out;
+  transition: var(--transition-std);
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
 .page-btn:not(.disabled-btn):hover {
-  background-color: #00ccff;
-  color: #111;
+  background-color: var(--color-cyan);
+  color: var(--color-card);
 }
 
 .page-btn:not(.disabled-btn):active {
@@ -775,18 +786,52 @@ button:active,
 }
 
 .disabled-btn {
-  color: #444;
+  color: var(--color-border-muted);
   border-color: #222;
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Forbids any money text from breaking across multiple lines */
-.money {
-  white-space: nowrap;
+/* ==========================================
+   SAVINGS SAVE BUTTON
+   ========================================== */
+.savings-save-btn {
+  margin: 0;
+  padding: 0 15px;
+  height: 36px;
+  width: auto;
+  flex-shrink: 0;
+  background-color: rgba(255, 204, 0, 0.1);
+  color: var(--color-yellow);
+  border: 1px solid var(--color-border-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 0.9em;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 }
 
-/* --- FILTER DRAWER ANIMATION ENGINE --- */
+.savings-save-btn:hover {
+  background-color: var(--color-yellow);
+  color: var(--color-card);
+  border-color: var(--color-yellow);
+}
+
+/* ==========================================
+   CHART PANEL
+   ========================================== */
+.chart-panel {
+  flex: 1;
+  background-color: var(--color-card);
+  padding: 15px;
+  border: 1px solid var(--color-border);
+  position: relative;
+  height: 300px;
+}
+
+/* ==========================================
+   FILTER DRAWER (CSS grid collapse animation)
+   ========================================== */
 .filter-drawer-wrapper {
   display: grid;
   grid-template-rows: 0fr;
@@ -800,60 +845,173 @@ button:active,
 
 .filter-drawer-inner {
   overflow: hidden;
-  min-height: 0; /* Prevents flexbox children from breaking the grid collapse */
+  min-height: 0;
 }
 
-/* ========================================= */
-/* --- OPERATION ALPHA: MOBILE RESPONSIVE --- */
-/* ========================================= */
+.savings-edit-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+}
 
+.savings-edit-wrapper.is-open {
+  grid-template-rows: 1fr;
+}
+
+.savings-edit-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ==========================================
+   BUDGET ENVELOPES
+   ========================================== */
+.envelope-section {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-yellow);
+}
+
+.envelope-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+#envelopeToggle {
+  color: var(--color-yellow);
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.85em;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  transition: var(--transition-fast);
+  display: inline-block;
+}
+
+#envelopeToggle:hover {
+  background-color: var(--color-yellow);
+  color: var(--color-card);
+}
+
+#envelopeToggle:active {
+  transform: scale(0.85);
+}
+
+.envelope-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.envelope-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.3s ease;
+}
+
+.envelope-body-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.envelope-section.collapsed .envelope-body {
+  grid-template-rows: 0fr;
+}
+
+.envelope-name {
+  width: 110px;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.envelope-track {
+  flex: 1;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.envelope-fill {
+  height: 100%;
+  background: var(--color-green);
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+.envelope-fill.over-budget {
+  background: var(--color-red);
+}
+
+.envelope-label {
+  min-width: 160px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-align: right;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ==========================================
+   MOBILE RESPONSIVE
+   ========================================== */
 @media (max-width: 768px) {
-  /* Stack the Top System Readout Boxes */
+
   .system-readout {
     flex-direction: column;
     gap: 10px;
   }
 
-  /* Scale down the massive headers */
   h1 {
     font-size: 1.5em;
   }
+
   h2 {
     font-size: 1.3em;
   }
 
-  /* Stack the Side-by-Side Charts */
   .chart-row {
     flex-direction: column !important;
   }
 
-  /* Reformat the Expense List Items for Touch Screens */
   li {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 15px;
   }
-  
-  /* Spread the price and buttons out to fill the new width */
+
   li > div:nth-child(2) {
-    width: 100%;
-    justify-content: space-between;
+    width: 100% !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 12px !important;
   }
 
-/* --- MODAL MOBILE OPTIMIZATION --- */
   .modal-content {
     width: 90%;
-    padding: 25px 15px; 
-    /* margin: 10vh auto; <-- DELETED! */
+    padding: 25px 15px;
   }
 
-  /* Target the inline flexbox holding the modal buttons and stack them */
   #deleteModal, #logoutModal, .modal-content > div {
     flex-direction: column !important;
     gap: 12px !important;
   }
 
-  /* Force the buttons to take full width and match our new touch-friendly height */
   #cancelDeleteBtn, #confirmDeleteBtn,
   #cancelLogoutBtn, #confirmLogoutBtn {
     width: 100% !important;
@@ -862,126 +1020,86 @@ button:active,
     font-size: 1em !important;
   }
 
-  #deleteModal .modal-content > div, 
-  #logoutModal .modal-content > div {  
-    flex-direction: column-reverse !important; /* THE MAGIC FLIP! */
+  #deleteModal .modal-content > div,
+  #logoutModal .modal-content > div {
+    flex-direction: column-reverse !important;
     gap: 12px !important;
   }
 
-  /* Stack the side-by-side inputs (Name/Date & Amount/Currency) */
   .currency-group,
   #addExpenseModal form > div[style*="display: flex"] {
     flex-direction: column !important;
     gap: 10px !important;
   }
 
-  /* Force the squished inputs to stretch to full width */
-  #itemNameInput, 
+  #itemNameInput,
   #expenseDate,
-  .currency-group input, 
+  .currency-group input,
   .currency-group select {
     width: 100% !important;
     margin: 0 !important;
   }
 
-  /* 7. Stop Categories from Bleeding Off-Screen */
-  .scroll-box form {
-    flex-wrap: wrap; /* Allow the form to drop to a new line */
-    width: 100%;
-    gap: 10px;
-    margin-top: 10px !important;
-  }
-
-  .scroll-box form input[type="text"] {
-    width: 100% !important; /* Force the text input to take the whole top row */
-  }
-
-  .scroll-box form button {
-    flex: 1; /* Make [RENAME] and [DELETE] split the bottom row 50/50 */
-    text-align: center;
-    justify-content: center;
-  }
-
-  /* --- CATEGORY MANAGER MOBILE FIX --- */
   .scroll-box form {
     flex-direction: row !important;
-    flex-wrap: wrap !important; /* Allows items to drop to a new line */
+    flex-wrap: wrap !important;
     width: 100% !important;
     gap: 10px !important;
     margin-top: 10px !important;
   }
 
   .scroll-box form input[type="text"] {
-    flex: 0 0 100% !important; /* Forces the text input to take the entire top row */
+    flex: 0 0 100% !important;
     width: 100% !important;
     margin: 0 !important;
   }
 
   .scroll-box form button {
-    flex: 1 !important; /* Makes [RENAME] and [DELETE] split the bottom row 50/50 */
-    height: 44px !important; /* Gives them a taller, more touch-friendly height on mobile */
+    flex: 1 !important;
+    height: 44px !important;
     margin: 0 !important;
     text-align: center !important;
     justify-content: center !important;
   }
 
-  /* --- EXPENSE LIST MOBILE ALIGNMENT --- */
-  li > div:nth-child(2) {
-    width: 100% !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    margin-top: 12px !important; /* Push the price down away from the text */
-  }
-
-/* --- MOBILE SCROLL UNLOCK --- */
   .scroll-box {
-    max-height: none !important; 
-    
-    /* THE FIX: Only unlock vertical, keep horizontal hidden! */
-    overflow-y: visible !important; 
-    overflow-x: hidden !important;  
-    
-    padding-right: 0 !important; 
-    border-bottom: none !important; 
+    max-height: none !important;
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+    padding-right: 0 !important;
+    border-bottom: none !important;
     touch-action: auto !important;
   }
 
-  /* --- MOBILE EXPENSE ACTION BUTTONS --- */
   .edit-btn, .delete-btn {
-    height: 44px !important;    /* Keep the touch-friendly height */
+    height: 44px !important;
   }
 
-  /* --- ADD EXPENSE MOBILE UX SWAP --- */
-  
-  /* 1. Hide the top-right [X] */
   #addExpenseModal .close-modal,
-  #editModal .close-modal {
+  #editModal .close-modal,
+  #addRecurringModal .close-modal {
     display: none !important;
   }
 
-  /* 2. Reveal the bottom cancel button */
   .mobile-only-cancel {
     display: block !important;
   }
 
-  /* 3. Stack the buttons and flip them (Confirm top, Cancel bottom) */
   .modal-actions {
     display: flex !important;
     flex-direction: row !important;
     gap: 12px !important;
   }
 
-  /* 4. Lock them to the touch-friendly height and forbid text wrapping */
   .modal-actions button {
     flex: 1 !important;
     height: 44px !important;
     margin: 0 !important;
-    font-size: 0.85em !important; /* Scaled down slightly for safety */
+    font-size: 0.85em !important;
     padding: 0 5px !important;
-    white-space: nowrap !important; /* THE FIX: Forbid line breaks */
+    white-space: nowrap !important;
   }
 
-  /* Keep the budget and toggle side-by-side, but tighten the grid */
   .financial-controls-container {
     flex-direction: row !important;
     align-items: flex-end !important;
@@ -989,11 +1107,10 @@ button:active,
     gap: 10px !important;
   }
 
-  /* Shrink the utility toggle to a discrete, tactical pill */
   .hud-toggle-btn {
     width: auto !important;
     padding: 6px 12px !important;
     font-size: 0.85em !important;
-    margin-bottom: 2px !important; /* Perfectly aligns the baseline with the big numbers */
+    margin-bottom: 2px !important;
   }
 }

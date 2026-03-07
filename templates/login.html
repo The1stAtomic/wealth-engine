@@ -65,6 +65,52 @@
       0% { opacity: 0; }
       100% { opacity: 1; }
     }
+
+    .login-header p {
+      color: #888;
+      font-size: 0.9em;
+      letter-spacing: 1px;
+    }
+
+    #bootSequence {
+      color: #555;
+      font-size: 0.8em;
+      text-align: left;
+      margin-bottom: 25px;
+      line-height: 1.6;
+    }
+
+    .sys-log { display: none; }
+
+    .login-container form {
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: none;
+    }
+
+    #loginPassword { padding-right: 70px; }
+
+    .password-wrapper { position: relative; }
+
+    #togglePassword {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #888;
+      font-size: 0.85em;
+      font-weight: bold;
+      user-select: none;
+      transition: color 0.2s;
+    }
+
+    .login-container button[type="submit"] {
+      margin-top: 30px;
+      background-color: #00ff66;
+      color: #111;
+    }
   </style>
 </head>
 <body>
@@ -72,32 +118,33 @@
   <div class="login-container">
     <div class="login-header">
       <h1>SYSTEM LOGIN</h1>
-      <p style="color: #888; font-size: 0.9em; letter-spacing: 1px;">Wealth Engine v1.0</p>
+      <p>Wealth Engine v1.0</p>
     </div>
 
-    <div id="bootSequence" style="color: #555; font-size: 0.8em; text-align: left; margin-bottom: 25px; line-height: 1.6; font-family: 'Courier New', Courier, monospace;">
-      <div class="sys-log" style="display: none;">> init protocol...&nbsp;[OK]</div>
-      <div class="sys-log" style="display: none;">> p2p handshake...&nbsp;[OK]</div>
-      <div class="sys-log" style="display: none;">> encryption: AES-256</div>
-      <div class="sys-log" style="display: none; color: #00ff66;">> AWAITING ROOT CREDENTIALS_</div>
+    <div id="bootSequence">
+      <div class="sys-log">> init protocol...&nbsp;[OK]</div>
+      <div class="sys-log">> p2p handshake...&nbsp;[OK]</div>
+      <div class="sys-log">> encryption: AES-256</div>
+      <div class="sys-log" style="color: #00ff66;">> AWAITING ROOT CREDENTIALS_</div>
     </div>
 
     {% if error %}
       <div class="error-message">[!] {{ error }}</div>
     {% endif %}
     <div id="loginFormArea" style="opacity: 0; transition: opacity 0.4s ease-in-out;">
-      <form action="{{ url_for('login') }}" method="post" style="margin: 0; padding: 0; border: none; background: none;">
-      
+      <form action="{{ url_for('login') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <label>Username:</label>
         <input type="text" name="username" autocapitalize="none" required autofocus>
         
         <label>Password:</label>
-        <div style="position: relative;">
-          <input type="password" name="password" id="loginPassword" required style="padding-right: 70px;">
-          <span id="togglePassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; font-size: 0.85em; font-weight: bold; user-select: none; transition: color 0.2s;">[SHOW]</span>
+        <div class="password-wrapper">
+          <input type="password" name="password" id="loginPassword" required>
+          <span id="togglePassword">[SHOW]</span>
         </div>
         
-        <button type="submit" style="margin-top: 30px; background-color: #00ff66; color: #111;">[AUTHENTICATE]</button>
+        <button type="submit">[AUTHENTICATE]</button>
       </form>
     </div>
     
@@ -124,25 +171,14 @@
     document.addEventListener("DOMContentLoaded", () => {
       const logs = document.querySelectorAll('.sys-log');
       const formArea = document.getElementById('loginFormArea');
-      let delay = 0;
 
-      // 1. Loop through each log line and reveal it quickly
       logs.forEach((log, index) => {
-        setTimeout(() => {
-          log.style.display = 'block';
-        }, delay);
-        
-        // Add 250 milliseconds of delay before the next line prints
-        delay += 250; 
+        setTimeout(() => { log.style.display = 'block'; }, index * 250);
       });
 
-      // 2. Once the logs finish, smoothly fade in the username/password form
       setTimeout(() => {
         formArea.style.opacity = '1';
-        
-        // Optional: Automatically put the blinking text cursor inside the username box
-        document.querySelector('input[name="username"]').focus();
-      }, delay + 200); 
+      }, logs.length * 250 + 200);
     });
   </script>
 </body>

@@ -6,57 +6,53 @@
   <title>System Lockdown | Wealth Engine</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
-    /* Exact match to your login centering */
     body {
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       margin: 0;
-      background-color: #0a0a0a;
+      background-color: var(--color-bg);
       max-width: 100% !important;
     }
-    
-    /* Modified container: Red border and red shadow instead of green */
+
     .login-container {
-      background-color: #111;
+      background-color: var(--color-card);
       padding: 40px;
-      border: 1px solid #333;
-      border-top: 4px solid #ff003c; 
+      border: 1px solid var(--color-border);
+      border-top: 4px solid var(--color-red);
       width: 90%;
       max-width: 400px;
       box-shadow: 0 0 20px rgba(255, 0, 60, 0.15);
     }
-    
+
     .login-header {
       text-align: center;
       margin-bottom: 30px;
     }
-    
-    /* Header text switched to Red */
+
     .login-header h1 {
       border-bottom: none;
       padding-bottom: 0;
       margin: 0;
       font-size: 1.8em;
-      color: #ff003c;
+      color: var(--color-red);
       white-space: nowrap;
     }
 
     .login-header h1::after {
-      content: ' _'; 
+      content: ' _';
       animation: blink 1s step-end infinite;
     }
 
     @keyframes blink {
       50% { opacity: 0; }
     }
-    
-    /* Your exact error message styling */
+
     .error-message {
-      color: #ff003c;
+      color: var(--color-red);
       background-color: rgba(255, 0, 60, 0.1);
-      border: 1px solid #ff003c;
+      border: 1px solid var(--color-red);
       padding: 15px;
       margin-bottom: 20px;
       text-align: center;
@@ -70,33 +66,32 @@
       100% { opacity: 1; }
     }
 
-    /* Link styled exactly like your main authenticate button */
-    .return-btn {
-      display: block;
-      background-color: #e0e0e0;
-      color: #000;
-      padding: 15px;
-      border: none;
-      font-weight: bold;
-      font-family: inherit;
-      font-size: 16px;
-      cursor: pointer;
-      text-transform: uppercase;
-      width: 100%;
-      text-align: center;
-      text-decoration: none;
-      transition: background-color 0.2s;
-      box-sizing: border-box;
-      margin-top: 30px;
+    .login-header p {
+      color: var(--color-text-muted);
+      font-size: 0.9em;
+      letter-spacing: 1px;
     }
 
-    .return-btn:hover {
-      background-color: #ff003c;
-      color: #fff;
+    #bootSequence {
+      color: #555;
+      font-size: 0.8em;
+      text-align: left;
+      margin-bottom: 25px;
+      line-height: 1.6;
     }
-    
-    .return-btn:active {
-      transform: scale(0.92);
+
+    #bootSequence .warn {
+      color: var(--color-yellow);
+    }
+
+    #bootSequence .trigger {
+      color: var(--color-red);
+      margin-top: 5px;
+    }
+
+    .error-message .warn {
+      font-size: 0.9em;
+      color: var(--color-yellow);
     }
   </style>
 </head>
@@ -105,26 +100,23 @@
   <div class="login-container">
     <div class="login-header">
       <h1>SYSTEM LOCKDOWN</h1>
-      <p style="color: #888; font-size: 0.9em; letter-spacing: 1px;">Wealth Engine v1.0</p>
+      <p>Wealth Engine v1.0</p>
     </div>
 
-    <div id="bootSequence" style="color: #555; font-size: 0.8em; text-align: left; margin-bottom: 25px; line-height: 1.6; font-family: 'Courier New', Courier, monospace;">
+    <div id="bootSequence">
       <div>> analyzing request volume...&nbsp;[FAIL]</div>
-      <div>> checking ip reputation...&nbsp;<span style="color: #ffcc00;">[SUSPICIOUS]</span></div>
+      <div>> checking ip reputation...&nbsp;<span class="warn">[SUSPICIOUS]</span></div>
       <div>> terminating handshake...&nbsp;[OK]</div>
-      <div style="color: #ff003c; margin-top: 5px;">> TRIGGERING DEFENSE PROTOCOL_</div>
+      <div class="trigger">> TRIGGERING DEFENSE PROTOCOL_</div>
     </div>
 
     <div class="error-message">
       [!] BRUTE FORCE PROTOCOL<br><br>
-      <span style="font-size: 0.9em; color: #ffcc00;">
+      <span class="warn">
         Maximum authentication failures reached.<br>
         Mandatory 60-second cooldown active.
       </span>
     </div>
-
-    <!-- <a href="{{ url_for('login') }}" class="return-btn">[ RETURN TO GATEWAY ]</a> -->
-    
   </div>
 
 </body>

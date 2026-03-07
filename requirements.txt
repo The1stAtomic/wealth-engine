@@ -1,4 +1,7 @@
 Flask
 Flask-SQLAlchemy
-python-dotenv
+Flask-WTF
 Flask-Limiter
+python-dotenv
+bcrypt
+python-dateutil

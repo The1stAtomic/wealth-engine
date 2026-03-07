@@ -15,37 +15,54 @@
   <div class="scroll-box">
     <ul>
       {% for category in categories %}
-        <li style="align-items: center; border-left: 4px solid #00ccff; padding: 15px; display: flex; transition: 0.2s; width: 100%; box-sizing: border-box;">
-          
+        <li style="align-items: center; border-left: 4px solid #00ccff; padding: 15px; display: flex; transition: 0.2s; width: 100%; box-sizing: border-box; flex-direction: column; gap: 0;">
+
           <div class="display-mode" style="display: flex; flex-grow: 1; justify-content: space-between; align-items: center; gap: 15px; width: 100%;">
-            
-            <strong style="font-size: 1.2em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-grow: 1;" title="{{ category }}">{{ category }}</strong>
-            
+
+            <div style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1; gap: 2px;">
+              <strong style="font-size: 1.2em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ category.name }}">{{ category.name }}</strong>
+              {% if category.monthly_budget %}
+                <span style="color: #ffcc00; font-size: 0.75em;">Budget: ${{ "%.2f"|format(category.monthly_budget) }}/mo</span>
+              {% endif %}
+            </div>
+
             <div style="display: flex; gap: 10px; flex-shrink: 0; align-items: center;">
-              
+
               <button type="button" class="edit-btn toggle-edit-btn">[EDIT]</button>
-              
+
               <form method="post" class="delete-form" style="display: contents;">
-                <input type="hidden" name="old_category" value="{{ category }}">
-                <button type="submit" name="action" value="delete" class="delete-btn">[X]</button>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="old_category" value="{{ category.name }}">
+                <input type="hidden" name="action" value="delete">
+                <button type="button" class="delete-btn">[X]</button>
               </form>
-              
+
             </div>
           </div>
 
-          <form class="edit-mode" method="post" style="display: none; flex-grow: 1; gap: 10px; align-items: center; margin: 0; padding: 0; border: none; background: none; width: 100%;">
-            <input type="hidden" name="old_category" value="{{ category }}">
-            
-            <input type="text" name="new_category" autocapitalize="words" value="{{ category }}" style="flex-grow: 1; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 1.1em; background: #000; color: #fff; border: 1px solid #444; min-width: 50px;" maxlength="50" required>
-            
-            <div style="display: flex; gap: 10px; flex-shrink: 0; align-items: center;">
-              
-              <button type="submit" name="action" value="rename" class="edit-btn" style="color: #00ff66 !important; border-color: #00ff66 !important;">[SAVE]</button>
-              
-              <button type="button" class="toggle-edit-btn" style="display: inline-flex; align-items: center; justify-content: center; height: 36px; box-sizing: border-box; padding: 0 15px; margin: 0; color: #888; border: 1px solid #444; background: transparent; font-family: inherit; font-weight: bold; font-size: 0.9em; letter-spacing: 1px; cursor: pointer; transition: 0.2s;" onmouseover="this.style.color='#fff'; this.style.borderColor='#fff'" onmouseout="this.style.color='#888'; this.style.borderColor='#444'">[CANCEL]</button>
-              
-            </div>
-          </form>
+          <div class="edit-mode" style="display: none; flex-direction: column; gap: 10px; width: 100%; margin-top: 12px;">
+
+            <form method="post" style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin: 0; padding: 0; border: none; background: none;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="old_category" value="{{ category.name }}">
+              <input type="hidden" name="action" value="save">
+
+              <input type="text" name="new_category" autocapitalize="words" value="{{ category.name }}" style="width: 100%; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 1.1em; background: #000; color: #fff; border: 1px solid #444;" maxlength="50" required>
+
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #888; font-size: 0.8em; flex-shrink: 0;">Monthly Budget ($):</span>
+                <input type="number" name="monthly_budget" step="0.01" min="0" placeholder="No budget"
+                       value="{{ category.monthly_budget if category.monthly_budget else '' }}"
+                       style="flex: 1; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 1em; background: #000; color: #ffcc00; border: 1px solid #444; min-width: 0;">
+              </div>
+
+              <div style="display: flex; gap: 10px; width: 100%;">
+                <button type="submit" class="edit-btn save-btn" style="flex: 1;">[SAVE]</button>
+                <button type="button" class="toggle-edit-btn cancel-btn" style="flex: 1;">[CANCEL]</button>
+              </div>
+            </form>
+
+          </div>
 
         </li>
       {% endfor %}
@@ -81,24 +98,12 @@
       if (e.target && e.target.classList.contains('delete-btn')) {
         e.preventDefault(); // Stop the form immediately
         formToSubmit = e.target.closest('form'); // Grab the parent form
-        
-        // Create a hidden input so the backend knows the action is "delete"
-        // (Since we stopped the button click, we have to manually re-add the value)
-        const actionInput = document.createElement('input');
-        actionInput.type = 'hidden';
-        actionInput.name = 'action';
-        actionInput.value = 'delete';
-        formToSubmit.appendChild(actionInput);
-
         deleteModal.style.display = 'block';
       }
     });
 
     cancelDeleteBtn.addEventListener('click', () => {
       deleteModal.style.display = 'none';
-      // Remove that temporary hidden input if they cancel
-      const tempInput = formToSubmit.querySelector('input[name="action"][type="hidden"]');
-      if (tempInput) tempInput.remove();
       formToSubmit = null;
     });
 
@@ -109,44 +114,43 @@
     });
 
     // --- INLINE EDIT TOGGLE (Highlander Protocol) ---
+    function closeAllEditRows() {
+      document.querySelectorAll('li').forEach(li => {
+        const otherDisplay = li.querySelector('.display-mode');
+        const otherEdit = li.querySelector('.edit-mode');
+        if (otherEdit && otherDisplay && otherDisplay.style.display === 'none') {
+          otherDisplay.style.display = 'flex';
+          otherEdit.style.display = 'none';
+          const nameInput = otherEdit.querySelector('input[type="text"]');
+          const hiddenInput = otherEdit.querySelector('input[name="old_category"]');
+          if (nameInput && hiddenInput) nameInput.value = hiddenInput.value;
+        }
+      });
+    }
+
     document.querySelectorAll('.toggle-edit-btn').forEach(button => {
       button.addEventListener('click', function(e) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         const currentLi = this.closest('li');
         const displayMode = currentLi.querySelector('.display-mode');
         const editMode = currentLi.querySelector('.edit-mode');
         const inputField = editMode.querySelector('input[type="text"]');
         const originalName = editMode.querySelector('input[name="old_category"]').value;
 
-        // If the user clicked [CANCEL] on a row that is already open
         if (displayMode.style.display === 'none') {
           displayMode.style.display = 'flex';
           editMode.style.display = 'none';
-          inputField.value = originalName; // Revert any unsaved typing
-          return; // Stop execution here
-        } 
+          inputField.value = originalName;
+          return;
+        }
 
-        // If the user clicked [EDIT], first close EVERY other open row on the page
-        document.querySelectorAll('li').forEach(li => {
-          const otherDisplay = li.querySelector('.display-mode');
-          const otherEdit = li.querySelector('.edit-mode');
-          if (otherEdit && otherDisplay && otherDisplay.style.display === 'none') {
-            // Force it closed
-            otherDisplay.style.display = 'flex';
-            otherEdit.style.display = 'none';
-            // Wipe out any abandoned text they typed
-            const otherInput = otherEdit.querySelector('input[type="text"]');
-            const otherOriginal = otherEdit.querySelector('input[name="old_category"]').value;
-            otherInput.value = otherOriginal;
-          }
-        });
+        closeAllEditRows();
 
-        // Finally, open the row they actually clicked
         displayMode.style.display = 'none';
         editMode.style.display = 'flex';
         inputField.focus();
-        inputField.select(); 
+        inputField.select();
       });
     });
 
