@@ -8,21 +8,17 @@
 </head>
 <body>
   <h1>Manage Categories</h1>
-  <h2>Bulk Actions</h2>
-
-  <p style="color: #888; font-size: 0.9em; margin-bottom: 30px;">Warning: Renaming a category updates ALL past expenses with that category. Deleting a category converts those expenses to "Uncategorized" but keeps your expense history intact.</p>
-
   <div class="scroll-box">
     <ul>
       {% for category in categories %}
-        <li style="align-items: center; border-left: 4px solid #00ccff; padding: 15px; display: flex; transition: 0.2s; width: 100%; box-sizing: border-box; flex-direction: column; gap: 0;">
+        <li style="align-items: center; border-left: 4px solid #00ccff; padding: 15px; display: flex; transition: 0.2s; width: 100%; box-sizing: border-box; flex-direction: column; gap: 0; margin-bottom: 8px;">
 
           <div class="display-mode" style="display: flex; flex-grow: 1; justify-content: space-between; align-items: center; gap: 15px; width: 100%;">
 
             <div style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1; gap: 2px;">
               <strong style="font-size: 1.2em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ category.name }}">{{ category.name }}</strong>
               {% if category.monthly_budget %}
-                <span style="color: #ffcc00; font-size: 0.75em;">Budget: ${{ "%.2f"|format(category.monthly_budget) }}/mo</span>
+                <span style="color: #ffcc00; font-size: 0.75em;">Budget: {{ category.monthly_budget | fmt_money }}/mo</span>
               {% endif %}
             </div>
 
@@ -34,13 +30,13 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="old_category" value="{{ category.name }}">
                 <input type="hidden" name="action" value="delete">
-                <button type="button" class="delete-btn">[X]</button>
+                <button type="button" class="delete-btn">[DEL]</button>
               </form>
 
             </div>
           </div>
 
-          <div class="edit-mode" style="display: none; flex-direction: column; gap: 10px; width: 100%; margin-top: 12px;">
+          <div class="edit-mode" style="display: none; flex-direction: column; gap: 15px; width: 100%; margin-top: 12px;">
 
             <form method="post" style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin: 0; padding: 0; border: none; background: none;">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -53,7 +49,7 @@
                 <span style="color: #888; font-size: 0.8em; flex-shrink: 0;">Monthly Budget ($):</span>
                 <input type="number" name="monthly_budget" step="0.01" min="0" placeholder="No budget"
                        value="{{ category.monthly_budget if category.monthly_budget else '' }}"
-                       style="flex: 1; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 1em; background: #000; color: #ffcc00; border: 1px solid #444; min-width: 0;">
+                       style="flex: 1; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 1em; background: #000; color: #ffcc00; border: 1px solid #444; min-width: 80px;">
               </div>
 
               <div style="display: flex; gap: 10px; width: 100%;">
@@ -72,7 +68,8 @@
   <div class="modal" id="deleteModal">
     <div class="modal-content" style="border: 2px solid #ff003c; max-width: 400px; text-align: center;">
       <h2 style="color: #ff003c; margin-top: 0; text-transform: uppercase;">Category Purge</h2>
-      <p style="color: #e0e0e0; margin-bottom: 30px;">Are you sure? Deleting this category will mark all associated transactions as "Uncategorized".</p>
+      <p style="color: #e0e0e0; margin-bottom: 8px;">Are you sure? Deleting this category will mark all associated transactions as "Uncategorized".</p>
+      <p style="color: #ccc; font-size: 0.85em; margin-bottom: 24px;">Note: renaming a category updates ALL past expenses with that category.</p>
       
       <div style="display: flex; gap: 15px; justify-content: center;">
         
@@ -84,7 +81,9 @@
     </div>
   </div>
 
-  <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a>
+  <div style="margin-top: 24px; text-align: center;">
+    <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a>
+  </div>
 
   <script>
     const deleteModal = document.getElementById('deleteModal');

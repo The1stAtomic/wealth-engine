@@ -1,6 +1,6 @@
 from decimal import Decimal, ROUND_HALF_UP
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, Response, session, make_response, flash
+from flask import Flask, render_template, request, redirect, url_for, Response, session, make_response, flash, send_file, abort
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
@@ -37,6 +37,16 @@ VALID_ENTRY_TYPES = {'expense', 'income'}
 VALID_CURRENCIES = {'USD', 'KHR'}
 VALID_FREQUENCIES = {'daily', 'weekly', 'monthly'}
 
+# Receipt image storage
+MAX_RECEIPT_BYTES = 5 * 1024 * 1024  # 5 MB hard cap
+# Magic-byte signatures mapped to file extension: (byte_offset, signature_bytes)
+ALLOWED_IMAGE_MAGIC: dict[str, tuple[int, bytes]] = {
+    'jpg':  (0, b'\xff\xd8\xff'),
+    'png':  (0, b'\x89PNG'),
+    'webp': (8, b'WEBP'),
+    'gif':  (0, b'GIF8'),
+}
+
 # KISS: dict replaces 4-branch if/elif chain for timeframe → cutoff delta
 TIMEFRAME_DELTAS = {
     'last_24_hours': timedelta(days=1),
@@ -55,6 +65,17 @@ TIMEFRAME_CHAR_LENGTHS = {
 }
 
 app = Flask(__name__)
+
+@app.template_filter('fmt_money')
+def fmt_money(value):
+    """Format a number as $1,234.56 with correct sign placement for negatives."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return '$0.00'
+    if v < 0:
+        return f'-${abs(v):,.2f}'
+    return f'${v:,.2f}'
 
 # --- STARTUP CREDENTIAL GUARD ---
 # If any of these env vars are missing, crash immediately rather than run with weak defaults.
@@ -94,6 +115,8 @@ ADMIN_PASSWORD_HASH = bcrypt.hashpw(_admin_pass.encode('utf-8'), bcrypt.gensalt(
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_path = os.path.join(basedir, 'instance')
 os.makedirs(instance_path, exist_ok=True)
+RECEIPTS_DIR = os.path.join(instance_path, 'receipts')
+os.makedirs(RECEIPTS_DIR, exist_ok=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_path, 'wealth_engine.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -123,6 +146,8 @@ class Transaction(db.Model):
     category_name = db.Column(db.String(50), nullable=False)
     timestamp = db.Column(db.String(20), nullable=False)
     is_investment = db.Column(db.Boolean, default=False)
+    note = db.Column(db.Text, nullable=True)
+    receipt_filename = db.Column(db.String(255), nullable=True)
 
 class Setting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -195,6 +220,8 @@ def _tx_to_dict(t):
         "amount": float(t.amount),  # FIX: Decimal → float for JSON/JS compatibility
         "currency": t.currency, "category": t.category_name,
         "timestamp": t.timestamp, "is_investment": t.is_investment,
+        "note": t.note or "",
+        "has_receipt": bool(t.receipt_filename),
     }
 
 def _parse_new_timestamp(user_date):
@@ -206,6 +233,61 @@ def _parse_new_timestamp(user_date):
         except ValueError:
             logger.warning("Invalid date '%s' submitted. Defaulting to now.", user_date)
     return datetime.now().strftime(TIMESTAMP_FORMAT)
+
+# --- RECEIPT FILE HELPERS ---
+
+def _detect_image_ext(header: bytes) -> str | None:
+    """Return a file extension if the header bytes match a known image signature, else None."""
+    for ext, (offset, sig) in ALLOWED_IMAGE_MAGIC.items():
+        if header[offset:offset + len(sig)] == sig:
+            return ext
+    return None
+
+
+def _delete_receipt(filename: str | None) -> None:
+    """Remove a receipt file from disk if it exists. Silently ignores missing files."""
+    if filename:
+        path = os.path.join(RECEIPTS_DIR, filename)
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+
+
+def _save_receipt(tx_id: str, file) -> str | None:
+    """Validate and persist an uploaded receipt image for the given transaction ID.
+
+    Checks magic bytes (not just extension), enforces a 5 MB size cap, and saves
+    the file as ``<tx_id>.<ext>`` so the filename is never user-controlled.
+
+    Returns the saved filename on success, or None if the file is absent/invalid.
+    """
+    if not file or not file.filename:
+        return None
+
+    header = file.read(12)
+    ext = _detect_image_ext(header)
+    if not ext:
+        logger.warning("RECEIPT: Rejected upload for TX %s — unrecognized image format.", tx_id)
+        return None
+
+    # Measure full size: header already read, seek to end for remainder
+    file.seek(0, 2)
+    size = file.tell()
+    if size > MAX_RECEIPT_BYTES:
+        logger.warning("RECEIPT: Rejected upload for TX %s — size %d bytes exceeds limit.", tx_id, size)
+        return None
+
+    # Remove any existing receipt for this transaction before saving the new one
+    for candidate_ext in ALLOWED_IMAGE_MAGIC:
+        _delete_receipt(f"{tx_id}.{candidate_ext}")
+
+    filename = f"{tx_id}.{ext}"
+    file.seek(0)
+    file.save(os.path.join(RECEIPTS_DIR, filename))
+    logger.info("RECEIPT: Saved '%s' for TX %s.", filename, tx_id)
+    return filename
+
 
 # --- BUSINESS LOGIC HELPERS ---
 
@@ -302,6 +384,8 @@ def _handle_add_transaction():
     else:
         category = category_choice[:50] if category_choice else DEFAULT_CATEGORY
 
+    note = request.form.get('note', '').strip()[:1000]
+
     _ensure_category(category, entry_type)
 
     new_tx = Transaction(
@@ -313,8 +397,10 @@ def _handle_add_transaction():
         category_name=category,
         currency=currency,
         timestamp=_parse_new_timestamp(request.form.get('date')),
+        note=note or None,
     )
     db.session.add(new_tx)
+    new_tx.receipt_filename = _save_receipt(new_tx.id, request.files.get('receipt'))
 
     try:
         db.session.commit()
@@ -429,6 +515,16 @@ def _migrate_database() -> None:
             conn.execute(text("ALTER TABLE category ADD COLUMN monthly_budget NUMERIC(18,2)"))
             conn.commit()
             logger.info("MIGRATION: Added monthly_budget column to category table.")
+
+        tx_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(\"transaction\")"))]
+        if 'note' not in tx_cols:
+            conn.execute(text("ALTER TABLE \"transaction\" ADD COLUMN note TEXT"))
+            conn.commit()
+            logger.info("MIGRATION: Added note column to transaction table.")
+        if 'receipt_filename' not in tx_cols:
+            conn.execute(text("ALTER TABLE \"transaction\" ADD COLUMN receipt_filename VARCHAR(255)"))
+            conn.commit()
+            logger.info("MIGRATION: Added receipt_filename column to transaction table.")
 
 
 # --- GLOBAL ERROR CATCHERS ---
@@ -605,6 +701,7 @@ def delete_expense(expense_id):
     # FIX: Query.get() was deprecated in SQLAlchemy 2.0
     tx = db.session.get(Transaction, expense_id)
     if tx:
+        _delete_receipt(tx.receipt_filename)
         db.session.delete(tx)
         db.session.commit()
         logger.info("Transaction deleted: ID %s", expense_id)
@@ -665,6 +762,21 @@ def edit_expense(expense_id):
             logger.warning("EDIT: Invalid date '%s' for ID %s. Keeping original.", user_date, expense_id)
 
     tx.is_investment = request.form.get('is_investment') == 'on'
+
+    # 5. NOTE
+    note = request.form.get('note', '').strip()[:1000]
+    tx.note = note or None
+
+    # 6. RECEIPT — remove takes priority; otherwise replace if a new file was uploaded
+    if request.form.get('remove_receipt') == 'on':
+        _delete_receipt(tx.receipt_filename)
+        tx.receipt_filename = None
+    else:
+        uploaded = request.files.get('receipt')
+        if uploaded and uploaded.filename:
+            new_filename = _save_receipt(tx.id, uploaded)
+            if new_filename:
+                tx.receipt_filename = new_filename
 
     try:
         db.session.commit()
@@ -867,6 +979,17 @@ def delete_recurring(tmpl_id):
         db.session.commit()
         logger.info("RECURRING: Template ID %d deleted.", tmpl_id)
     return redirect(url_for('manage_recurring'))
+
+
+@app.route('/receipt/<tx_id>')
+@requires_auth
+@limiter.limit("60 per minute")
+def serve_receipt(tx_id: str):
+    """Serve a receipt image for the given transaction ID (auth-gated)."""
+    tx = db.session.get(Transaction, tx_id)
+    if not tx or not tx.receipt_filename:
+        abort(404)
+    return send_file(os.path.join(RECEIPTS_DIR, tx.receipt_filename))
 
 
 @app.route('/categories/<path:cat_name>/budget', methods=['POST'])

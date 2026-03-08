@@ -75,6 +75,16 @@ select {
   border-radius: 0;
 }
 
+/* Hover ramp before focus — signals interactivity without commitment */
+input[type="text"]:hover,
+input[type="number"]:hover,
+input[type="date"]:hover,
+select:hover,
+textarea:hover {
+  border-color: #555;
+  transition: border-color 0.15s ease-in-out;
+}
+
 /* Unified focus state for all inputs — kills browser glow, applies active color */
 input:focus,
 select:focus,
@@ -350,10 +360,130 @@ li {
   font-weight: bold;
   cursor: pointer;
   transition: 0.2s;
+  padding: 4px 8px;
+  margin: -4px -8px; /* expands tap target without shifting visual position */
 }
 
 .close-modal:hover {
   color: var(--color-red);
+}
+
+/* Receipt block — dashed container for receipt controls */
+.receipt-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px dashed #444;
+  background-color: #0a0a0a;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.receipt-block:focus-within {
+  border-color: var(--color-cyan);
+}
+
+/* File input — hide native OS button, replace with styled label */
+.file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.file-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid #444;
+  background-color: #111;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: 0.85em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: var(--transition-std);
+  letter-spacing: 1px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.file-trigger-btn:hover {
+  border-color: var(--color-cyan);
+  color: var(--color-cyan);
+  background-color: rgba(0, 204, 255, 0.05);
+}
+
+.file-trigger-btn.file-selected {
+  border-color: var(--color-green);
+  color: var(--color-green);
+}
+
+.file-name-display {
+  font-size: 0.8em;
+  color: #555;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+/* VIEW RECEIPT link */
+#editReceiptLink {
+  transition: var(--transition-fast);
+}
+#editReceiptLink:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* Destructive remove-receipt checkbox — custom rendering, red on check */
+#removeReceiptChk {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  margin: 0;
+  cursor: pointer;
+  background-color: #000;
+  border: 1px solid #444;
+  transition: border-color 0.15s, background-color 0.15s;
+  position: relative;
+  flex-shrink: 0;
+}
+#removeReceiptChk:hover {
+  border-color: var(--color-red);
+}
+#removeReceiptChk:checked {
+  background-color: var(--color-red);
+  border-color: var(--color-red);
+}
+#removeReceiptChk:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0px;
+  width: 4px;
+  height: 7px;
+  border: 2px solid #000;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+/* Type indicator badge in edit modal header */
+#editTypeIndicator {
+  transition: color 0.15s ease-in-out;
+}
+
+/* Income-mode submit button — green hover instead of red (applies to any submit button with this class) */
+.income-submit:hover {
+  background-color: var(--color-green) !important;
+  color: #000 !important;
 }
 
 .openModalBtn {
@@ -386,11 +516,40 @@ li {
 }
 
 .checkbox-wrapper input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
   margin: 0;
   cursor: pointer;
-  accent-color: var(--color-green);
+  background-color: #000;
+  border: 1px solid #444;
+  transition: border-color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.checkbox-wrapper input[type="checkbox"]:hover {
+  border-color: #666;
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked {
+  background-color: var(--color-green);
+  border-color: var(--color-green);
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: 2px solid #000;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
 }
 
 .currency-group {
@@ -420,6 +579,7 @@ input[type="date"] {
   max-width: 100%;
   min-width: 0;
   -webkit-appearance: none;
+  appearance: none;
   display: block;
 }
 
@@ -467,6 +627,10 @@ input[type="radio"]:checked + .income-toggle {
   border-color: var(--color-green);
 }
 
+.toggle-btn:active {
+  transform: scale(0.95);
+}
+
 /* ==========================================
    TRANSACTION TYPE COLORS
    ========================================== */
@@ -497,11 +661,13 @@ input[type="radio"]:checked + .income-toggle {
 .no-spinner::-webkit-inner-spin-button,
 .no-spinner::-webkit-outer-spin-button {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 
 .no-spinner {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Forbids money amounts from breaking across lines */
@@ -537,31 +703,6 @@ input[type="radio"]:checked + .income-toggle {
   transform: scale(0.85);
 }
 
-/* Positioned top-right of chart panel */
-#manageCategoriesBtn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 10;
-  color: var(--color-cyan);
-  text-decoration: none;
-  font-weight: bold;
-  font-size: 0.85em;
-  letter-spacing: 1px;
-  padding: 2px 4px;
-  border: 1px solid transparent;
-  transition: var(--transition-fast);
-  display: inline-block;
-}
-
-#manageCategoriesBtn:hover {
-  background-color: var(--color-cyan);
-  color: var(--color-card);
-}
-
-#manageCategoriesBtn:active {
-  transform: scale(0.85);
-}
 
 #returnHomeBtn {
   color: var(--color-green);
@@ -818,6 +959,56 @@ button:active,
 }
 
 /* ==========================================
+   SYSTEM NAV
+   ========================================== */
+.sys-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.sys-nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 0.8em;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-decoration: none;
+  border: 1px solid;
+  cursor: pointer;
+  background: transparent;
+  font-family: inherit;
+  transition: var(--transition-std);
+  width: auto;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.nav-cyan  { color: var(--color-cyan);  border-color: var(--color-cyan);  }
+.nav-cyan:hover  { background-color: var(--color-cyan);  color: var(--color-card); }
+.nav-green { color: var(--color-green); border-color: var(--color-green); }
+.nav-green:hover { background-color: var(--color-green); color: var(--color-card); }
+.nav-red   { color: var(--color-red);   border-color: var(--color-red);   }
+.nav-red:hover   { background-color: var(--color-red);   color: var(--color-card); }
+
+/* ==========================================
+   CHART SECTION
+   ========================================== */
+.chart-section {
+  margin-bottom: 30px;
+}
+
+.chart-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+/* ==========================================
    CHART PANEL
    ========================================== */
 .chart-panel {
@@ -869,6 +1060,7 @@ button:active,
    ========================================== */
 .envelope-section {
   margin-top: 20px;
+  margin-bottom: 10px;
   padding: 15px;
   background-color: var(--color-card);
   border: 1px solid var(--color-border);
@@ -971,6 +1163,54 @@ button:active,
    MOBILE RESPONSIVE
    ========================================== */
 @media (max-width: 768px) {
+
+  /* Shrink h1 so "Root Access Wealth Engine" fits on one line at narrow widths */
+  h1 {
+    font-size: 1.3em;
+    letter-spacing: 1px;
+  }
+
+  /* 3 nav items — single row of equal-width cells */
+  .sys-nav {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Nav links stretch to fill their grid cell — center the label */
+  .sys-nav-link {
+    justify-content: center;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  /* Envelope row: name(110px) + label(160px) + gaps overflows 280px at 320px */
+  .envelope-label {
+    min-width: 90px;
+  }
+
+  /* letter-spacing: 2px adds ~66px to a 33-char string — kills layout at 320px */
+  .envelope-header {
+    letter-spacing: 0.5px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Bump collapse toggle tap target */
+  #envelopeToggle {
+    padding: 8px 10px;
+  }
+
+  /* Search row inline height: 36px can't be overridden without !important */
+  .search-bar-row {
+    height: 44px !important;
+  }
+
+  /* Pagination tap targets */
+  .page-btn {
+    min-height: 44px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
 
   .system-readout {
     flex-direction: column;

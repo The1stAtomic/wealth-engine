@@ -13,32 +13,32 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <h1>Recurring Transactions</h1>
+  <h1 style="margin-bottom: 8px;">Recurring Transactions</h1>
 
-  <p style="color: #888; font-size: 0.9em; margin-bottom: 20px;">Scheduled transactions are automatically created when you open the dashboard. Capped at 24 cycles per visit to prevent runaway backfill.</p>
-
-  <button id="openAddRecurringBtn" style="width: 100%; margin-bottom: 20px;">[+ ADD RECURRING]</button>
+  <button id="openAddRecurringBtn" class="openModalBtn" style="width: 100%; margin-bottom: 20px;">[+ ADD RECURRING]</button>
 
   <!-- Existing Templates -->
   <div class="scroll-box">
     {% if templates %}
     <ul>
       {% for tmpl in templates %}
-        <li style="border-left: 4px solid {% if tmpl.type == 'income' %}#00ff66{% else %}#00ccff{% endif %}; padding: 15px; display: flex; justify-content: space-between; align-items: center; gap: 15px;">
+        <li style="border-left: 4px solid {% if tmpl.type == 'income' %}#00ff66{% else %}#00ccff{% endif %}; padding: 15px 55px 15px 15px; display: flex; flex-direction: column; justify-content: flex-start; gap: 6px; position: relative;">
 
-          <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex-grow: 1;">
-            <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ tmpl.name }}">{{ tmpl.name }}</strong>
-            <span style="color: #888; font-size: 0.8em;">
-              ${{ "%.2f"|format(tmpl.amount) }} &middot;
-              <span style="color: {% if tmpl.type == 'income' %}#00ff66{% else %}#00ccff{% endif %};">{{ tmpl.frequency }}</span> &middot;
-              {{ tmpl.category_name }} &middot;
-              next: <span style="color: #ffcc00;">{{ tmpl.next_due }}</span>
-            </span>
-          </div>
+          <!-- Row 1: name only -->
+          <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ tmpl.name }}">{{ tmpl.name }}</strong>
 
-          <form method="post" action="{{ url_for('delete_recurring', tmpl_id=tmpl.id) }}" class="delete-form" style="display: contents;">
+          <!-- Row 2: all metadata -->
+          <span style="color: #888; font-size: 0.8em;">
+            {{ tmpl.amount | fmt_money }} &middot;
+            <span style="color: {% if tmpl.type == 'income' %}#00ff66{% else %}#00ccff{% endif %};">{{ tmpl.frequency }}</span> &middot;
+            {{ tmpl.category_name }} &middot;
+            <span style="color: #ffcc00; white-space: nowrap;">next: {{ tmpl.next_due }}</span>
+          </span>
+
+          <!-- Delete button: absolutely positioned, never affects text layout -->
+          <form method="post" action="{{ url_for('delete_recurring', tmpl_id=tmpl.id) }}" class="delete-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="button" class="delete-btn" style="flex-shrink: 0;">[X]</button>
+            <button type="button" class="delete-btn" style="position: absolute; right: 15px; top: 15px;">[X]</button>
           </form>
 
         </li>
@@ -48,6 +48,8 @@
       <p style="color: #555; text-align: center; padding: 30px 0;">No recurring transactions configured.</p>
     {% endif %}
   </div>
+
+  <p style="color: #888; font-size: 0.85em; margin-bottom: 30px;">Scheduled transactions are automatically created when you open the dashboard. Capped at 24 cycles per visit to prevent runaway backfill.</p>
 
   <!-- Add Recurring Modal -->
   <div class="modal" id="addRecurringModal">
@@ -68,34 +70,49 @@
           <label for="recurIncomeType" class="toggle-btn income-toggle">[INCOME]</label>
         </div>
 
-        <input type="text" name="item_name" placeholder="Transaction Name" maxlength="100" autocapitalize="words" required style="width: 100%;">
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; color: #888; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Transaction Name</label>
+          <input type="text" name="item_name" placeholder="e.g. Rent, Netflix" maxlength="100" autocapitalize="words" required style="width: 100%;">
+        </div>
 
-        <div class="currency-group">
-          <input type="number" name="cost" placeholder="0.00" step="0.01" min="0" inputmode="decimal" required>
-          <select name="currency">
-            <option value="USD">USD</option>
-            <option value="KHR">KHR</option>
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; color: #888; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Amount</label>
+          <div class="currency-group">
+            <input type="number" class="no-spinner" name="cost" placeholder="0.00" step="0.01" min="0" inputmode="decimal" required>
+            <select name="currency">
+              <option value="USD">USD</option>
+              <option value="KHR">KHR</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; color: #888; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Frequency</label>
+          <select name="frequency" style="width: 100%;">
+            <option value="monthly">Monthly</option>
+            <option value="weekly">Weekly</option>
+            <option value="daily">Daily</option>
           </select>
         </div>
 
-        <select name="frequency" style="width: 100%; margin-bottom: 15px;">
-          <option value="monthly">Monthly</option>
-          <option value="weekly">Weekly</option>
-          <option value="daily">Daily</option>
-        </select>
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; color: #888; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">First Due Date</label>
+          <input type="date" name="start_date" id="recurStartDate" required style="width: 100%;">
+        </div>
 
-        <label style="display: block; color: #888; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">First Due Date</label>
-        <input type="date" name="start_date" id="recurStartDate" required style="width: 100%; margin-bottom: 15px;">
-
-        <select name="category_dropdown" id="recurExpenseCategorySelect" required>
-          <option value="" disabled selected>Select an expense category...</option>
-          {{ category_options(expense_categories) }}
-        </select>
-        <select name="category_dropdown" id="recurIncomeCategorySelect" disabled style="display: none;" required>
-          <option value="" disabled selected>Select an income type...</option>
-          {{ category_options(income_categories) }}
-        </select>
-        <input type="text" name="new_category" id="recurNewCategoryInput" placeholder="New category name" maxlength="50" autocapitalize="words" style="display: none; width: 100%;">
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; color: #888; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Category</label>
+          <select name="category_dropdown" id="recurExpenseCategorySelect" required>
+            <option value="" disabled selected>Select an expense category...</option>
+            {{ category_options(expense_categories) }}
+          </select>
+          <select name="category_dropdown" id="recurIncomeCategorySelect" disabled style="display: none;" required>
+            <option value="" disabled selected>Select an income type...</option>
+            {{ category_options(income_categories) }}
+          </select>
+          <label id="recurNewCategoryLabel" style="display: none; color: #888; font-size: 0.8em; margin-top: 10px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">New Category Name</label>
+          <input type="text" name="new_category" id="recurNewCategoryInput" placeholder="New category name" maxlength="50" autocapitalize="words" style="display: none; width: 100%;">
+        </div>
 
         <div class="checkbox-wrapper" id="recurInvestmentWrapper">
           <input type="checkbox" name="is_investment" id="recurIsInvestment">
@@ -103,8 +120,8 @@
         </div>
 
         <div class="modal-actions" style="margin-top: 20px;">
-          <button type="button" id="cancelAddRecurringBtn" class="mobile-only-cancel" style="background-color: #111; color: #888; border: 1px solid #555;">[CANCEL]</button>
-          <button type="submit" style="margin: 0;">[ + ADD ]</button>
+          <button type="button" id="cancelAddRecurringBtn" class="mobile-only-cancel cancel-btn">[CANCEL]</button>
+          <button type="submit" id="recurSubmitBtn" style="margin: 0;">[ + ADD ]</button>
         </div>
       </form>
 
@@ -172,11 +189,13 @@
     const recurExpenseSelect = document.getElementById('recurExpenseCategorySelect');
     const recurIncomeSelect = document.getElementById('recurIncomeCategorySelect');
     const recurNewCatInput = document.getElementById('recurNewCategoryInput');
+    const recurNewCatLabel = document.getElementById('recurNewCategoryLabel');
     const recurInvestmentWrapper = document.getElementById('recurInvestmentWrapper');
 
     function handleCategoryChange(selectEl, newCatInput) {
       const show = selectEl.value === 'add_new';
       newCatInput.style.display = show ? 'block' : 'none';
+      recurNewCatLabel.style.display = show ? 'block' : 'none';
       newCatInput.required = show;
       if (!show) newCatInput.value = '';
       if (show) newCatInput.focus();
@@ -186,6 +205,8 @@
     recurIncomeSelect.addEventListener('change', function() { handleCategoryChange(this, recurNewCatInput); });
 
     // --- TYPE RADIO TOGGLE ---
+    const recurSubmitBtn = document.getElementById('recurSubmitBtn');
+
     document.querySelectorAll('input[name="entry_type"]').forEach(radio => {
       radio.addEventListener('change', (e) => {
         if (e.target.value === 'income') {
@@ -196,6 +217,7 @@
           recurInvestmentWrapper.style.display = 'none';
           document.getElementById('recurIsInvestment').checked = false;
           handleCategoryChange(recurIncomeSelect, recurNewCatInput);
+          recurSubmitBtn.classList.add('income-submit');
         } else {
           recurIncomeSelect.style.display = 'none';
           recurIncomeSelect.disabled = true;
@@ -203,6 +225,7 @@
           recurExpenseSelect.disabled = false;
           recurInvestmentWrapper.style.display = '';
           handleCategoryChange(recurExpenseSelect, recurNewCatInput);
+          recurSubmitBtn.classList.remove('income-submit');
         }
       });
     });
