@@ -144,14 +144,14 @@ class Transaction(db.Model):
     amount = db.Column(db.Numeric(precision=18, scale=2), nullable=False)  # FIX: was Float; Decimal avoids rounding errors
     currency = db.Column(db.String(3), nullable=False, default='USD')
     category_name = db.Column(db.String(50), nullable=False)
-    timestamp = db.Column(db.String(20), nullable=False)
+    timestamp = db.Column(db.String(20), nullable=False)  # 'YYYY-MM-DD HH:MM:SS' — lexicographic order == chronological order
     is_investment = db.Column(db.Boolean, default=False)
     note = db.Column(db.Text, nullable=True)
     receipt_filename = db.Column(db.String(255), nullable=True)
 
 class Setting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    target_savings_percentage = db.Column(db.Float, default=0.0)
+    target_savings_percentage = db.Column(db.Numeric(5, 2), default=0.0)
     trash_expiry_days = db.Column(db.Integer, default=30)
 
 class RecurringTransaction(db.Model):
@@ -164,7 +164,6 @@ class RecurringTransaction(db.Model):
     is_investment = db.Column(db.Boolean, default=False)
     frequency     = db.Column(db.String(10), nullable=False)  # 'daily', 'weekly', 'monthly'
     next_due      = db.Column(db.String(10), nullable=False)  # 'YYYY-MM-DD'
-    is_active     = db.Column(db.Boolean, default=True)
 
 class DeletedTransaction(db.Model):
     """Archive of soft-deleted transactions. Restored rows move back to Transaction."""
@@ -175,11 +174,11 @@ class DeletedTransaction(db.Model):
     amount           = db.Column(db.Numeric(precision=18, scale=2), nullable=False)
     currency         = db.Column(db.String(3), nullable=False, default='USD')
     category_name    = db.Column(db.String(50), nullable=False)
-    timestamp        = db.Column(db.String(20), nullable=False)
+    timestamp        = db.Column(db.String(20), nullable=False)  # 'YYYY-MM-DD HH:MM:SS'
     is_investment    = db.Column(db.Boolean, default=False)
     note             = db.Column(db.Text, nullable=True)
     receipt_filename = db.Column(db.String(255), nullable=True)
-    deleted_at       = db.Column(db.String(20), nullable=False)
+    deleted_at       = db.Column(db.String(20), nullable=False)  # 'YYYY-MM-DD HH:MM:SS' — lexicographic order == chronological order
 
 
 class NetWorthItem(db.Model):
@@ -240,6 +239,16 @@ def _ensure_category(name, type_):
         except IntegrityError:
             pass  # already inserted by a concurrent request; safe to ignore
 
+def _archived_to_transaction(archived: 'DeletedTransaction') -> 'Transaction':
+    """Reconstruct a Transaction row from a soft-deleted archive record."""
+    return Transaction(
+        id=archived.id, type=archived.type, name=archived.name,
+        amount=archived.amount, currency=archived.currency,
+        category_name=archived.category_name, timestamp=archived.timestamp,
+        is_investment=archived.is_investment, note=archived.note,
+        receipt_filename=archived.receipt_filename,
+    )
+
 # DRY: transaction serialization was duplicated in home() and export_data()
 def _tx_to_dict(t):
     return {
@@ -251,12 +260,34 @@ def _tx_to_dict(t):
         "has_receipt": bool(t.receipt_filename),
     }
 
+def _parse_price(raw: str | None) -> float:
+    """Parse a form price string to a non-negative float, defaulting to 0.0."""
+    try:
+        return max(0.0, float(raw) if raw else 0.0)
+    except (ValueError, TypeError):
+        return 0.0
+
+
+def _parse_category_choice(form) -> str:
+    """Resolve the category dropdown + optional new-category field to a category name."""
+    choice = form.get('category_dropdown')
+    if choice == ADD_NEW_SENTINEL:
+        return form.get('new_category', '').strip().title()[:50] or DEFAULT_CATEGORY
+    return choice[:50] if choice else DEFAULT_CATEGORY
+
+
 def _parse_new_timestamp(user_date):
-    """Return a full timestamp string from a date input, defaulting to now."""
+    """Return a full timestamp string from a date input, defaulting to now.
+
+    Today's date gets the current wall-clock time.
+    Past dates get 00:00:00 — preserving chronological ordering for backdated entries.
+    """
     if user_date:
         try:
-            datetime.strptime(user_date, DATE_FORMAT)
-            return f"{user_date} {datetime.now().strftime('%H:%M:%S')}"
+            dt = datetime.strptime(user_date, DATE_FORMAT)
+            now = datetime.now()
+            time_part = now.strftime('%H:%M:%S') if dt.date() == now.date() else '00:00:00'
+            return f"{user_date} {time_part}"
         except ValueError:
             logger.warning("Invalid date '%s' submitted. Defaulting to now.", user_date)
     return datetime.now().strftime(TIMESTAMP_FORMAT)
@@ -281,6 +312,12 @@ def _delete_receipt(filename: str | None) -> None:
             pass
 
 
+def _purge_archived(tx: 'DeletedTransaction') -> None:
+    """Delete a soft-deleted transaction's receipt file and mark the DB row for deletion."""
+    _delete_receipt(tx.receipt_filename)
+    db.session.delete(tx)
+
+
 def _save_receipt(tx_id: str, file) -> str | None:
     """Validate and persist an uploaded receipt image for the given transaction ID.
 
@@ -290,6 +327,13 @@ def _save_receipt(tx_id: str, file) -> str | None:
     Returns the saved filename on success, or None if the file is absent/invalid.
     """
     if not file or not file.filename:
+        return None
+
+    # Reject oversized uploads before reading the body — Content-Length can be spoofed,
+    # so the byte-level size check below still runs as the authoritative guard.
+    content_length = request.content_length
+    if content_length and content_length > MAX_RECEIPT_BYTES:
+        logger.warning("RECEIPT: Rejected upload for TX %s — Content-Length %d exceeds limit.", tx_id, content_length)
         return None
 
     header = file.read(12)
@@ -321,11 +365,11 @@ def _save_receipt(tx_id: str, file) -> str | None:
 # SRP: extracted from home() so the route doesn't compute budget math inline
 def _get_budget_stats():
     settings = Setting.query.first()
-    target_pct = settings.target_savings_percentage if settings else 0.0
-    # FIX: default to Decimal('0') so arithmetic with Numeric column results stays in Decimal
+    # target_savings_percentage is Numeric(5,2) → Decimal from SQLAlchemy; default to Decimal('0') if no settings row
+    target_pct = settings.target_savings_percentage if settings else Decimal('0')
     total_income   = db.session.query(func.sum(Transaction.amount)).filter_by(type='income').scalar()  or Decimal('0')
     total_expenses = db.session.query(func.sum(Transaction.amount)).filter_by(type='expense').scalar() or Decimal('0')
-    target_savings = (Decimal(str(target_pct)) / 100) * total_income
+    target_savings = (target_pct / 100) * total_income
     return {
         'total_income': total_income,
         'total_expenses': total_expenses,
@@ -380,17 +424,33 @@ def _get_chart_data(cutoff_str, char_length):
     }
 
 
+def _build_tx_query(timeframe: str, sort_by: str, search_query: str, category_filter: str):
+    """Build the filtered/sorted Transaction query for the home view.
+
+    Returns (query, cutoff_str) where cutoff_str is None for all_time.
+    Inputs are assumed already whitelist-validated by the caller.
+    """
+    cutoff_str = None
+    if timeframe in TIMEFRAME_DELTAS:
+        cutoff_str = (datetime.now() - TIMEFRAME_DELTAS[timeframe]).strftime(TIMESTAMP_FORMAT)
+
+    q = Transaction.query
+    if cutoff_str:
+        q = q.filter(Transaction.timestamp >= cutoff_str)
+    q = q.order_by(SORT_COLUMNS[sort_by])
+    if search_query:
+        q = q.filter(Transaction.name.ilike(f"%{search_query}%"))
+    if category_filter and category_filter != 'all':
+        q = q.filter(Transaction.category_name == category_filter)
+    return q, cutoff_str
+
+
 def _handle_add_transaction():
     """Parse, validate, and persist a new transaction from the add-transaction form. Returns True on success."""
     # KISS: collapsed double-assignment to single `or` expression
     expense_name = request.form.get('item_name', '').strip()[:100] or 'Unnamed Transaction'
 
-    try:
-        raw_cost = request.form.get('cost')
-        price = float(raw_cost) if raw_cost else 0.0
-    except (ValueError, TypeError):
-        logger.warning("Invalid cost submitted: '%s'. Defaulting to 0.0", request.form.get('cost'))
-        price = 0.0
+    price = _parse_price(request.form.get('cost'))
 
     # FIX: whitelist-validate entry_type and currency before persisting
     entry_type = request.form.get('entry_type', 'expense')
@@ -404,13 +464,7 @@ def _handle_add_transaction():
         currency = 'USD'
 
     is_investment = request.form.get('is_investment') == 'on'
-
-    category_choice = request.form.get('category_dropdown')
-    if category_choice == ADD_NEW_SENTINEL:
-        category = request.form.get('new_category', '').strip().title()[:50] or DEFAULT_CATEGORY
-    else:
-        category = category_choice[:50] if category_choice else DEFAULT_CATEGORY
-
+    category = _parse_category_choice(request.form)
     note = request.form.get('note', '').strip()[:1000]
 
     _ensure_category(category, entry_type)
@@ -435,6 +489,7 @@ def _handle_add_transaction():
         return True
     except Exception:
         db.session.rollback()
+        _delete_receipt(new_tx.receipt_filename)  # clean up file saved before the failed commit
         logger.exception("DATABASE ERROR: Failed to log '%s'.", expense_name)
         return False
 
@@ -453,14 +508,24 @@ def _advance_next_due(frequency: str, current_due: str) -> str:
     return dt.strftime(DATE_FORMAT)
 
 
+_last_recurring_check: datetime | None = None
+
+
 def _materialize_recurring() -> int:
     """Create Transaction rows for any recurring templates that are past due.
 
+    Throttled to run at most once per 60 seconds to avoid a DB hit on every page load.
     Capped at 24 cycles per template to prevent runaway backfill.
     Returns the total number of transactions created.
     """
-    today_str = datetime.now().strftime(DATE_FORMAT)
-    templates = RecurringTransaction.query.filter_by(is_active=True).all()
+    global _last_recurring_check
+    now = datetime.now()
+    if _last_recurring_check and (now - _last_recurring_check).total_seconds() < 60:
+        return 0
+    _last_recurring_check = now
+
+    today_str = now.strftime(DATE_FORMAT)
+    templates = RecurringTransaction.query.all()
     count = 0
     for tmpl in templates:
         iterations = 0
@@ -499,8 +564,7 @@ def _autopurge_trash(expiry_days: int) -> int:
     if not expired:
         return 0
     for tx in expired:
-        _delete_receipt(tx.receipt_filename)
-        db.session.delete(tx)
+        _purge_archived(tx)
     try:
         db.session.commit()
         logger.info("TRASH: Auto-purged %d expired transaction(s).", len(expired))
@@ -551,6 +615,20 @@ def _get_envelope_data() -> list:
 
     result.sort(key=lambda x: x['pct'], reverse=True)
     return result
+
+
+def _rename_category(old_name: str, new_name: str) -> None:
+    """Rename or merge a category across all referencing tables.
+
+    If new_name already exists, the old category row is dropped (merge).
+    Otherwise, the row is renamed in place.
+    """
+    Transaction.query.filter_by(category_name=old_name).update({"category_name": new_name})
+    RecurringTransaction.query.filter_by(category_name=old_name).update({"category_name": new_name})
+    if Category.query.filter_by(name=new_name).first():
+        Category.query.filter_by(name=old_name).delete()
+    else:
+        Category.query.filter_by(name=old_name).update({"name": new_name})
 
 
 def _migrate_database() -> None:
@@ -678,38 +756,24 @@ def home():
     # 2. BUDGET STATS
     stats = _get_budget_stats()
 
-    # 2. TIMEFRAME FILTER (whitelist-validated via TIMEFRAME_DELTAS keys)
+    # 3. VALIDATE AND PARSE FILTER / SORT PARAMS
     timeframe = request.args.get('timeframe', 'all_time')
     if timeframe != 'all_time' and timeframe not in TIMEFRAME_DELTAS:
         logger.warning("Invalid timeframe '%s' requested. Resetting to all_time.", timeframe)
         timeframe = 'all_time'
 
-    cutoff_str = None
-    if timeframe in TIMEFRAME_DELTAS:
-        cutoff_str = (datetime.now() - TIMEFRAME_DELTAS[timeframe]).strftime(TIMESTAMP_FORMAT)
-
-    tx_query = Transaction.query
-    if cutoff_str:
-        tx_query = tx_query.filter(Transaction.timestamp >= cutoff_str)
-
-    # 3. SORT (whitelist-validated via SORT_COLUMNS keys)
     sort_by = request.args.get('sort', 'date_desc')
     if sort_by not in SORT_COLUMNS:
         logger.warning("Invalid sort '%s' requested. Resetting to date_desc.", sort_by)
         sort_by = 'date_desc'
-    tx_query = tx_query.order_by(SORT_COLUMNS[sort_by])
 
-    # 4. SEARCH
     search_query = request.args.get('search', '').strip()
-    if search_query:
-        tx_query = tx_query.filter(Transaction.name.ilike(f"%{search_query}%"))
-
-    # 5. CATEGORY FILTER
     category_filter = request.args.get('category', 'all').strip()
-    if category_filter and category_filter != 'all':
-        tx_query = tx_query.filter(Transaction.category_name == category_filter)
 
-    # 6. PAGINATION
+    # 4. BUILD QUERY (timeframe / sort / search / category all handled in helper)
+    tx_query, cutoff_str = _build_tx_query(timeframe, sort_by, search_query, category_filter)
+
+    # 5. PAGINATION
     try:
         page = int(request.args.get('page', 1))
     except (ValueError, TypeError):
@@ -717,17 +781,15 @@ def home():
     pagination = tx_query.paginate(page=page, per_page=25, error_out=False)
     display_log = [_tx_to_dict(t) for t in pagination.items]
 
-    # 7. CHART DATA
-    # FIX: was a single ternary that gave char_length=10 for last_24_hours, collapsing
-    # a 24-hour window into a single daily bucket. Now each timeframe gets the correct granularity.
+    # 6. CHART DATA
     char_length = TIMEFRAME_CHAR_LENGTHS.get(timeframe, 7)
     charts = _get_chart_data(cutoff_str, char_length)
 
-    # 8. CATEGORY LISTS FOR DROPDOWNS
+    # 7. CATEGORY LISTS FOR DROPDOWNS
     expense_categories = [c.name for c in Category.query.filter_by(type='expense').order_by(Category.name).all()]
     income_categories = [c.name for c in Category.query.filter_by(type='income').order_by(Category.name).all()]
 
-    # 9. BUDGET ENVELOPES
+    # 8. BUDGET ENVELOPES
     envelopes = _get_envelope_data()
 
     return render_template(
@@ -763,8 +825,12 @@ def delete_expense(expense_id: str):
         )
         db.session.add(archive)
         db.session.delete(tx)
-        db.session.commit()
-        logger.info("Transaction soft-deleted: ID %s", expense_id)
+        try:
+            db.session.commit()
+            logger.info("Transaction soft-deleted: ID %s", expense_id)
+        except Exception:
+            db.session.rollback()
+            logger.exception("DELETE: Failed to soft-delete transaction %s.", expense_id)
     return redirect(url_for('home'))
 
 @app.route('/edit/<expense_id>', methods=['POST'])
@@ -859,37 +925,21 @@ def manage_categories():
             logger.warning("CAT_MGMT: Unknown category '%s' rejected.", old_category)
             return redirect(url_for('manage_categories'))
 
-        if action == 'rename':
-            # FIX: was missing [:50] — Category.name is String(50) but SQLite won't enforce it
-            new_category = request.form.get('new_category', '').strip().title()[:50]
-            if new_category and new_category != old_category:
-                # DRY: transaction re-assignment is shared by both merge and rename paths
-                Transaction.query.filter_by(category_name=old_category).update({"category_name": new_category})
-                RecurringTransaction.query.filter_by(category_name=old_category).update({"category_name": new_category})
-                if Category.query.filter_by(name=new_category).first():
-                    # MERGE: target already exists — drop the old category row
-                    Category.query.filter_by(name=old_category).delete()
-                else:
-                    # RENAME: safe to rename the category row in place
-                    Category.query.filter_by(name=old_category).update({"name": new_category})
-                db.session.commit()
-                logger.info("CAT_MGMT: Renamed '%s' to '%s'", old_category, new_category)
-
-        elif action == 'delete':
+        if action == 'delete':
             Transaction.query.filter_by(category_name=old_category).update({"category_name": DEFAULT_CATEGORY})
+            RecurringTransaction.query.filter_by(category_name=old_category).update({"category_name": DEFAULT_CATEGORY})
             Category.query.filter_by(name=old_category).delete()
-            db.session.commit()
-            logger.info("CAT_MGMT: Deleted '%s'. Transactions moved to %s.", old_category, DEFAULT_CATEGORY)
+            try:
+                db.session.commit()
+                logger.info("CAT_MGMT: Deleted '%s'. Transactions moved to %s.", old_category, DEFAULT_CATEGORY)
+            except Exception:
+                db.session.rollback()
+                logger.exception("CAT_MGMT: Failed to delete '%s'.", old_category)
 
         elif action == 'save':
             new_category = request.form.get('new_category', '').strip().title()[:50]
             if new_category and new_category != old_category:
-                Transaction.query.filter_by(category_name=old_category).update({"category_name": new_category})
-                RecurringTransaction.query.filter_by(category_name=old_category).update({"category_name": new_category})
-                if Category.query.filter_by(name=new_category).first():
-                    Category.query.filter_by(name=old_category).delete()
-                else:
-                    Category.query.filter_by(name=old_category).update({"name": new_category})
+                _rename_category(old_category, new_category)
                 old_category = new_category
             cat = Category.query.filter_by(name=old_category).first()
             if cat:
@@ -902,8 +952,12 @@ def manage_categories():
                         cat.monthly_budget = Decimal(str(max(0.0, val))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                     except (ValueError, TypeError):
                         logger.warning("BUDGET: Invalid budget value '%s' for '%s'.", raw, old_category)
-            db.session.commit()
-            logger.info("CAT_MGMT: Saved '%s' with budget update.", old_category)
+            try:
+                db.session.commit()
+                logger.info("CAT_MGMT: Saved '%s' with budget update.", old_category)
+            except Exception:
+                db.session.rollback()
+                logger.exception("CAT_MGMT: Failed to save '%s'.", old_category)
 
         return redirect(url_for('manage_categories'))
 
@@ -922,7 +976,7 @@ def update_savings():
     try:
         raw_percentage = request.form.get('target_savings_percentage')
         new_val = float(raw_percentage) if raw_percentage else 0.0
-        settings_obj.target_savings_percentage = max(0, min(100, new_val))
+        settings_obj.target_savings_percentage = Decimal(str(max(0.0, min(100.0, new_val)))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
         db.session.commit()
         logger.info("SETTINGS: Savings target updated to %s%%", settings_obj.target_savings_percentage)
     except (ValueError, TypeError):
@@ -965,11 +1019,7 @@ def manage_recurring():
     if request.method == 'POST':
         name = request.form.get('item_name', '').strip()[:100] or 'Unnamed'
 
-        try:
-            raw_cost = request.form.get('cost')
-            price = float(raw_cost) if raw_cost else 0.0
-        except (ValueError, TypeError):
-            price = 0.0
+        price = _parse_price(request.form.get('cost'))
 
         entry_type = request.form.get('entry_type', 'expense')
         if entry_type not in VALID_ENTRY_TYPES:
@@ -984,12 +1034,7 @@ def manage_recurring():
             frequency = 'monthly'
 
         is_investment = request.form.get('is_investment') == 'on'
-
-        category_choice = request.form.get('category_dropdown')
-        if category_choice == ADD_NEW_SENTINEL:
-            category = request.form.get('new_category', '').strip().title()[:50] or DEFAULT_CATEGORY
-        else:
-            category = category_choice[:50] if category_choice else DEFAULT_CATEGORY
+        category = _parse_category_choice(request.form)
 
         start_date = request.form.get('start_date', '').strip()
         try:
@@ -1036,8 +1081,12 @@ def delete_recurring(tmpl_id):
     tmpl = db.session.get(RecurringTransaction, tmpl_id)
     if tmpl:
         db.session.delete(tmpl)
-        db.session.commit()
-        logger.info("RECURRING: Template ID %d deleted.", tmpl_id)
+        try:
+            db.session.commit()
+            logger.info("RECURRING: Template ID %d deleted.", tmpl_id)
+        except Exception:
+            db.session.rollback()
+            logger.exception("RECURRING: Failed to delete template ID %d.", tmpl_id)
     return redirect(url_for('manage_recurring'))
 
 
@@ -1061,17 +1110,14 @@ def restore_transaction(tx_id: str):
     archived = db.session.get(DeletedTransaction, tx_id)
     if archived:
         _ensure_category(archived.category_name, archived.type)
-        tx = Transaction(
-            id=archived.id, type=archived.type, name=archived.name,
-            amount=archived.amount, currency=archived.currency,
-            category_name=archived.category_name, timestamp=archived.timestamp,
-            is_investment=archived.is_investment, note=archived.note,
-            receipt_filename=archived.receipt_filename,
-        )
-        db.session.add(tx)
+        db.session.add(_archived_to_transaction(archived))
         db.session.delete(archived)
-        db.session.commit()
-        logger.info("Transaction restored: ID %s", tx_id)
+        try:
+            db.session.commit()
+            logger.info("Transaction restored: ID %s", tx_id)
+        except Exception:
+            db.session.rollback()
+            logger.exception("RESTORE: Failed to restore transaction %s.", tx_id)
     return redirect(url_for('trash'))
 
 
@@ -1082,8 +1128,7 @@ def purge_transaction(tx_id: str):
     """Permanently delete a soft-deleted transaction and its receipt file."""
     archived = db.session.get(DeletedTransaction, tx_id)
     if archived:
-        _delete_receipt(archived.receipt_filename)
-        db.session.delete(archived)
+        _purge_archived(archived)
         db.session.commit()
         logger.info("Transaction permanently purged: ID %s", tx_id)
     return redirect(url_for('trash'))
@@ -1094,11 +1139,10 @@ def purge_transaction(tx_id: str):
 @limiter.limit("10 per minute")
 def purge_all_transactions():
     """Permanently delete every item in trash, including receipt files."""
-    all_archived = DeletedTransaction.query.all()
-    count = len(all_archived)
-    for tx in all_archived:
-        _delete_receipt(tx.receipt_filename)
-        db.session.delete(tx)
+    count = 0
+    for tx in DeletedTransaction.query.yield_per(200):
+        _purge_archived(tx)
+        count += 1
     if count:
         try:
             db.session.commit()
@@ -1135,40 +1179,30 @@ def update_trash_expiry():
 def bulk_trash_action():
     """Bulk restore or permanently purge a selection of soft-deleted transactions."""
     action = request.form.get('bulk_action')
-    tx_ids = request.form.getlist('tx_ids')
+    tx_ids = request.form.getlist('tx_ids')[:500]  # hard cap — prevents DoS via oversized payload
     if action not in ('restore', 'purge') or not tx_ids:
         return redirect(url_for('trash'))
 
+    archived_list = DeletedTransaction.query.filter(DeletedTransaction.id.in_(tx_ids)).all()
+
     if action == 'restore':
-        for tx_id in tx_ids:
-            archived = db.session.get(DeletedTransaction, tx_id)
-            if archived:
-                _ensure_category(archived.category_name, archived.type)
-                tx = Transaction(
-                    id=archived.id, type=archived.type, name=archived.name,
-                    amount=archived.amount, currency=archived.currency,
-                    category_name=archived.category_name, timestamp=archived.timestamp,
-                    is_investment=archived.is_investment, note=archived.note,
-                    receipt_filename=archived.receipt_filename,
-                )
-                db.session.add(tx)
-                db.session.delete(archived)
+        for archived in archived_list:
+            _ensure_category(archived.category_name, archived.type)
+            db.session.add(_archived_to_transaction(archived))
+            db.session.delete(archived)
         try:
             db.session.commit()
-            logger.info("TRASH: Bulk restored %d transaction(s).", len(tx_ids))
+            logger.info("TRASH: Bulk restored %d transaction(s).", len(archived_list))
         except Exception:
             db.session.rollback()
             logger.exception("TRASH: Bulk restore failed.")
 
     elif action == 'purge':
-        for tx_id in tx_ids:
-            archived = db.session.get(DeletedTransaction, tx_id)
-            if archived:
-                _delete_receipt(archived.receipt_filename)
-                db.session.delete(archived)
+        for archived in archived_list:
+            _purge_archived(archived)
         try:
             db.session.commit()
-            logger.info("TRASH: Bulk purged %d transaction(s).", len(tx_ids))
+            logger.info("TRASH: Bulk purged %d transaction(s).", len(archived_list))
         except Exception:
             db.session.rollback()
             logger.exception("TRASH: Bulk purge failed.")
@@ -1187,48 +1221,8 @@ def serve_receipt(tx_id: str):
     return send_file(os.path.join(RECEIPTS_DIR, tx.receipt_filename))
 
 
-@app.route('/categories/<path:cat_name>/budget', methods=['POST'])
-@requires_auth
-@limiter.limit("30 per minute")
-def update_category_budget(cat_name):
-    cat = Category.query.filter_by(name=cat_name).first()
-    if not cat:
-        logger.warning("BUDGET: Category '%s' not found.", cat_name)
-        return redirect(url_for('manage_categories'))
-
-    raw = request.form.get('monthly_budget', '').strip()
-    if raw == '':
-        cat.monthly_budget = None
-    else:
-        try:
-            val = float(raw)
-            cat.monthly_budget = Decimal(str(max(0.0, val))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        except (ValueError, TypeError):
-            logger.warning("BUDGET: Invalid budget value '%s' for '%s'.", raw, cat_name)
-            return redirect(url_for('manage_categories'))
-
-    try:
-        db.session.commit()
-        logger.info("BUDGET: '%s' monthly budget set to %s.", cat_name, cat.monthly_budget)
-    except Exception:
-        db.session.rollback()
-        logger.exception("BUDGET: Failed to update budget for '%s'.", cat_name)
-
-    return redirect(url_for('manage_categories'))
-
-
 VALID_NW_TYPES      = {'asset', 'liability'}
 VALID_NW_CATEGORIES = {'bank', 'investment', 'property', 'loan', 'credit', 'other'}
-
-
-def _get_investment_total() -> Decimal:
-    """Return the sum of all is_investment expense transactions in USD."""
-    result = (
-        db.session.query(func.sum(Transaction.amount))
-        .filter(Transaction.type == 'expense', Transaction.is_investment == True)  # noqa: E712
-        .scalar()
-    )
-    return result or Decimal('0')
 
 
 @app.route('/net-worth', methods=['GET', 'POST'])
@@ -1253,18 +1247,25 @@ def net_worth():
             except ValueError:
                 last_updated = datetime.now().strftime(DATE_FORMAT)
             try:
-                balance = Decimal(str(request.form.get('balance', '0'))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                balance = max(Decimal('0'), Decimal(str(request.form.get('balance', '0'))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
             except Exception:
                 balance = Decimal('0')
             db.session.add(NetWorthItem(
                 name=name, item_type=item_type, category=category,
                 balance=balance, last_updated=last_updated,
             ))
-            db.session.commit()
-            logger.info("NET WORTH: Added '%s' (%s / %s) = $%s", name, item_type, category, balance)
+            try:
+                db.session.commit()
+                logger.info("NET WORTH: Added '%s' (%s / %s) = $%s", name, item_type, category, balance)
+            except Exception:
+                db.session.rollback()
+                logger.exception("NET WORTH: Failed to add '%s'.", name)
 
         elif action == 'edit':
-            item_id = request.form.get('item_id', '')
+            try:
+                item_id = int(request.form.get('item_id', ''))
+            except (ValueError, TypeError):
+                return redirect(url_for('net_worth'))
             item = db.session.get(NetWorthItem, item_id)
             if item:
                 item.name = request.form.get('item_name', item.name).strip()[:100] or item.name
@@ -1276,7 +1277,7 @@ def net_worth():
                     item.category = new_cat
                 try:
                     raw = request.form.get('balance', '')
-                    item.balance = Decimal(str(raw)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    item.balance = max(Decimal('0'), Decimal(str(raw)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
                 except Exception:
                     pass
                 raw_date = request.form.get('last_updated', '')
@@ -1285,16 +1286,27 @@ def net_worth():
                     item.last_updated = raw_date
                 except ValueError:
                     pass
-                db.session.commit()
-                logger.info("NET WORTH: Updated item %s.", item_id)
+                try:
+                    db.session.commit()
+                    logger.info("NET WORTH: Updated item %s.", item_id)
+                except Exception:
+                    db.session.rollback()
+                    logger.exception("NET WORTH: Failed to update item %s.", item_id)
 
         elif action == 'delete':
-            item_id = request.form.get('item_id', '')
+            try:
+                item_id = int(request.form.get('item_id', ''))
+            except (ValueError, TypeError):
+                return redirect(url_for('net_worth'))
             item = db.session.get(NetWorthItem, item_id)
             if item:
                 db.session.delete(item)
-                db.session.commit()
-                logger.info("NET WORTH: Deleted item %s.", item_id)
+                try:
+                    db.session.commit()
+                    logger.info("NET WORTH: Deleted item %s.", item_id)
+                except Exception:
+                    db.session.rollback()
+                    logger.exception("NET WORTH: Failed to delete item %s.", item_id)
 
         return redirect(url_for('net_worth'))
 
@@ -1303,7 +1315,11 @@ def net_worth():
     total_assets      = sum(item.balance for item in assets)      or Decimal('0')
     total_liabilities = sum(item.balance for item in liabilities) or Decimal('0')
     net_worth_value   = total_assets - total_liabilities
-    investment_total  = _get_investment_total()
+    investment_total = (
+        db.session.query(func.sum(Transaction.amount))
+        .filter(Transaction.type == 'expense', Transaction.is_investment == True)  # noqa: E712
+        .scalar()
+    ) or Decimal('0')
     return render_template(
         'net_worth.html',
         assets=assets,
