@@ -152,6 +152,7 @@ class Transaction(db.Model):
 class Setting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     target_savings_percentage = db.Column(db.Float, default=0.0)
+    trash_expiry_days = db.Column(db.Integer, default=30)
 
 class RecurringTransaction(db.Model):
     id            = db.Column(db.Integer, primary_key=True)
@@ -164,6 +165,32 @@ class RecurringTransaction(db.Model):
     frequency     = db.Column(db.String(10), nullable=False)  # 'daily', 'weekly', 'monthly'
     next_due      = db.Column(db.String(10), nullable=False)  # 'YYYY-MM-DD'
     is_active     = db.Column(db.Boolean, default=True)
+
+class DeletedTransaction(db.Model):
+    """Archive of soft-deleted transactions. Restored rows move back to Transaction."""
+    __tablename__ = 'deleted_transaction'
+    id               = db.Column(db.String(36), primary_key=True)
+    type             = db.Column(db.String(10), nullable=False)
+    name             = db.Column(db.String(100), nullable=False)
+    amount           = db.Column(db.Numeric(precision=18, scale=2), nullable=False)
+    currency         = db.Column(db.String(3), nullable=False, default='USD')
+    category_name    = db.Column(db.String(50), nullable=False)
+    timestamp        = db.Column(db.String(20), nullable=False)
+    is_investment    = db.Column(db.Boolean, default=False)
+    note             = db.Column(db.Text, nullable=True)
+    receipt_filename = db.Column(db.String(255), nullable=True)
+    deleted_at       = db.Column(db.String(20), nullable=False)
+
+
+class NetWorthItem(db.Model):
+    """A manually-maintained asset or liability balance used for net worth tracking."""
+    __tablename__ = 'net_worth_item'
+    id           = db.Column(db.Integer, primary_key=True)
+    name         = db.Column(db.String(100), nullable=False)
+    item_type    = db.Column(db.String(10), nullable=False)   # 'asset' | 'liability'
+    category     = db.Column(db.String(20), nullable=False)   # 'bank'|'investment'|'property'|'loan'|'credit'|'other'
+    balance      = db.Column(db.Numeric(18, 2), nullable=False)
+    last_updated = db.Column(db.String(10), nullable=False)   # YYYY-MM-DD
 
 # KISS: dict replaces 5-branch if/elif chain for sort key → order expression.
 # Defined after Transaction so SQLAlchemy column descriptors are available.
@@ -465,6 +492,25 @@ def _materialize_recurring() -> int:
     return count
 
 
+def _autopurge_trash(expiry_days: int) -> int:
+    """Delete soft-deleted transactions older than expiry_days. Returns count purged."""
+    cutoff_str = (datetime.now() - timedelta(days=expiry_days)).strftime(TIMESTAMP_FORMAT)
+    expired = DeletedTransaction.query.filter(DeletedTransaction.deleted_at <= cutoff_str).all()
+    if not expired:
+        return 0
+    for tx in expired:
+        _delete_receipt(tx.receipt_filename)
+        db.session.delete(tx)
+    try:
+        db.session.commit()
+        logger.info("TRASH: Auto-purged %d expired transaction(s).", len(expired))
+    except Exception:
+        db.session.rollback()
+        logger.exception("TRASH: Auto-purge failed.")
+        return 0
+    return len(expired)
+
+
 def _get_envelope_data() -> list:
     """Return current-month spend vs. budget for every budgeted expense category.
 
@@ -525,6 +571,12 @@ def _migrate_database() -> None:
             conn.execute(text("ALTER TABLE \"transaction\" ADD COLUMN receipt_filename VARCHAR(255)"))
             conn.commit()
             logger.info("MIGRATION: Added receipt_filename column to transaction table.")
+
+        setting_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(setting)"))]
+        if 'trash_expiry_days' not in setting_cols:
+            conn.execute(text("ALTER TABLE setting ADD COLUMN trash_expiry_days INTEGER DEFAULT 30"))
+            conn.commit()
+            logger.info("MIGRATION: Added trash_expiry_days column to setting table.")
 
 
 # --- GLOBAL ERROR CATCHERS ---
@@ -697,14 +749,22 @@ def home():
 @app.route('/delete/<expense_id>', methods=['POST'])
 @requires_auth
 @limiter.limit("60 per minute")
-def delete_expense(expense_id):
-    # FIX: Query.get() was deprecated in SQLAlchemy 2.0
+def delete_expense(expense_id: str):
+    """Soft-delete a transaction by archiving it in DeletedTransaction."""
     tx = db.session.get(Transaction, expense_id)
     if tx:
-        _delete_receipt(tx.receipt_filename)
+        archive = DeletedTransaction(
+            id=tx.id, type=tx.type, name=tx.name,
+            amount=tx.amount, currency=tx.currency,
+            category_name=tx.category_name, timestamp=tx.timestamp,
+            is_investment=tx.is_investment, note=tx.note,
+            receipt_filename=tx.receipt_filename,
+            deleted_at=datetime.now().strftime(TIMESTAMP_FORMAT),
+        )
+        db.session.add(archive)
         db.session.delete(tx)
         db.session.commit()
-        logger.info("Transaction deleted: ID %s", expense_id)
+        logger.info("Transaction soft-deleted: ID %s", expense_id)
     return redirect(url_for('home'))
 
 @app.route('/edit/<expense_id>', methods=['POST'])
@@ -981,6 +1041,141 @@ def delete_recurring(tmpl_id):
     return redirect(url_for('manage_recurring'))
 
 
+@app.route('/trash', methods=['GET'])
+@requires_auth
+@limiter.limit("30 per minute")
+def trash() -> str:
+    """Display all soft-deleted transactions, newest first. Auto-purges expired items first."""
+    settings = Setting.query.first()
+    expiry_days = settings.trash_expiry_days if settings and settings.trash_expiry_days else 30
+    _autopurge_trash(expiry_days)
+    deleted = DeletedTransaction.query.order_by(DeletedTransaction.deleted_at.desc()).all()
+    return render_template('trash.html', deleted=deleted, expiry_days=expiry_days)
+
+
+@app.route('/trash/restore/<tx_id>', methods=['POST'])
+@requires_auth
+@limiter.limit("30 per minute")
+def restore_transaction(tx_id: str):
+    """Move a soft-deleted transaction back to the main Transaction table."""
+    archived = db.session.get(DeletedTransaction, tx_id)
+    if archived:
+        _ensure_category(archived.category_name, archived.type)
+        tx = Transaction(
+            id=archived.id, type=archived.type, name=archived.name,
+            amount=archived.amount, currency=archived.currency,
+            category_name=archived.category_name, timestamp=archived.timestamp,
+            is_investment=archived.is_investment, note=archived.note,
+            receipt_filename=archived.receipt_filename,
+        )
+        db.session.add(tx)
+        db.session.delete(archived)
+        db.session.commit()
+        logger.info("Transaction restored: ID %s", tx_id)
+    return redirect(url_for('trash'))
+
+
+@app.route('/trash/purge/<tx_id>', methods=['POST'])
+@requires_auth
+@limiter.limit("30 per minute")
+def purge_transaction(tx_id: str):
+    """Permanently delete a soft-deleted transaction and its receipt file."""
+    archived = db.session.get(DeletedTransaction, tx_id)
+    if archived:
+        _delete_receipt(archived.receipt_filename)
+        db.session.delete(archived)
+        db.session.commit()
+        logger.info("Transaction permanently purged: ID %s", tx_id)
+    return redirect(url_for('trash'))
+
+
+@app.route('/trash/purge-all', methods=['POST'])
+@requires_auth
+@limiter.limit("10 per minute")
+def purge_all_transactions():
+    """Permanently delete every item in trash, including receipt files."""
+    all_archived = DeletedTransaction.query.all()
+    count = len(all_archived)
+    for tx in all_archived:
+        _delete_receipt(tx.receipt_filename)
+        db.session.delete(tx)
+    if count:
+        try:
+            db.session.commit()
+            logger.info("TRASH: Purged all %d transaction(s).", count)
+        except Exception:
+            db.session.rollback()
+            logger.exception("TRASH: Purge-all failed.")
+    return redirect(url_for('trash'))
+
+
+@app.route('/trash/update-expiry', methods=['POST'])
+@requires_auth
+@limiter.limit("20 per minute")
+def update_trash_expiry():
+    """Update the auto-purge expiry period stored in Settings."""
+    settings = Setting.query.first()
+    if not settings:
+        settings = Setting(target_savings_percentage=0.0, trash_expiry_days=30)
+        db.session.add(settings)
+    try:
+        raw = request.form.get('trash_expiry_days', '30')
+        settings.trash_expiry_days = max(1, min(365, int(raw)))
+        db.session.commit()
+        logger.info("TRASH: Expiry period set to %d day(s).", settings.trash_expiry_days)
+    except (ValueError, TypeError):
+        logger.warning("TRASH: Invalid expiry value '%s' rejected.", request.form.get('trash_expiry_days'))
+        db.session.rollback()
+    return redirect(url_for('trash'))
+
+
+@app.route('/trash/bulk', methods=['POST'])
+@requires_auth
+@limiter.limit("20 per minute")
+def bulk_trash_action():
+    """Bulk restore or permanently purge a selection of soft-deleted transactions."""
+    action = request.form.get('bulk_action')
+    tx_ids = request.form.getlist('tx_ids')
+    if action not in ('restore', 'purge') or not tx_ids:
+        return redirect(url_for('trash'))
+
+    if action == 'restore':
+        for tx_id in tx_ids:
+            archived = db.session.get(DeletedTransaction, tx_id)
+            if archived:
+                _ensure_category(archived.category_name, archived.type)
+                tx = Transaction(
+                    id=archived.id, type=archived.type, name=archived.name,
+                    amount=archived.amount, currency=archived.currency,
+                    category_name=archived.category_name, timestamp=archived.timestamp,
+                    is_investment=archived.is_investment, note=archived.note,
+                    receipt_filename=archived.receipt_filename,
+                )
+                db.session.add(tx)
+                db.session.delete(archived)
+        try:
+            db.session.commit()
+            logger.info("TRASH: Bulk restored %d transaction(s).", len(tx_ids))
+        except Exception:
+            db.session.rollback()
+            logger.exception("TRASH: Bulk restore failed.")
+
+    elif action == 'purge':
+        for tx_id in tx_ids:
+            archived = db.session.get(DeletedTransaction, tx_id)
+            if archived:
+                _delete_receipt(archived.receipt_filename)
+                db.session.delete(archived)
+        try:
+            db.session.commit()
+            logger.info("TRASH: Bulk purged %d transaction(s).", len(tx_ids))
+        except Exception:
+            db.session.rollback()
+            logger.exception("TRASH: Bulk purge failed.")
+
+    return redirect(url_for('trash'))
+
+
 @app.route('/receipt/<tx_id>')
 @requires_auth
 @limiter.limit("60 per minute")
@@ -1020,6 +1215,106 @@ def update_category_budget(cat_name):
         logger.exception("BUDGET: Failed to update budget for '%s'.", cat_name)
 
     return redirect(url_for('manage_categories'))
+
+
+VALID_NW_TYPES      = {'asset', 'liability'}
+VALID_NW_CATEGORIES = {'bank', 'investment', 'property', 'loan', 'credit', 'other'}
+
+
+def _get_investment_total() -> Decimal:
+    """Return the sum of all is_investment expense transactions in USD."""
+    result = (
+        db.session.query(func.sum(Transaction.amount))
+        .filter(Transaction.type == 'expense', Transaction.is_investment == True)  # noqa: E712
+        .scalar()
+    )
+    return result or Decimal('0')
+
+
+@app.route('/net-worth', methods=['GET', 'POST'])
+@requires_auth
+@limiter.limit("30 per minute")
+def net_worth():
+    """Display and manage net worth items (assets and liabilities)."""
+    if request.method == 'POST':
+        action = request.form.get('action', '')
+
+        if action == 'add':
+            name = request.form.get('item_name', '').strip()[:100] or 'Unnamed'
+            item_type = request.form.get('item_type', 'asset')
+            if item_type not in VALID_NW_TYPES:
+                item_type = 'asset'
+            category = request.form.get('category', 'other')
+            if category not in VALID_NW_CATEGORIES:
+                category = 'other'
+            last_updated = request.form.get('last_updated', datetime.now().strftime(DATE_FORMAT))
+            try:
+                datetime.strptime(last_updated, DATE_FORMAT)
+            except ValueError:
+                last_updated = datetime.now().strftime(DATE_FORMAT)
+            try:
+                balance = Decimal(str(request.form.get('balance', '0'))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            except Exception:
+                balance = Decimal('0')
+            db.session.add(NetWorthItem(
+                name=name, item_type=item_type, category=category,
+                balance=balance, last_updated=last_updated,
+            ))
+            db.session.commit()
+            logger.info("NET WORTH: Added '%s' (%s / %s) = $%s", name, item_type, category, balance)
+
+        elif action == 'edit':
+            item_id = request.form.get('item_id', '')
+            item = db.session.get(NetWorthItem, item_id)
+            if item:
+                item.name = request.form.get('item_name', item.name).strip()[:100] or item.name
+                new_type = request.form.get('item_type', item.item_type)
+                if new_type in VALID_NW_TYPES:
+                    item.item_type = new_type
+                new_cat = request.form.get('category', item.category)
+                if new_cat in VALID_NW_CATEGORIES:
+                    item.category = new_cat
+                try:
+                    raw = request.form.get('balance', '')
+                    item.balance = Decimal(str(raw)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                except Exception:
+                    pass
+                raw_date = request.form.get('last_updated', '')
+                try:
+                    datetime.strptime(raw_date, DATE_FORMAT)
+                    item.last_updated = raw_date
+                except ValueError:
+                    pass
+                db.session.commit()
+                logger.info("NET WORTH: Updated item %s.", item_id)
+
+        elif action == 'delete':
+            item_id = request.form.get('item_id', '')
+            item = db.session.get(NetWorthItem, item_id)
+            if item:
+                db.session.delete(item)
+                db.session.commit()
+                logger.info("NET WORTH: Deleted item %s.", item_id)
+
+        return redirect(url_for('net_worth'))
+
+    assets      = NetWorthItem.query.filter_by(item_type='asset').order_by(NetWorthItem.name).all()
+    liabilities = NetWorthItem.query.filter_by(item_type='liability').order_by(NetWorthItem.name).all()
+    total_assets      = sum(item.balance for item in assets)      or Decimal('0')
+    total_liabilities = sum(item.balance for item in liabilities) or Decimal('0')
+    net_worth_value   = total_assets - total_liabilities
+    investment_total  = _get_investment_total()
+    return render_template(
+        'net_worth.html',
+        assets=assets,
+        liabilities=liabilities,
+        total_assets=total_assets,
+        total_liabilities=total_liabilities,
+        net_worth_value=net_worth_value,
+        investment_total=investment_total,
+        nw_categories=sorted(VALID_NW_CATEGORIES),
+        today=datetime.now().strftime(DATE_FORMAT),
+    )
 
 
 # Initialize the database and migrate existing JSON data if needed

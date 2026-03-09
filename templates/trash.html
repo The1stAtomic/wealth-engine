@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trash | Wealth Engine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    /* Trash li mobile layout:
+       Row 1 — checkbox + text info side-by-side (keeps visual association)
+       Row 2 — amount + action buttons full width */
+    @media (max-width: 768px) {
+      .scroll-box li {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+      }
+      /* Text div: flex-grow to fill row 1 after the checkbox */
+      .scroll-box li > div:nth-child(2) {
+        flex: 1 !important;
+        min-width: 0 !important;
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        margin-top: 0 !important;
+        width: auto !important;
+      }
+      /* Buttons div: push to its own full-width row 2 */
+      .scroll-box li > div:nth-child(3) {
+        width: 100% !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        margin-top: 0 !important;
+        flex-shrink: 0 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div style="border-bottom: 3px solid #ff003c; padding-bottom: 10px; margin-bottom: 20px;">
+    <h1 style="border-bottom: none; padding-bottom: 0; margin: 0; color: #ff003c;">Trash</h1>
+  </div>
+
+  <!-- Collapsible auto-purge strip -->
+  <div style="margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; background: #0d0d0d; border: 1px dashed #2a2a2a; border-left: 3px solid #333; padding: 10px 16px;">
+      <span style="color: #555; font-size: 0.75em; text-transform: uppercase; letter-spacing: 2px;">
+        Auto-purge after <strong style="color: #aaa;">{{ expiry_days }}</strong> day{{ 's' if expiry_days != 1 else '' }}
+      </span>
+      <button type="button" id="configureExpiryBtn"
+              style="width: auto; background: none; border: none; color: #444; font-family: inherit; font-size: 0.72em; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; padding: 0; margin: 0; flex-shrink: 0;">
+        [CONFIGURE ▾]
+      </button>
+    </div>
+    <div class="filter-drawer-wrapper" id="expiryDrawer">
+      <div class="filter-drawer-inner">
+        <form method="post" action="{{ url_for('update_trash_expiry') }}"
+              style="display: flex; align-items: center; gap: 8px; background: #080808; border: 1px dashed #2a2a2a; border-top: none; border-left: 3px solid #333; padding: 10px 16px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="color: #555; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap;">Expiry (days):</label>
+            <input type="number" class="no-spinner" name="trash_expiry_days" value="{{ expiry_days }}" min="1" max="365"
+                   style="width: 70px; margin: 0; padding: 4px 8px; height: 30px; font-family: inherit; font-size: 0.9em; background: #000; color: #aaa; border: 1px solid #444; box-sizing: border-box; text-align: center;">
+          </div>
+          <button type="submit"
+                  style="margin: 0; padding: 0 12px; height: 30px; width: auto; background: #111; color: #888; border: 1px solid #444; font-family: inherit; font-size: 0.8em; cursor: pointer; flex-shrink: 0;">
+            [SAVE]
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% if deleted %}
+    <!-- Hidden bulk-action form — JS populates tx_ids before submit -->
+    <form id="bulkForm" method="post" action="{{ url_for('bulk_trash_action') }}" style="display: none;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="bulk_action" id="bulkAction" value="">
+    </form>
+
+    <!-- Sticky action bar (shown when ≥1 checkbox is checked) -->
+    <div id="actionBar" style="display: none; flex-direction: column; gap: 8px; background: #0d0d0d; border: 1px solid #2a2a2a; padding: 10px 16px; margin-bottom: 12px;">
+      <!-- Row 1: select-all + count -->
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="selectAll" class="custom-checkbox">
+        <span style="color: #555; font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; user-select: none;" onclick="document.getElementById('selectAll').click()">ALL</span>
+        <span id="selectionCount" style="color: #666; font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px;"></span>
+      </div>
+      <!-- Row 2: action buttons — each takes half the row, no overflow possible -->
+      <div style="display: flex; gap: 8px;">
+        <button type="button" id="bulkRestoreBtn"
+                style="flex: 1; width: auto; min-width: 0; margin: 0; padding: 6px 8px; background: rgba(0,255,102,0.07); color: #00ff66; border: 1px solid #00ff66; font-family: inherit; font-size: 0.78em; font-weight: bold; cursor: pointer; letter-spacing: 1px; text-align: center;">
+          [RESTORE SELECTED (<span id="restoreCount">0</span>)]
+        </button>
+        <button type="button" id="bulkPurgeBtn"
+                style="flex: 1; width: auto; min-width: 0; margin: 0; padding: 6px 8px; background: rgba(255,0,60,0.07); color: #ff003c; border: 1px solid #ff003c; font-family: inherit; font-size: 0.78em; font-weight: bold; cursor: pointer; letter-spacing: 1px; text-align: center;">
+          [PURGE SELECTED (<span id="purgeCount">0</span>)]
+        </button>
+      </div>
+    </div>
+
+    <div class="scroll-box">
+      <ul>
+        {% for tx in deleted %}
+          <li style="border-left: 4px solid #ff003c; padding: 14px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+
+            <input type="checkbox" class="tx-checkbox custom-checkbox" value="{{ tx.id }}">
+
+            <div style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1; gap: 3px;">
+              <strong style="font-size: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #ccc;" title="{{ tx.name }}">
+                {{ tx.name }}
+              </strong>
+              <span style="color: #777; font-size: 0.75em;">deleted {{ tx.deleted_at[:10] }}</span>
+              <span style="color: #555; font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.5px;">
+                {{ tx.category_name }} &middot; {{ tx.type }} &middot; {{ tx.timestamp[:10] }}
+              </span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 20px; flex-shrink: 0;">
+              <span style="font-size: 1em; font-weight: bold; color: {% if tx.type == 'income' %}#00ff66{% else %}#ff003c{% endif %}; padding-right: 12px; border-right: 1px solid #222;">
+                {{ tx.amount | fmt_money }}
+              </span>
+
+              <form method="post" action="{{ url_for('restore_transaction', tx_id=tx.id) }}" style="display: contents;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="edit-btn" style="color: #00ff66; border-color: #00ff66;">[RESTORE]</button>
+              </form>
+
+              <form method="post" action="{{ url_for('purge_transaction', tx_id=tx.id) }}" class="purge-form" style="margin-left: auto; display: contents;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="button" class="delete-btn">[PURGE]</button>
+              </form>
+            </div>
+
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+  {% else %}
+    <p style="color: #555; text-align: center; padding: 40px 0;">Trash is empty.</p>
+  {% endif %}
+
+  <div style="margin-top: 24px;">
+    <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a>
+  </div>
+
+  <!-- Single-item purge modal -->
+  <div class="modal" id="purgeModal">
+    <div class="modal-content" style="border: 2px solid #ff003c; max-width: 400px; text-align: center;">
+      <h2 style="color: #ff003c; margin-top: 0; text-transform: uppercase;">Permanent Delete</h2>
+      <p style="color: #e0e0e0; margin-bottom: 24px;">This cannot be undone. Remove this transaction forever?</p>
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button type="button" id="cancelPurgeBtn" style="background-color: #111; color: #888; border: 1px solid #555; cursor: pointer; padding: 10px 20px; flex: 1; margin: 0;">[CANCEL]</button>
+        <button type="button" id="confirmPurgeBtn" style="background-color: rgba(255,0,60,0.1); color: #ff003c; border: 1px solid #ff003c; cursor: pointer; font-weight: bold; padding: 10px 20px; flex: 1; margin: 0;">[CONFIRM PURGE]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk purge / Purge All modal -->
+  <div class="modal" id="purgeAllModal">
+    <div class="modal-content" style="border: 2px solid #ff003c; max-width: 400px; text-align: center;">
+      <h2 style="color: #ff003c; margin-top: 0; text-transform: uppercase;" id="purgeAllModalTitle">Purge</h2>
+      <p style="color: #e0e0e0; margin-bottom: 24px;" id="purgeAllModalBody"></p>
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button type="button" id="cancelPurgeAllBtn" style="background-color: #111; color: #888; border: 1px solid #555; cursor: pointer; padding: 10px 20px; flex: 1; margin: 0;">[CANCEL]</button>
+        <button type="button" id="confirmPurgeAllBtn" style="background-color: rgba(255,0,60,0.1); color: #ff003c; border: 1px solid #ff003c; cursor: pointer; font-weight: bold; padding: 10px 20px; flex: 1; margin: 0;">[CONFIRM]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk restore modal -->
+  <div class="modal" id="bulkRestoreModal">
+    <div class="modal-content" style="border: 2px solid #00ff66; max-width: 400px; text-align: center;">
+      <h2 style="color: #00ff66; margin-top: 0; text-transform: uppercase;">Restore Selected</h2>
+      <p style="color: #e0e0e0; margin-bottom: 24px;" id="bulkRestoreBody"></p>
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button type="button" id="cancelBulkRestoreBtn" style="background-color: #111; color: #888; border: 1px solid #555; cursor: pointer; padding: 10px 20px; flex: 1; margin: 0;">[CANCEL]</button>
+        <button type="button" id="confirmBulkRestoreBtn" style="background-color: rgba(0,255,102,0.1); color: #00ff66; border: 1px solid #00ff66; cursor: pointer; font-weight: bold; padding: 10px 20px; flex: 1; margin: 0;">[CONFIRM RESTORE]</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Collapsible expiry drawer ---
+    const configureExpiryBtn = document.getElementById('configureExpiryBtn');
+    const expiryDrawer       = document.getElementById('expiryDrawer');
+    if (configureExpiryBtn) {
+      configureExpiryBtn.addEventListener('click', () => {
+        expiryDrawer.classList.toggle('is-open');
+        configureExpiryBtn.textContent = expiryDrawer.classList.contains('is-open')
+          ? '[CONFIGURE ▴]' : '[CONFIGURE ▾]';
+      });
+    }
+
+    // --- Single-item purge modal ---
+    const purgeModal      = document.getElementById('purgeModal');
+    const cancelPurgeBtn  = document.getElementById('cancelPurgeBtn');
+    const confirmPurgeBtn = document.getElementById('confirmPurgeBtn');
+    let formToSubmit = null;
+
+    document.addEventListener('click', function(e) {
+      if (e.target && e.target.classList.contains('delete-btn')) {
+        e.preventDefault();
+        formToSubmit = e.target.closest('form');
+        purgeModal.style.display = 'block';
+      }
+    });
+    cancelPurgeBtn.addEventListener('click', () => { purgeModal.style.display = 'none'; formToSubmit = null; });
+    confirmPurgeBtn.addEventListener('click', () => { if (formToSubmit) formToSubmit.submit(); });
+
+    // --- Bulk select ---
+    const bulkForm       = document.getElementById('bulkForm');
+    const bulkAction     = document.getElementById('bulkAction');
+    const actionBar      = document.getElementById('actionBar');
+    const selectAllCb    = document.getElementById('selectAll');
+    const selectionCount = document.getElementById('selectionCount');
+    const restoreCount   = document.getElementById('restoreCount');
+    const purgeCount     = document.getElementById('purgeCount');
+    const bulkRestoreBtn = document.getElementById('bulkRestoreBtn');
+    const bulkPurgeBtn   = document.getElementById('bulkPurgeBtn');
+    const purgeAllBtn    = document.getElementById('purgeAllBtn');
+
+    function getChecked() {
+      return [...document.querySelectorAll('.tx-checkbox:checked')];
+    }
+
+    function updateBar() {
+      const checked = getChecked();
+      const n = checked.length;
+      if (n > 0) {
+        actionBar.style.display = 'flex';
+        selectionCount.textContent = n + ' selected';
+        restoreCount.textContent = n;
+        purgeCount.textContent   = n;
+      } else {
+        actionBar.style.display = 'none';
+      }
+      const all = document.querySelectorAll('.tx-checkbox');
+      if (selectAllCb) {
+        selectAllCb.indeterminate = n > 0 && n < all.length;
+        selectAllCb.checked = all.length > 0 && n === all.length;
+      }
+    }
+
+    document.querySelectorAll('.tx-checkbox').forEach(cb => cb.addEventListener('change', updateBar));
+
+    if (selectAllCb) {
+      selectAllCb.addEventListener('change', () => {
+        document.querySelectorAll('.tx-checkbox').forEach(cb => { cb.checked = selectAllCb.checked; });
+        updateBar();
+      });
+    }
+
+    // Populate bulkForm with checked IDs and submit
+    function submitBulk(action) {
+      bulkForm.querySelectorAll('input[name="tx_ids"]').forEach(el => el.remove());
+      getChecked().forEach(cb => {
+        const inp = document.createElement('input');
+        inp.type  = 'hidden';
+        inp.name  = 'tx_ids';
+        inp.value = cb.value;
+        bulkForm.appendChild(inp);
+      });
+      bulkAction.value = action;
+      bulkForm.submit();
+    }
+
+    // --- Bulk purge / Purge All modal ---
+    const purgeAllModal      = document.getElementById('purgeAllModal');
+    const purgeAllModalTitle = document.getElementById('purgeAllModalTitle');
+    const purgeAllModalBody  = document.getElementById('purgeAllModalBody');
+    const cancelPurgeAllBtn  = document.getElementById('cancelPurgeAllBtn');
+    const confirmPurgeAllBtn = document.getElementById('confirmPurgeAllBtn');
+
+    function openPurgeModal(title, body) {
+      purgeAllModalTitle.textContent = title;
+      purgeAllModalBody.textContent  = body;
+      purgeAllModal.style.display    = 'block';
+    }
+
+    if (purgeAllBtn) {
+      purgeAllBtn.addEventListener('click', () => {
+        document.querySelectorAll('.tx-checkbox').forEach(cb => { cb.checked = true; });
+        updateBar();
+        openPurgeModal('Purge All', 'Permanently delete every item in trash? This cannot be undone.');
+      });
+    }
+
+    if (bulkPurgeBtn) {
+      bulkPurgeBtn.addEventListener('click', () => {
+        const n = getChecked().length;
+        if (!n) return;
+        openPurgeModal(
+          'Purge Selected',
+          'Permanently delete ' + n + ' selected item' + (n === 1 ? '' : 's') + '? This cannot be undone.'
+        );
+      });
+    }
+
+    cancelPurgeAllBtn.addEventListener('click', () => { purgeAllModal.style.display = 'none'; });
+    confirmPurgeAllBtn.addEventListener('click', () => { submitBulk('purge'); });
+
+    // --- Bulk restore modal ---
+    const bulkRestoreModal      = document.getElementById('bulkRestoreModal');
+    const bulkRestoreBody       = document.getElementById('bulkRestoreBody');
+    const cancelBulkRestoreBtn  = document.getElementById('cancelBulkRestoreBtn');
+    const confirmBulkRestoreBtn = document.getElementById('confirmBulkRestoreBtn');
+
+    if (bulkRestoreBtn) {
+      bulkRestoreBtn.addEventListener('click', () => {
+        const n = getChecked().length;
+        if (!n) return;
+        bulkRestoreBody.textContent = 'Restore ' + n + ' selected item' + (n === 1 ? '' : 's') + ' back to your records?';
+        bulkRestoreModal.style.display = 'block';
+      });
+    }
+
+    cancelBulkRestoreBtn.addEventListener('click', () => { bulkRestoreModal.style.display = 'none'; });
+    confirmBulkRestoreBtn.addEventListener('click', () => { submitBulk('restore'); });
+
+    // Close on backdrop click
+    window.addEventListener('click', e => {
+      if (e.target === purgeModal)       { purgeModal.style.display = 'none'; formToSubmit = null; }
+      if (e.target === purgeAllModal)    { purgeAllModal.style.display = 'none'; }
+      if (e.target === bulkRestoreModal) { bulkRestoreModal.style.display = 'none'; }
+    });
+  </script>
+</body>
+</html>

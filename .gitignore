@@ -44,3 +44,5 @@ CLAUDE.md
 
 .prompts/
 *.md
+
+.claude

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Net Worth | Wealth Engine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <h1>Net Worth Tracker</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-messages">
+        {% for category, message in messages %}
+          <p class="flash {{ category }}">[!] {{ message }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Summary strip -->
+  <div class="system-readout" style="margin-bottom: 24px;">
+    <div class="stat-box" style="border-left-color: #00ff66;">
+      <span class="stat-label">Total Assets</span>
+      <span class="stat-value" style="color: #00ff66;">{{ total_assets | fmt_money }}</span>
+    </div>
+    <div class="stat-box" style="border-left-color: #ff003c;">
+      <span class="stat-label">Total Liabilities</span>
+      <span class="stat-value" style="color: #ff003c;">{{ total_liabilities | fmt_money }}</span>
+    </div>
+    <div class="stat-box" style="border-left-color: {% if net_worth_value >= 0 %}#00ff66{% else %}#ff003c{% endif %};">
+      <span class="stat-label">Net Worth</span>
+      <span class="stat-value" style="color: {% if net_worth_value >= 0 %}#00ff66{% else %}#ff003c{% endif %};">
+        {{ net_worth_value | fmt_money }}
+      </span>
+    </div>
+    <div class="stat-box" style="border-left-color: #00ccff;">
+      <span class="stat-label">Invested (Transactions)</span>
+      <span class="stat-value" style="color: #00ccff;">{{ investment_total | fmt_money }}</span>
+    </div>
+  </div>
+
+  <!-- Add Item Button -->
+  <button type="button" class="edit-btn" id="openAddModal"
+          style="width: 100%; margin-bottom: 24px; font-size: 1em; padding: 12px;">
+    [+ ADD ITEM]
+  </button>
+
+  <!-- ASSETS -->
+  <div style="margin-bottom: 32px;">
+    <h2 style="color: #00ff66; border-bottom: 1px solid #00ff66; padding-bottom: 6px; margin-bottom: 12px;">
+      [ASSETS]
+    </h2>
+    {% if assets %}
+      <div class="scroll-box">
+        <ul>
+          {% for item in assets %}
+            <li style="border-left: 4px solid #00ff66; padding: 15px; display: flex; flex-direction: column; gap: 0; margin-bottom: 8px; box-sizing: border-box; width: 100%; transition: 0.2s;">
+
+              <div class="display-mode" style="display: flex; flex-grow: 1; justify-content: space-between; align-items: center; gap: 15px; width: 100%;">
+                <div style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1; gap: 2px;">
+                  <strong style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ item.name }}">{{ item.name }}</strong>
+                  <span style="color: #888; font-size: 0.75em; text-transform: uppercase;">{{ item.category }} &middot; updated {{ item.last_updated }}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px; flex-shrink: 0;">
+                  <span style="color: #00ff66; font-size: 1.1em; font-weight: bold;">{{ item.balance | fmt_money }}</span>
+                  <button type="button" class="edit-btn toggle-edit-btn">[EDIT]</button>
+                  <form method="post" class="delete-form" style="display: contents;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                    <button type="button" class="delete-btn">[X]</button>
+                  </form>
+                </div>
+              </div>
+
+              <div class="edit-mode" style="display: none; flex-direction: column; gap: 12px; width: 100%; margin-top: 12px;">
+                <form method="post" style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin: 0; padding: 0; border: none; background: none;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="action" value="edit">
+                  <input type="hidden" name="item_id" value="{{ item.id }}">
+                  <input type="hidden" name="item_type" value="asset">
+
+                  <input type="text" name="item_name" value="{{ item.name }}" maxlength="100" required
+                         style="width: 100%; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 1em; background: #000; color: #fff; border: 1px solid #444;">
+
+                  <div style="display: flex; gap: 10px;">
+                    <select name="category" style="flex: 1; margin: 0; height: 36px; padding: 0 8px; font-family: inherit; font-size: 0.9em; background: #000; color: #fff; border: 1px solid #444; box-sizing: border-box;">
+                      {% for cat in nw_categories %}
+                        {% if cat not in ('credit', 'loan') %}
+                          <option value="{{ cat }}" {% if cat == item.category %}selected{% endif %}>{{ cat }}</option>
+                        {% endif %}
+                      {% endfor %}
+                    </select>
+                    <input type="number" name="balance" value="{{ item.balance }}" step="0.01" min="0" required
+                           style="flex: 1; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 1em; background: #000; color: #00ff66; border: 1px solid #444; min-width: 80px;">
+                    <input type="date" name="last_updated" value="{{ item.last_updated }}"
+                           style="flex: 1; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 0.9em; background: #000; color: #fff; border: 1px solid #444; min-width: 100px; filter: invert(1);">
+                  </div>
+
+                  <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="edit-btn save-btn" style="flex: 1;">[SAVE]</button>
+                    <button type="button" class="toggle-edit-btn cancel-btn" style="flex: 1;">[CANCEL]</button>
+                  </div>
+                </form>
+              </div>
+
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% else %}
+      <p style="color: #555; text-align: center; padding: 20px 0;">No assets logged yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- LIABILITIES -->
+  <div style="margin-bottom: 32px;">
+    <h2 style="color: #ff003c; border-bottom: 1px solid #ff003c; padding-bottom: 6px; margin-bottom: 12px;">
+      [LIABILITIES]
+    </h2>
+    {% if liabilities %}
+      <div class="scroll-box">
+        <ul>
+          {% for item in liabilities %}
+            <li style="border-left: 4px solid #ff003c; padding: 15px; display: flex; flex-direction: column; gap: 0; margin-bottom: 8px; box-sizing: border-box; width: 100%; transition: 0.2s;">
+
+              <div class="display-mode" style="display: flex; flex-grow: 1; justify-content: space-between; align-items: center; gap: 15px; width: 100%;">
+                <div style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1; gap: 2px;">
+                  <strong style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ item.name }}">{{ item.name }}</strong>
+                  <span style="color: #888; font-size: 0.75em; text-transform: uppercase;">{{ item.category }} &middot; updated {{ item.last_updated }}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px; flex-shrink: 0;">
+                  <span style="color: #ff003c; font-size: 1.1em; font-weight: bold;">-{{ item.balance | fmt_money }}</span>
+                  <button type="button" class="edit-btn toggle-edit-btn">[EDIT]</button>
+                  <form method="post" class="delete-form" style="display: contents;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                    <button type="button" class="delete-btn">[X]</button>
+                  </form>
+                </div>
+              </div>
+
+              <div class="edit-mode" style="display: none; flex-direction: column; gap: 12px; width: 100%; margin-top: 12px;">
+                <form method="post" style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin: 0; padding: 0; border: none; background: none;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="action" value="edit">
+                  <input type="hidden" name="item_id" value="{{ item.id }}">
+                  <input type="hidden" name="item_type" value="liability">
+
+                  <input type="text" name="item_name" value="{{ item.name }}" maxlength="100" required
+                         style="width: 100%; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 1em; background: #000; color: #fff; border: 1px solid #444;">
+
+                  <div style="display: flex; gap: 10px;">
+                    <select name="category" style="flex: 1; margin: 0; height: 36px; padding: 0 8px; font-family: inherit; font-size: 0.9em; background: #000; color: #fff; border: 1px solid #444; box-sizing: border-box;">
+                      {% for cat in nw_categories %}
+                        {% if cat in ('credit', 'loan', 'other') %}
+                          <option value="{{ cat }}" {% if cat == item.category %}selected{% endif %}>{{ cat }}</option>
+                        {% endif %}
+                      {% endfor %}
+                    </select>
+                    <input type="number" name="balance" value="{{ item.balance }}" step="0.01" min="0" required
+                           style="flex: 1; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 1em; background: #000; color: #ff003c; border: 1px solid #444; min-width: 80px;">
+                    <input type="date" name="last_updated" value="{{ item.last_updated }}"
+                           style="flex: 1; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 0.9em; background: #000; color: #fff; border: 1px solid #444; min-width: 100px; filter: invert(1);">
+                  </div>
+
+                  <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="edit-btn save-btn" style="flex: 1;">[SAVE]</button>
+                    <button type="button" class="toggle-edit-btn cancel-btn" style="flex: 1;">[CANCEL]</button>
+                  </div>
+                </form>
+              </div>
+
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% else %}
+      <p style="color: #555; text-align: center; padding: 20px 0;">No liabilities logged yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Add Item Modal -->
+  <div class="modal" id="addModal">
+    <div class="modal-content">
+      <h2 style="margin-top: 0; text-transform: uppercase; color: #00ccff;">[+ Add Item]</h2>
+
+      <form method="post" id="addForm" style="display: flex; flex-direction: column; gap: 14px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="add">
+
+        <!-- Type toggle -->
+        <div class="type-toggle">
+          <input type="radio" name="item_type" id="typeAsset" value="asset" checked>
+          <label for="typeAsset" class="type-asset">ASSET</label>
+          <input type="radio" name="item_type" id="typeLiability" value="liability">
+          <label for="typeLiability" class="type-liability">LIABILITY</label>
+        </div>
+
+        <input type="text" name="item_name" placeholder="Name (e.g. Savings Account)" maxlength="100" required
+               style="margin: 0; padding: 0 10px; height: 40px; font-family: inherit; font-size: 1em; background: #000; color: #fff; border: 1px solid #444; box-sizing: border-box; width: 100%;">
+
+        <!-- Category dropdown (asset categories shown by default) -->
+        <select name="category" id="addCategory"
+                style="margin: 0; height: 40px; padding: 0 8px; font-family: inherit; font-size: 1em; background: #000; color: #fff; border: 1px solid #444; box-sizing: border-box; width: 100%;">
+          <optgroup label="Asset" id="assetOptions">
+            <option value="bank">bank</option>
+            <option value="investment">investment</option>
+            <option value="property">property</option>
+            <option value="other">other</option>
+          </optgroup>
+          <optgroup label="Liability" id="liabilityOptions" style="display: none;">
+            <option value="loan">loan</option>
+            <option value="credit">credit</option>
+            <option value="other">other</option>
+          </optgroup>
+        </select>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <label style="color: #888; font-size: 0.85em; flex-shrink: 0;">Balance ($):</label>
+          <input type="number" name="balance" step="0.01" min="0" placeholder="0.00" required
+                 style="flex: 1; margin: 0; padding: 0 10px; height: 40px; box-sizing: border-box; font-family: inherit; font-size: 1em; background: #000; color: #ffcc00; border: 1px solid #444;">
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <label style="color: #888; font-size: 0.85em; flex-shrink: 0;">As of:</label>
+          <input type="date" name="last_updated" value="{{ today }}" required
+                 style="flex: 1; margin: 0; padding: 0 10px; height: 40px; box-sizing: border-box; font-family: inherit; font-size: 1em; background: #000; color: #fff; border: 1px solid #444; filter: invert(1);">
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 4px;">
+          <button type="submit" class="edit-btn save-btn" style="flex: 1; font-size: 1em;">[CONFIRM]</button>
+          <button type="button" id="closeAddModal" class="cancel-btn" style="flex: 1; font-size: 1em;">[CANCEL]</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete confirmation modal -->
+  <div class="modal" id="deleteModal">
+    <div class="modal-content" style="border: 2px solid #ff003c; max-width: 400px; text-align: center;">
+      <h2 style="color: #ff003c; margin-top: 0; text-transform: uppercase;">Confirm Delete</h2>
+      <p style="color: #e0e0e0; margin-bottom: 24px;">Remove this item from your net worth tracker?</p>
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button type="button" id="cancelDeleteBtn" style="background-color: #111; color: #888; border: 1px solid #555; cursor: pointer; padding: 10px 20px; flex: 1; margin: 0;">[CANCEL]</button>
+        <button type="button" id="confirmDeleteBtn" style="background-color: rgba(255,0,60,0.1); color: #ff003c; border: 1px solid #ff003c; cursor: pointer; font-weight: bold; padding: 10px 20px; flex: 1; margin: 0;">[CONFIRM DELETE]</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 24px; text-align: center;">
+    <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a>
+  </div>
+
+  <script>
+    // --- ADD MODAL ---
+    const addModal    = document.getElementById('addModal');
+    const openAddBtn  = document.getElementById('openAddModal');
+    const closeAddBtn = document.getElementById('closeAddModal');
+
+    openAddBtn.addEventListener('click', () => { addModal.style.display = 'block'; });
+    closeAddBtn.addEventListener('click', () => { addModal.style.display = 'none'; });
+
+    // Category swap on type toggle
+    const assetOptions     = document.getElementById('assetOptions');
+    const liabilityOptions = document.getElementById('liabilityOptions');
+    const addCategory      = document.getElementById('addCategory');
+
+    document.querySelectorAll('input[name="item_type"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        const isLiability = this.value === 'liability';
+        assetOptions.style.display     = isLiability ? 'none' : '';
+        liabilityOptions.style.display = isLiability ? '' : 'none';
+        // Select the first visible option
+        const visible = addCategory.querySelectorAll('optgroup:not([style*="display: none"]) option');
+        if (visible.length) addCategory.value = visible[0].value;
+      });
+    });
+
+    // Close add modal on backdrop click
+    window.addEventListener('click', e => {
+      if (e.target === addModal) addModal.style.display = 'none';
+    });
+
+    // --- DELETE MODAL ---
+    const deleteModal     = document.getElementById('deleteModal');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    let formToSubmit = null;
+
+    document.addEventListener('click', function(e) {
+      if (e.target && e.target.classList.contains('delete-btn')) {
+        e.preventDefault();
+        formToSubmit = e.target.closest('form');
+        deleteModal.style.display = 'block';
+      }
+    });
+
+    cancelDeleteBtn.addEventListener('click', () => {
+      deleteModal.style.display = 'none';
+      formToSubmit = null;
+    });
+
+    confirmDeleteBtn.addEventListener('click', () => {
+      if (formToSubmit) formToSubmit.submit();
+    });
+
+    window.addEventListener('click', e => {
+      if (e.target === deleteModal) deleteModal.style.display = 'none';
+    });
+
+    // --- INLINE EDIT TOGGLE (Highlander Protocol) ---
+    function closeAllEditRows() {
+      document.querySelectorAll('li').forEach(li => {
+        const disp = li.querySelector('.display-mode');
+        const edit = li.querySelector('.edit-mode');
+        if (disp && edit && disp.style.display === 'none') {
+          disp.style.display = 'flex';
+          edit.style.display = 'none';
+        }
+      });
+    }
+
+    document.querySelectorAll('.toggle-edit-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const li   = this.closest('li');
+        const disp = li.querySelector('.display-mode');
+        const edit = li.querySelector('.edit-mode');
+
+        if (disp.style.display === 'none') {
+          disp.style.display = 'flex';
+          edit.style.display = 'none';
+          return;
+        }
+
+        closeAllEditRows();
+        disp.style.display = 'none';
+        edit.style.display = 'flex';
+        const firstInput = edit.querySelector('input[type="text"]');
+        if (firstInput) { firstInput.focus(); firstInput.select(); }
+      });
+    });
+  </script>
+
+  <style>
+    /* Type toggle for add modal */
+    .type-toggle { display: flex; gap: 0; }
+    .type-toggle input[type="radio"] { display: none; }
+    .type-toggle label {
+      flex: 1; text-align: center; padding: 8px 0; cursor: pointer;
+      border: 1px solid #444; background: #111; color: #888;
+      font-family: inherit; font-size: 0.9em; transition: var(--transition-std);
+    }
+    .type-toggle label.type-asset  { border-right: none; }
+    .type-toggle input[type="radio"]#typeAsset:checked + label.type-asset {
+      background: rgba(0,255,102,0.1); color: #00ff66; border-color: #00ff66;
+    }
+    .type-toggle input[type="radio"]#typeLiability:checked + label.type-liability {
+      background: rgba(255,0,60,0.1); color: #ff003c; border-color: #ff003c;
+    }
+  </style>
+</body>
+</html>

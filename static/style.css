@@ -30,6 +30,13 @@
    ========================================== */
 body {
   background-color: var(--color-bg);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(255, 255, 255, 0.012) 3px,
+    rgba(255, 255, 255, 0.012) 4px
+  );
   color: var(--color-text);
   font-family: "Courier New", Courier, monospace;
   max-width: 800px;
@@ -60,19 +67,35 @@ form {
   margin-bottom: 30px;
 }
 
+/* Modal forms sit directly on the modal background — no nested container */
+.modal-content form {
+  background: none;
+  padding: 0;
+  border: none;
+  margin: 0;
+}
+
 input[type="text"],
 input[type="password"],
 input[type="number"],
+input[type="date"],
+input[type="email"],
+textarea,
 select {
   width: 100%;
   padding: 12px;
   margin: 10px 0;
   background-color: #000;
-  color: var(--color-green);
+  color: var(--color-text);
   border: 1px solid var(--color-border-muted);
   font-family: inherit;
   font-size: 16px;
   border-radius: 0;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(224, 224, 224, 0.4);
 }
 
 /* Hover ramp before focus — signals interactivity without commitment */
@@ -93,6 +116,47 @@ textarea:focus {
   border-color: var(--color-cyan) !important;
   box-shadow: 0 0 8px rgba(0, 204, 255, 0.2) !important;
   transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+/* Modal inputs — bottom border only, no box, transparent bg */
+.modal-content input[type="text"],
+.modal-content input[type="number"],
+.modal-content input[type="date"],
+.modal-content select {
+  border: none;
+  border-bottom: 1px solid var(--color-border-muted);
+  background: transparent;
+}
+
+/* Modal textarea — subtle dark bg so the input area reads as distinct */
+.modal-content textarea {
+  border: none;
+  border-bottom: 1px solid var(--color-border-muted);
+  background-color: #0d0d0d;
+}
+
+/* Date input override — re-asserts modal styles after the global date rule */
+.modal-content input[type="date"] {
+  border: none;
+  border-bottom: 1px solid var(--color-border-muted);
+  background: transparent;
+  padding-left: 0;
+}
+
+.modal-content input[type="text"]:hover,
+.modal-content input[type="number"]:hover,
+.modal-content input[type="date"]:hover,
+.modal-content select:hover,
+.modal-content textarea:hover {
+  border-bottom-color: #555;
+}
+
+.modal-content input:focus,
+.modal-content select:focus,
+.modal-content textarea:focus {
+  border: none !important;
+  border-bottom: 1px solid var(--color-cyan) !important;
+  box-shadow: none !important;
 }
 
 label {
@@ -142,11 +206,12 @@ button:hover {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  box-sizing: border-box !important;
-  height: 36px !important;
-  padding: 0 15px !important;
-  margin: 0 !important;
-  font-size: 0.9em !important;
+  background: none !important;
+  border: none !important;
+  /* invisible tap padding — expands touch target without affecting layout */
+  padding: 12px 8px !important;
+  margin: -12px -8px !important;
+  font-size: 0.8em !important;
   font-weight: bold !important;
   font-family: inherit !important;
   line-height: 1 !important;
@@ -154,18 +219,15 @@ button:hover {
   cursor: pointer !important;
   letter-spacing: 1px !important;
   width: auto !important;
+  height: auto !important;
 }
 
 .delete-btn {
-  background-color: transparent !important;
   color: var(--color-red) !important;
-  border: 1px solid var(--color-red) !important;
 }
 
 .edit-btn {
-  background-color: transparent !important;
   color: var(--color-cyan) !important;
-  border: 1px solid var(--color-cyan) !important;
 }
 
 .save-btn {
@@ -278,16 +340,28 @@ li {
    ========================================== */
 .system-readout {
   display: flex;
-  gap: 15px;
-  margin-bottom: 30px;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding-top: 24px;
 }
 
 .stat-box {
   flex: 1;
   background-color: var(--color-card);
   border: 1px solid var(--color-border);
-  padding: 15px;
+  padding: 16px;
   border-left: 4px solid var(--color-yellow);
+  box-shadow: inset 4px 0 12px rgba(255, 204, 0, 0.06);
+}
+
+.stat-box--income {
+  border-left-color: var(--color-green);
+  box-shadow: inset 4px 0 12px rgba(0, 255, 102, 0.06);
+}
+
+.stat-box--expense {
+  border-left-color: var(--color-red);
+  box-shadow: inset 4px 0 12px rgba(255, 0, 60, 0.06);
 }
 
 .stat-label {
@@ -297,12 +371,13 @@ li {
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 5px;
+  opacity: 0.75;
 }
 
 .stat-value {
   display: block;
   color: var(--color-text);
-  font-size: 1.5em;
+  font-size: 1.1em;
   font-weight: bold;
 }
 
@@ -341,7 +416,7 @@ li {
 .modal-content {
   background-color: var(--color-bg);
   padding: 30px;
-  border: 1px solid var(--color-border);
+  border: none;
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
@@ -368,19 +443,14 @@ li {
   color: var(--color-red);
 }
 
-/* Receipt block — dashed container for receipt controls */
+/* Receipt block — label + attach button, no container */
 .receipt-block {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px;
-  border: 1px dashed #444;
-  background-color: #0a0a0a;
-  transition: border-color 0.2s ease-in-out;
-}
-
-.receipt-block:focus-within {
-  border-color: var(--color-cyan);
+  padding: 0;
+  border: none;
+  background: none;
 }
 
 /* File input — hide native OS button, replace with styled label */
@@ -480,23 +550,94 @@ li {
   transition: color 0.15s ease-in-out;
 }
 
-/* Income-mode submit button — green hover instead of red (applies to any submit button with this class) */
-.income-submit:hover {
-  background-color: var(--color-green) !important;
-  color: #000 !important;
+/* Modal submit button — terminal CTA: dark bg, border only, color signals type */
+#submitBtn {
+  background-color: #000;
+  color: var(--color-red);
+  border: 1px solid var(--color-red);
+  width: 100%;
+  margin: 0;
+  padding: 15px;
+  font-weight: bold;
+  font-family: inherit;
+  font-size: 0.9em;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: none;
+}
+
+#submitBtn:hover {
+  background-color: rgba(255, 0, 60, 0.08);
+  color: var(--color-red);
+}
+
+#submitBtn.income-submit {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+
+#submitBtn.income-submit:hover {
+  background-color: rgba(0, 255, 102, 0.08);
+  color: var(--color-green);
+}
+
+#editSubmitBtn {
+  background-color: #000;
+  color: var(--color-red);
+  border: 1px solid var(--color-red);
+  width: 100%;
+  margin: 0;
+  padding: 15px;
+  font-weight: bold;
+  font-family: inherit;
+  font-size: 0.9em;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: none;
+}
+
+#editSubmitBtn:hover {
+  background-color: rgba(255, 0, 60, 0.08);
+  color: var(--color-red);
+}
+
+#editSubmitBtn.income-submit {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+
+#editSubmitBtn.income-submit:hover {
+  background-color: rgba(0, 255, 102, 0.08);
+  color: var(--color-green);
 }
 
 .openModalBtn {
-  background-color: var(--color-green);
-  color: #000;
-  font-size: 1.2em;
-  margin-bottom: 30px;
-  box-shadow: 0 0 10px rgba(0, 255, 102, 0.2);
+  background-color: transparent;
+  color: var(--color-green);
+  border: 1px solid var(--color-green);
+  font-size: 1.1em;
+  margin-bottom: 32px;
+  box-shadow: 0 0 8px rgba(0, 255, 102, 0.1);
+  letter-spacing: 1px;
+  transition: var(--transition-std);
+}
+
+.openModalBtn::before {
+  content: '▋';
+  margin-right: 6px;
+  animation: termCursor 1s step-end infinite;
+}
+
+@keyframes termCursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 .openModalBtn:hover {
-  background-color: #00cc66;
-  color: var(--color-card);
+  background-color: transparent;
+  color: var(--color-green);
+  border-color: var(--color-green);
+  box-shadow: 0 0 16px rgba(0, 255, 102, 0.35);
 }
 
 /* ==========================================
@@ -518,6 +659,9 @@ li {
 .checkbox-wrapper input[type="checkbox"] {
   -webkit-appearance: none;
   appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 16px;
   height: 16px;
   min-width: 16px;
@@ -526,7 +670,6 @@ li {
   background-color: #000;
   border: 1px solid #444;
   transition: border-color 0.15s ease-in-out, background-color 0.15s ease-in-out;
-  position: relative;
   flex-shrink: 0;
 }
 
@@ -541,19 +684,71 @@ li {
 
 .checkbox-wrapper input[type="checkbox"]:checked::after {
   content: '';
-  position: absolute;
-  left: 4px;
-  top: 1px;
   width: 4px;
   height: 8px;
   border: 2px solid #000;
   border-top: none;
   border-left: none;
   transform: rotate(45deg);
+  margin-top: -2px; /* optical correction for diagonal stroke */
+}
+
+/* Standalone custom checkbox — red checked state (used in trash view) */
+.custom-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  margin: 0;
+  cursor: pointer;
+  background-color: #000;
+  border: 1px solid #444;
+  transition: border-color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.custom-checkbox:hover {
+  border-color: #666;
+}
+
+.custom-checkbox:checked {
+  background-color: #ff003c;
+  border-color: #ff003c;
+}
+
+.custom-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 7px;
+  border: 2px solid #000;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.custom-checkbox:indeterminate {
+  background-color: #ff003c;
+  border-color: #ff003c;
+}
+
+.custom-checkbox:indeterminate::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  width: 7px;
+  height: 2px;
+  background: #000;
 }
 
 .currency-group {
   display: flex;
+  align-items: center;
   gap: 10px;
   margin: 10px 0;
 }
@@ -563,9 +758,11 @@ li {
   margin: 0;
 }
 
-.currency-group select {
+.currency-group select,
+.currency-group .cs-wrapper {
   flex: 1;
   margin: 0;
+  width: auto;
 }
 
 /* Date input styles */
@@ -604,31 +801,40 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
-  text-align: center;
-  padding: 10px;
-  background-color: var(--color-card);
+  padding: 4px 0;
+  background: none;
   color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
+  border: none;
+  border-bottom: 2px solid transparent;
   cursor: pointer;
   font-weight: bold;
-  transition: 0.2s;
+  font-family: inherit;
+  font-size: 0.85em;
+  letter-spacing: 1px;
+  opacity: 0.5;
+  transition: none;
 }
 
 input[type="radio"]:checked + .expense-toggle {
-  background-color: rgba(255, 0, 60, 0.1);
+  background: none;
   color: var(--color-red);
-  border-color: var(--color-red);
+  border-bottom-color: var(--color-red);
+  opacity: 1;
 }
 
 input[type="radio"]:checked + .income-toggle {
-  background-color: rgba(0, 255, 102, 0.1);
+  background: none;
   color: var(--color-green);
-  border-color: var(--color-green);
+  border-bottom-color: var(--color-green);
+  opacity: 1;
 }
 
 .toggle-btn:active {
-  transform: scale(0.95);
+  transform: none;
 }
 
 /* ==========================================
@@ -769,12 +975,18 @@ input[type="radio"]:checked + .income-toggle {
    LOGOUT BUTTON
    ========================================== */
 #logoutBtn {
+  background: transparent;
   color: var(--color-red);
-  text-decoration: none;
+  border: 1px dashed var(--color-red);
+  font-family: inherit;
+  font-size: 0.75em;
   font-weight: bold;
   letter-spacing: 1px;
-  border: 1px solid var(--color-red);
+  padding: 6px 18px;
   width: auto;
+  margin: 0;
+  text-transform: uppercase;
+  cursor: pointer;
 }
 
 /* ==========================================
@@ -796,15 +1008,17 @@ button:active,
   transform: scale(0.92) !important;
 }
 
-/* Color inversion hover states */
-.delete-btn:hover,
-#logoutBtn:hover {
-  background-color: var(--color-red) !important;
-  color: var(--color-card) !important;
+/* Plain text hover — brightness only, no fill */
+.delete-btn:hover {
+  filter: brightness(1.5) !important;
 }
 
 .edit-btn:hover {
-  background-color: var(--color-cyan) !important;
+  filter: brightness(1.5) !important;
+}
+
+#logoutBtn:hover {
+  background-color: var(--color-red) !important;
   color: var(--color-card) !important;
 }
 
@@ -833,17 +1047,34 @@ button:active,
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   flex-wrap: nowrap;
-  gap: 15px;
+  gap: 16px;
   width: 100%;
+  padding: 24px 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .financial-controls-container h2 {
   margin: 0;
   white-space: nowrap;
-  font-size: clamp(1.5rem, 5vw, 2.5em);
+  font-size: clamp(2.8rem, 7vw, 4.5em);
+  letter-spacing: -1px;
+  line-height: 1;
 }
+
+.financial-controls-container .budget-label {
+  color: var(--color-text-muted);
+  font-size: 0.72em;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.budget-positive { color: var(--color-green); }
+.budget-negative { color: var(--color-red); }
 
 /* ==========================================
    HUD TOGGLE BUTTON
@@ -877,6 +1108,37 @@ button:active,
 .hud-toggle-btn.khr-mode:hover {
   background-color: var(--color-yellow);
   color: var(--color-card);
+}
+
+/* Currency toggle — inline hyperlink style, signals interactivity */
+#currencyToggleBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-cyan);
+  font-size: 0.8em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: none;
+}
+
+#currencyToggleBtn:hover {
+  background: none;
+  color: #fff;
+  text-decoration: underline;
+}
+
+#currencyToggleBtn.khr-mode {
+  color: var(--color-yellow);
+  border: none;
+  background: none;
+  text-decoration: underline;
+}
+
+#currencyToggleBtn.khr-mode:hover {
+  background: none;
+  color: #fff;
 }
 
 /* ==========================================
@@ -938,61 +1200,307 @@ button:active,
    ========================================== */
 .savings-save-btn {
   margin: 0;
-  padding: 0 15px;
-  height: 36px;
+  padding: 0;
+  height: auto;
   width: auto;
   flex-shrink: 0;
-  background-color: rgba(255, 204, 0, 0.1);
+  background: none;
   color: var(--color-yellow);
-  border: 1px solid var(--color-border-muted);
+  border: none;
   cursor: pointer;
   font-family: inherit;
   font-weight: bold;
   font-size: 0.9em;
-  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  letter-spacing: 1px;
+  transition: filter 0.1s ease-in-out;
 }
 
 .savings-save-btn:hover {
-  background-color: var(--color-yellow);
-  color: var(--color-card);
-  border-color: var(--color-yellow);
+  background: none;
+  color: var(--color-yellow);
+  filter: brightness(1.4);
 }
 
 /* ==========================================
    SYSTEM NAV
    ========================================== */
+/* Scroll wrapper — owns the margin and the right-edge gradient hint */
+.sys-nav-scroll {
+  position: relative;
+  margin-bottom: 24px;
+}
+
 .sys-nav {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  margin-bottom: 20px;
+  gap: 24px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  margin-bottom: 0;
+  align-items: flex-end;
 }
 
 .sys-nav-link {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
   font-size: 0.8em;
   font-weight: bold;
   letter-spacing: 1px;
   text-decoration: none;
-  border: 1px solid;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 4px 0;
   cursor: pointer;
-  background: transparent;
   font-family: inherit;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  transition: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sys-nav-link:hover {
+  color: var(--color-text);
+  opacity: 1;
+}
+
+/* Active tab: white + cyan 2px underline */
+.nav-active {
+  color: var(--color-text);
+  opacity: 1;
+  border-bottom-color: var(--color-cyan);
+}
+
+/* TRASH: always red */
+.nav-red { color: var(--color-red); }
+
+/* TRASH hover */
+.nav-red:hover { color: var(--color-red); }
+
+/* TRASH active: red + red underline */
+.nav-red.nav-active {
+  color: var(--color-red);
+  border-bottom-color: var(--color-red);
+}
+
+.nav-cyan  { color: var(--color-cyan); }
+.nav-green { color: var(--color-green); }
+
+/* ==========================================
+   SECTION HEADER (unified pattern)
+   ========================================== */
+.section-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.section-hdr-title {
+  color: var(--color-text-muted);
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: bold;
+}
+
+.section-hdr-action {
+  font-size: 0.8em;
+  font-weight: bold;
+  text-decoration: none;
+  padding: 2px 8px;
+  border: 1px solid;
   transition: var(--transition-std);
-  width: auto;
-  margin: 0;
+}
+
+/* ==========================================
+   LEDGER ROW
+   ========================================== */
+
+/* Unified row density — applies to ledger and category rows alike */
+.scroll-box ul li {
+  padding: 10px 12px;
+}
+
+/* Alternate row tones for scan readability */
+.scroll-box ul li:nth-child(even) {
+  background-color: #0d0d0d;
+}
+
+/* Transaction amount — dominant element per row */
+.tx-amount {
+  font-size: 1.25em;
+  letter-spacing: 1px;
   white-space: nowrap;
 }
 
-.nav-cyan  { color: var(--color-cyan);  border-color: var(--color-cyan);  }
-.nav-cyan:hover  { background-color: var(--color-cyan);  color: var(--color-card); }
-.nav-green { color: var(--color-green); border-color: var(--color-green); }
-.nav-green:hover { background-color: var(--color-green); color: var(--color-card); }
-.nav-red   { color: var(--color-red);   border-color: var(--color-red);   }
-.nav-red:hover   { background-color: var(--color-red);   color: var(--color-card); }
+/* ==========================================
+   CUSTOM SELECT
+   ========================================== */
+
+/* Wrapper replaces the native select in flow */
+.cs-wrapper {
+  position: relative;
+  width: 100%;
+  margin: 10px 0;
+}
+
+.modal-content .cs-wrapper {
+  margin: 0;
+}
+
+/* Display button — mirrors the input aesthetic */
+.cs-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 12px 12px 12px;
+  background-color: #000;
+  color: var(--color-text);
+  border: 1px solid var(--color-border-muted);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 16px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 0;
+}
+
+.cs-display::after {
+  content: '▾';
+  color: var(--color-text-muted);
+  font-size: 0.75em;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.cs-display.cs-placeholder {
+  color: rgba(224, 224, 224, 0.4);
+}
+
+.cs-display:hover {
+  border-color: #555;
+}
+
+/* In modal: bottom border only, transparent bg */
+.modal-content .cs-display {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-muted);
+  padding: 8px 0;
+  font-size: inherit;
+}
+
+.modal-content .cs-display:hover {
+  border-color: #555;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+/* Dropdown list */
+.cs-list {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background-color: #0d0d0d;
+  border: 1px solid var(--color-border);
+  border-top: none;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.cs-list.cs-open {
+  display: block;
+}
+
+/* Options */
+.cs-option {
+  padding: 10px 12px;
+  color: var(--color-green);
+  cursor: pointer;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.9em;
+}
+
+.cs-option:hover {
+  background-color: #1a1a1a;
+  color: var(--color-text);
+}
+
+.cs-option.cs-selected {
+  color: var(--color-text);
+  background-color: #111;
+}
+
+/* Readonly/disabled custom select */
+.cs-wrapper.cs-readonly .cs-display {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.cs-wrapper.cs-readonly .cs-display::after {
+  display: none;
+}
+
+/* Native select hidden inside wrapper — stays in DOM for form submission */
+select.cs-native {
+  position: absolute !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 1px !important;
+  height: 1px !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Action buttons: always finger-sized, hover-reveal on pointer devices only */
+.tx-actions {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+@media (hover: hover) {
+  .tx-actions {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease-in-out;
+  }
+
+  .scroll-box ul li:hover .tx-actions,
+  .scroll-box ul li:focus-within .tx-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* ==========================================
+   SESSION ZONE
+   ========================================== */
+.session-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 48px 0 16px;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 24px;
+}
+
+.session-status {
+  color: var(--color-text-muted);
+  font-size: 0.68em;
+  letter-spacing: 3px;
+  opacity: 0.45;
+}
 
 /* ==========================================
    CHART SECTION
@@ -1001,21 +1509,14 @@ button:active,
   margin-bottom: 30px;
 }
 
-.chart-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
 /* ==========================================
    CHART PANEL
    ========================================== */
 .chart-panel {
   flex: 1;
-  background-color: var(--color-card);
-  padding: 15px;
-  border: 1px solid var(--color-border);
+  background-color: transparent;
+  padding: 8px 0;
+  border: none;
   position: relative;
   height: 300px;
 }
@@ -1170,18 +1671,33 @@ button:active,
     letter-spacing: 1px;
   }
 
-  /* 3 nav items — single row of equal-width cells */
+  /* Nav: single horizontally scrollable command bar — no orphaned buttons */
   .sys-nav {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    justify-content: flex-start;
+    padding-bottom: 2px;
   }
 
-  /* Nav links stretch to fill their grid cell — center the label */
-  .sys-nav-link {
-    justify-content: center;
-    padding-top: 10px;
-    padding-bottom: 10px;
+  .sys-nav::-webkit-scrollbar {
+    display: none;
   }
+
+  /* Gradient hint: signals more content is scrollable to the right */
+  .sys-nav-scroll::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 48px;
+    background: linear-gradient(to right, transparent, var(--color-bg) 90%);
+    pointer-events: none;
+  }
+
 
   /* Envelope row: name(110px) + label(160px) + gaps overflows 280px at 320px */
   .envelope-label {
@@ -1200,9 +1716,22 @@ button:active,
     padding: 8px 10px;
   }
 
-  /* Search row inline height: 36px can't be overridden without !important */
+  /* Search row: wrap buttons below on narrow screens */
   .search-bar-row {
+    flex-wrap: wrap !important;
+    height: auto !important;
+    gap: 8px !important;
+  }
+
+  .search-bar-row input[type="text"] {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
     height: 44px !important;
+  }
+
+  .search-bar-row button {
+    height: 44px !important;
+    flex-shrink: 0 !important;
   }
 
   /* Pagination tap targets */
@@ -1275,7 +1804,8 @@ button:active,
   #itemNameInput,
   #expenseDate,
   .currency-group input,
-  .currency-group select {
+  .currency-group select,
+  .currency-group .cs-wrapper {
     width: 100% !important;
     margin: 0 !important;
   }
@@ -1311,10 +1841,6 @@ button:active,
     touch-action: auto !important;
   }
 
-  .edit-btn, .delete-btn {
-    height: 44px !important;
-  }
-
   #addExpenseModal .close-modal,
   #editModal .close-modal,
   #addRecurringModal .close-modal {
@@ -1340,17 +1866,28 @@ button:active,
     white-space: nowrap !important;
   }
 
+  /* Currency toggle: drop below the deficit number on mobile */
   .financial-controls-container {
-    flex-direction: row !important;
-    align-items: flex-end !important;
-    justify-content: space-between !important;
-    gap: 10px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0 !important;
   }
 
   .hud-toggle-btn {
     width: auto !important;
     padding: 6px 12px !important;
     font-size: 0.85em !important;
-    margin-bottom: 2px !important;
+    align-self: flex-end !important;
+    margin-top: 4px !important;
+  }
+
+  #currencyToggleBtn {
+    display: block !important;
+    text-align: left !important;
+    padding: 0 !important;
+    font-size: 0.7em !important;
+    color: rgba(0, 204, 255, 0.55) !important;
+    margin-top: 4px !important;
+    align-self: flex-start !important;
   }
 }

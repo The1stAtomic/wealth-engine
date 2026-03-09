@@ -5,59 +5,176 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manage Categories | Wealth Engine</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    /* ── Category rows ── */
+    .scroll-box ul li {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      width: 100%;
+      transition: background-color 0.1s ease-in-out, padding-left 0.1s ease-in-out;
+    }
+    .scroll-box ul li:hover {
+      background-color: #0f0f0f;
+      padding-left: 18px;
+    }
+
+    /* ── Plain text action buttons — no box ── */
+    .cat-action-btn {
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 0.8em;
+      padding: 0;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: filter 0.1s ease-in-out;
+    }
+    .cat-edit-btn { color: var(--color-cyan); }
+    .cat-edit-btn:hover { filter: brightness(1.5); }
+    .cat-delete-btn { color: var(--color-red); }
+    .cat-delete-btn:hover { filter: brightness(1.5); }
+
+    /* ── Edit form inputs — bottom border only, transparent bg ── */
+    .edit-mode input[type="text"],
+    .edit-mode input[type="number"] {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--color-border-muted);
+      padding: 4px 0;
+    }
+    .edit-mode input[type="text"]:focus,
+    .edit-mode input[type="number"]:focus {
+      border-bottom-color: var(--color-cyan);
+      outline: none;
+      box-shadow: none;
+    }
+
+    /* ── Edit form save/cancel ── */
+    .cat-save-btn {
+      background: #000;
+      border: 1px solid var(--color-green);
+      color: var(--color-green);
+      font-family: inherit;
+      font-size: 0.85em;
+      padding: 6px 12px;
+      cursor: pointer;
+      flex: 1;
+      letter-spacing: 1px;
+      transition: filter 0.1s ease-in-out;
+    }
+    .cat-save-btn:hover { filter: brightness(1.3); }
+
+    .cat-cancel-btn {
+      background: none;
+      border: none;
+      color: var(--color-text-muted);
+      font-family: inherit;
+      font-size: 0.85em;
+      padding: 6px 12px;
+      cursor: pointer;
+      flex: 1;
+      letter-spacing: 1px;
+      transition: filter 0.1s ease-in-out;
+    }
+    .cat-cancel-btn:hover { filter: brightness(1.5); }
+
+    /* ── Delete modal buttons ── */
+    #cancelDeleteBtn {
+      background: none;
+      border: 1px dashed var(--color-border);
+      color: var(--color-text-muted);
+      font-family: inherit;
+      font-size: inherit;
+      padding: 10px 20px;
+      cursor: pointer;
+      flex: 1;
+      white-space: nowrap;
+      transition: color 0.1s ease-in-out, border-color 0.1s ease-in-out;
+    }
+    #cancelDeleteBtn:hover { color: var(--color-text); border-color: #555; }
+
+    #confirmDeleteBtn {
+      background-color: #000;
+      color: var(--color-red);
+      border: 1px solid var(--color-red);
+      font-family: inherit;
+      font-size: inherit;
+      font-weight: bold;
+      padding: 10px 20px;
+      cursor: pointer;
+      flex: 1;
+      white-space: nowrap;
+      transition: filter 0.1s ease-in-out;
+    }
+    #confirmDeleteBtn:hover { filter: brightness(1.2); }
+
+    /* ── Return home ── */
+    #returnHomeBtn {
+      display: inline-block;
+      color: var(--color-text);
+      text-decoration: none;
+      font-size: 0.8em;
+      letter-spacing: 1px;
+      opacity: 0.5;
+      margin-top: 24px;
+      transition: opacity 0.1s ease-in-out;
+    }
+    #returnHomeBtn:hover { opacity: 1; }
+  </style>
 </head>
 <body>
-  <h1>Manage Categories</h1>
+
+  <div class="section-hdr">
+    <span class="section-hdr-title">[ CATEGORIES — {{ categories|length }} RECORDS ]</span>
+  </div>
+
   <div class="scroll-box">
     <ul>
       {% for category in categories %}
-        <li style="align-items: center; border-left: 4px solid #00ccff; padding: 15px; display: flex; transition: 0.2s; width: 100%; box-sizing: border-box; flex-direction: column; gap: 0; margin-bottom: 8px;">
+        <li>
 
-          <div class="display-mode" style="display: flex; flex-grow: 1; justify-content: space-between; align-items: center; gap: 15px; width: 100%;">
+          <div class="display-mode" style="display: flex; justify-content: space-between; align-items: center; gap: 15px; width: 100%;">
 
             <div style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1; gap: 2px;">
-              <strong style="font-size: 1.2em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ category.name }}">{{ category.name }}</strong>
+              <strong style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ category.name }}">{{ category.name }}</strong>
               {% if category.monthly_budget %}
-                <span style="color: #ffcc00; font-size: 0.75em;">Budget: {{ category.monthly_budget | fmt_money }}/mo</span>
+                <span style="color: var(--color-text-muted); font-size: 0.75em;">Budget: <span style="color: #ffcc00;">{{ category.monthly_budget | fmt_money }}</span>/mo</span>
               {% endif %}
             </div>
 
-            <div style="display: flex; gap: 10px; flex-shrink: 0; align-items: center;">
-
-              <button type="button" class="edit-btn toggle-edit-btn">[EDIT]</button>
-
-              <form method="post" class="delete-form" style="display: contents;">
+            <div class="tx-actions" style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+              <button type="button" class="cat-action-btn cat-edit-btn toggle-edit-btn">[EDIT]</button>
+              <form method="post" style="display: contents;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="old_category" value="{{ category.name }}">
                 <input type="hidden" name="action" value="delete">
-                <button type="button" class="delete-btn">[DEL]</button>
+                <button type="button" class="cat-action-btn cat-delete-btn cat-delete-trigger">[X]</button>
               </form>
-
             </div>
+
           </div>
 
-          <div class="edit-mode" style="display: none; flex-direction: column; gap: 15px; width: 100%; margin-top: 12px;">
-
+          <div class="edit-mode" style="display: none; flex-direction: column; gap: 12px; width: 100%; margin-top: 10px;">
             <form method="post" style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin: 0; padding: 0; border: none; background: none;">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="old_category" value="{{ category.name }}">
               <input type="hidden" name="action" value="save">
 
-              <input type="text" name="new_category" autocapitalize="words" value="{{ category.name }}" style="width: 100%; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 1.1em; background: #000; color: #fff; border: 1px solid #444;" maxlength="50" required>
+              <input type="text" name="new_category" autocapitalize="words" value="{{ category.name }}" style="width: 100%; margin: 0;" maxlength="50" required>
 
               <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="color: #888; font-size: 0.8em; flex-shrink: 0;">Monthly Budget ($):</span>
+                <span style="color: var(--color-text-muted); font-size: 0.8em; flex-shrink: 0;">Monthly Budget ($):</span>
                 <input type="number" name="monthly_budget" step="0.01" min="0" placeholder="No budget"
                        value="{{ category.monthly_budget if category.monthly_budget else '' }}"
-                       style="flex: 1; margin: 0; padding: 0 10px; height: 36px; box-sizing: border-box; font-family: inherit; font-size: 1em; background: #000; color: #ffcc00; border: 1px solid #444; min-width: 80px;">
+                       style="flex: 1; min-width: 80px; margin: 0; color: #ffcc00;">
               </div>
 
               <div style="display: flex; gap: 10px; width: 100%;">
-                <button type="submit" class="edit-btn save-btn" style="flex: 1;">[SAVE]</button>
-                <button type="button" class="toggle-edit-btn cancel-btn" style="flex: 1;">[CANCEL]</button>
+                <button type="submit" class="cat-save-btn">[SAVE]</button>
+                <button type="button" class="cat-cancel-btn toggle-edit-btn">[CANCEL]</button>
               </div>
             </form>
-
           </div>
 
         </li>
@@ -66,24 +183,18 @@
   </div>
 
   <div class="modal" id="deleteModal">
-    <div class="modal-content" style="border: 2px solid #ff003c; max-width: 400px; text-align: center;">
-      <h2 style="color: #ff003c; margin-top: 0; text-transform: uppercase;">Category Purge</h2>
-      <p style="color: #e0e0e0; margin-bottom: 8px;">Are you sure? Deleting this category will mark all associated transactions as "Uncategorized".</p>
-      <p style="color: #ccc; font-size: 0.85em; margin-bottom: 24px;">Note: renaming a category updates ALL past expenses with that category.</p>
-      
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+      <h2 style="color: var(--color-red); margin-top: 0; text-transform: uppercase;">Category Purge</h2>
+      <p style="margin-bottom: 8px;">Are you sure? Deleting this category will mark all associated transactions as "Uncategorized".</p>
+      <p style="color: var(--color-text-muted); font-size: 0.85em; margin-bottom: 24px;">Note: renaming a category updates ALL past expenses with that category.</p>
       <div style="display: flex; gap: 15px; justify-content: center;">
-        
-        <button type="button" id="cancelDeleteBtn" style="background-color: #111; color: #888; border: 1px solid #555; cursor: pointer; padding: 10px 20px; white-space: nowrap; flex: 1; margin: 0;">[CANCEL]</button>
-        
-        <button type="button" id="confirmDeleteBtn" style="background-color: rgba(255, 0, 60, 0.1); color: #ff003c; border: 1px solid #ff003c; cursor: pointer; font-weight: bold; padding: 10px 20px; white-space: nowrap; flex: 1; margin: 0;">[CONFIRM DELETE]</button>
-        
+        <button type="button" id="cancelDeleteBtn">[CANCEL]</button>
+        <button type="button" id="confirmDeleteBtn">[CONFIRM DELETE]</button>
       </div>
     </div>
   </div>
 
-  <div style="margin-top: 24px; text-align: center;">
-    <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a>
-  </div>
+  <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a>
 
   <script>
     const deleteModal = document.getElementById('deleteModal');
@@ -91,12 +202,10 @@
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
     let formToSubmit = null;
 
-    // Listen for all clicks on the page
     document.addEventListener('click', function(e) {
-      // Check if the clicked element is a delete button
-      if (e.target && e.target.classList.contains('delete-btn')) {
-        e.preventDefault(); // Stop the form immediately
-        formToSubmit = e.target.closest('form'); // Grab the parent form
+      if (e.target && e.target.classList.contains('cat-delete-trigger')) {
+        e.preventDefault();
+        formToSubmit = e.target.closest('form');
         deleteModal.style.display = 'block';
       }
     });
@@ -107,12 +216,10 @@
     });
 
     confirmDeleteBtn.addEventListener('click', () => {
-      if (formToSubmit) {
-        formToSubmit.submit();
-      }
+      if (formToSubmit) formToSubmit.submit();
     });
 
-    // --- INLINE EDIT TOGGLE (Highlander Protocol) ---
+    // Highlander Protocol — only one row open at a time
     function closeAllEditRows() {
       document.querySelectorAll('li').forEach(li => {
         const otherDisplay = li.querySelector('.display-mode');
@@ -130,7 +237,6 @@
     document.querySelectorAll('.toggle-edit-btn').forEach(button => {
       button.addEventListener('click', function(e) {
         e.preventDefault();
-
         const currentLi = this.closest('li');
         const displayMode = currentLi.querySelector('.display-mode');
         const editMode = currentLi.querySelector('.edit-mode');
@@ -145,7 +251,6 @@
         }
 
         closeAllEditRows();
-
         displayMode.style.display = 'none';
         editMode.style.display = 'flex';
         inputField.focus();
@@ -153,7 +258,6 @@
       });
     });
 
-    // Close on background click
     window.addEventListener('click', (event) => {
       if (event.target === deleteModal) {
         deleteModal.style.display = 'none';
