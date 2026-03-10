@@ -98,6 +98,82 @@ textarea::placeholder {
   color: rgba(224, 224, 224, 0.4);
 }
 
+/* ==========================================
+   SEARCH BAR COMPONENTS
+   ========================================== */
+
+/* Row container: vertically center input and text buttons on same baseline */
+.search-bar-row {
+  align-items: center;
+}
+
+/* Search input: bottom-border only, no box */
+.search-input {
+  margin: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+  padding: 8px 12px;
+  font-size: 0.9em;
+  background: transparent;
+  color: var(--color-text);
+  border: none;
+  border-bottom: 1px solid var(--color-border-muted);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  border-radius: 0;
+}
+.search-input:focus {
+  border-bottom-color: var(--color-cyan);
+}
+.search-input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+/* [GO] submit: plain cyan text, no box, no fill */
+.search-go-btn {
+  margin: 0;
+  padding: 0 15px;
+  width: auto;
+  background: transparent;
+  color: var(--color-cyan);
+  border: none;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 0.9em;
+  cursor: pointer;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.search-go-btn:hover {
+  color: #fff;
+  background: transparent;
+}
+
+/* [+] FILTERS toggle: plain cyan text, no box, no fill */
+.filter-toggle-btn {
+  margin: 0;
+  padding: 0 15px;
+  width: auto;
+  background: transparent;
+  color: var(--color-cyan);
+  border: none;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 0.9em;
+  cursor: pointer;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.filter-toggle-btn:hover {
+  color: #fff;
+  background: transparent;
+}
+
 /* Hover ramp before focus — signals interactivity without commitment */
 input[type="text"]:hover,
 input[type="number"]:hover,
@@ -274,10 +350,22 @@ ul {
 li {
   background-color: var(--color-card);
   border-left: 4px solid var(--color-border-muted);
-  padding: 15px;
+  padding: 0;
   margin-bottom: 10px;
   display: flex;
+  flex-direction: row;
+  align-items: center;
   justify-content: space-between;
+}
+
+.tx-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
 }
 
 .investment-tag {
@@ -363,6 +451,15 @@ li {
   border-left-color: var(--color-red);
   box-shadow: inset 4px 0 12px rgba(255, 0, 60, 0.06);
 }
+
+.stat-box--info {
+  border-left-color: var(--color-cyan);
+  box-shadow: inset 4px 0 12px rgba(0, 204, 255, 0.06);
+}
+
+.stat-value--green { color: var(--color-green); }
+.stat-value--red   { color: var(--color-red); }
+.stat-value--cyan  { color: var(--color-cyan); }
 
 .stat-label {
   display: block;
@@ -901,8 +998,7 @@ input[type="radio"]:checked + .income-toggle {
 }
 
 #editSavingsBtn:hover {
-  background-color: var(--color-yellow);
-  color: var(--color-card);
+  color: #fff;
 }
 
 #editSavingsBtn:active {
@@ -911,22 +1007,20 @@ input[type="radio"]:checked + .income-toggle {
 
 
 #returnHomeBtn {
-  color: var(--color-green);
+  color: var(--color-cyan);
   text-decoration: none;
   font-weight: bold;
   font-size: 1.1em;
   letter-spacing: 1px;
-  padding: 5px 10px;
-  border: 1px solid transparent;
+  padding: 12px 8px;
+  margin: 40px -8px 0;
   transition: var(--transition-fast);
   display: block;
   width: fit-content;
-  margin: 40px auto;
 }
 
 #returnHomeBtn:hover {
-  background-color: var(--color-green);
-  color: var(--color-card);
+  color: #fff;
 }
 
 #returnHomeBtn:active {
@@ -1310,8 +1404,8 @@ button:active,
   font-size: 0.8em;
   font-weight: bold;
   text-decoration: none;
-  padding: 2px 8px;
-  border: 1px solid;
+  padding: 12px 8px;
+  margin: -12px -8px;
   transition: var(--transition-std);
 }
 
@@ -1466,6 +1560,9 @@ select.cs-native {
   display: flex;
   align-items: center;
   min-height: 44px;
+  flex-shrink: 0;
+  padding: 0 12px;
+  gap: 10px;
 }
 
 @media (hover: hover) {
@@ -1580,19 +1677,18 @@ select.cs-native {
 }
 
 #envelopeToggle {
-  color: var(--color-yellow);
+  color: var(--color-cyan);
   text-decoration: none;
   font-weight: bold;
   font-size: 0.85em;
-  padding: 2px 4px;
-  border: 1px solid transparent;
+  padding: 12px 4px;
+  margin: -12px -4px;
   transition: var(--transition-fast);
   display: inline-block;
 }
 
 #envelopeToggle:hover {
-  background-color: var(--color-yellow);
-  color: var(--color-card);
+  color: #fff;
 }
 
 #envelopeToggle:active {
@@ -1709,11 +1805,27 @@ select.cs-native {
     letter-spacing: 0.5px;
     flex-wrap: wrap;
     gap: 6px;
+    font-size: 0.75rem !important;
   }
 
-  /* Bump collapse toggle tap target */
+  .sys-nav-link {
+    font-size: 1rem !important;
+  }
+
+  /* Envelope collapse toggle: full touch target */
   #envelopeToggle {
-    padding: 8px 10px;
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 44px !important;
+    padding: 0 12px !important;
+  }
+
+  /* Savings edit inline link: full touch target */
+  #editSavingsBtn {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 44px !important;
+    padding: 0 12px !important;
   }
 
   /* Search row: wrap buttons below on narrow screens */
@@ -1734,16 +1846,29 @@ select.cs-native {
     flex-shrink: 0 !important;
   }
 
+  /* Prevent any base button style from overriding transparent bg on mobile */
+  .openModalBtn {
+    background-color: transparent !important;
+    border: 1px solid var(--color-green) !important;
+  }
+
   /* Pagination tap targets */
   .page-btn {
-    min-height: 44px;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 0 14px !important;
   }
 
   .system-readout {
     flex-direction: column;
     gap: 10px;
+  }
+
+  .financial-controls-container {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
   }
 
   h1 {
@@ -1758,17 +1883,58 @@ select.cs-native {
     flex-direction: column !important;
   }
 
-  li {
+  /* Ledger rows: stack tx-main (info+amount) above tx-actions */
+  .scroll-box ul li {
     flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 15px;
+    align-items: stretch !important;
+    gap: 0 !important;
+    padding: 0 !important;
   }
 
-  li > div:nth-child(2) {
+  .scroll-box ul li.trash-row {
+    padding: 12px 12px !important;
+    flex-direction: row !important;
+  }
+
+  .tx-main {
     width: 100% !important;
-    justify-content: space-between !important;
+    padding: 10px 12px 8px !important;
+  }
+
+  /* Actions strip: full-width, prominent touch targets, faint separator */
+  .tx-actions {
+    opacity: 0.4 !important;
+    pointer-events: auto !important;
+    display: flex !important;
+    gap: 0 !important;
+    min-height: 44px !important;
+    align-items: stretch !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    background: rgba(255, 255, 255, 0.04);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0 !important;
+    transition: opacity 0.15s ease-in-out !important;
+  }
+  .tx-actions:active,
+  .tx-actions:focus-within {
+    opacity: 1 !important;
+  }
+
+  .tx-actions .edit-btn,
+  .tx-actions .delete-btn {
+    flex: 0 0 auto !important;
+    min-height: 44px !important;
+    padding: 0 20px 0 12px !important;
+    margin: 0 !important;
+    justify-content: flex-start !important;
+    display: inline-flex !important;
     align-items: center !important;
-    margin-top: 12px !important;
+  }
+
+  .tx-actions .edit-btn {
+    border-right: none !important;
   }
 
   .modal-content {
@@ -1882,11 +2048,13 @@ select.cs-native {
   }
 
   #currencyToggleBtn {
-    display: block !important;
+    display: inline-flex !important;
+    align-items: center !important;
     text-align: left !important;
-    padding: 0 !important;
-    font-size: 0.7em !important;
-    color: rgba(0, 204, 255, 0.55) !important;
+    padding: 0 12px !important;
+    min-height: 44px !important;
+    font-size: 1rem !important;
+    color: rgba(0, 204, 255, 0.7) !important;
     margin-top: 4px !important;
     align-self: flex-start !important;
   }

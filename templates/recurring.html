@@ -1,62 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}Recurring | Wealth Engine{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── Button sizing ── */
+  #openAddRecurringBtn { width: 100%; margin-bottom: 20px; }
+
+  /* ── Row li override ── */
+  .scroll-box ul li {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 12px 12px 12px 0;
+    border-bottom: 1px solid var(--color-border);
+    transition: background-color 0.1s ease-in-out;
+  }
+  .scroll-box ul li:hover { background-color: #0f0f0f; }
+
+  /* ── Info column ── */
+  .rr-info-col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  /* ── Metadata color signals ── */
+  .freq-label { color: var(--color-cyan); }
+  .due-label  { color: var(--color-yellow); }
+
+  /* ── Initial hidden state for JS-toggled elements ── */
+  .rr-hidden { display: none; }
+
+  /* ── New category label spacing ── */
+  #recurNewCategoryLabel { margin-top: 10px; }
+
+  /* ── Page note ── */
+  .page-note {
+    color: var(--color-text-muted);
+    font-size: 0.85em;
+    margin-bottom: 30px;
+  }
+
+  /* ── Modal header ── */
+  .modal-hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+  .modal-hdr h2 {
+    margin: 0;
+    color: var(--color-text);
+    font-size: 1.5em;
+    text-transform: uppercase;
+  }
+
+  /* ── Modal field labels ── */
+  .modal-label {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  /* ── Form field spacing ── */
+  .modal-field { margin-bottom: 20px; }
+
+  /* ── Delete confirm modal ── */
+  .rr-modal-content { max-width: 400px; text-align: center; }
+  .rr-modal-title { color: var(--color-red); margin-top: 0; text-transform: uppercase; }
+  .rr-modal-text { color: var(--color-text); margin-bottom: 30px; }
+  .rr-modal-actions { display: flex; gap: 15px; justify-content: center; }
+
+  #cancelDeleteBtn {
+    background: none;
+    border: 1px dashed var(--color-border);
+    color: var(--color-text-muted);
+    font-family: inherit;
+    font-size: inherit;
+    padding: 10px 20px;
+    cursor: pointer;
+    flex: 1;
+    transition: color 0.1s, border-color 0.1s;
+  }
+  #cancelDeleteBtn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--color-text);
+    border-color: #555;
+  }
+  #confirmDeleteBtn {
+    background-color: #000;
+    color: var(--color-red);
+    border: 1px solid var(--color-red);
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: bold;
+    padding: 10px 20px;
+    cursor: pointer;
+    flex: 1;
+    transition: filter 0.1s;
+  }
+  #confirmDeleteBtn:hover {
+    background-color: rgba(255, 0, 60, 0.12);
+    filter: brightness(1.2);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
 {% macro category_options(categories) %}
   {% for cat in categories %}
     <option value="{{ cat }}">{{ cat }}</option>
   {% endfor %}
   <option value="add_new">Add new category...</option>
 {% endmacro %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Recurring Transactions | Wealth Engine</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-  <h1 style="margin-bottom: 8px;">Recurring Transactions</h1>
 
-  <button id="openAddRecurringBtn" class="openModalBtn" style="width: 100%; margin-bottom: 20px;">[+ ADD RECURRING]</button>
+  <div class="section-hdr">
+    <span class="section-hdr-title">[ RECURRING — {{ templates|length }} TEMPLATES ]</span>
+  </div>
+
+  <button id="openAddRecurringBtn" class="openModalBtn">[+ ADD RECURRING]</button>
 
   <!-- Existing Templates -->
   <div class="scroll-box">
     {% if templates %}
     <ul>
       {% for tmpl in templates %}
-        <li style="border-left: 4px solid {% if tmpl.type == 'income' %}#00ff66{% else %}#00ccff{% endif %}; padding: 15px 55px 15px 15px; display: flex; flex-direction: column; justify-content: flex-start; gap: 6px; position: relative;">
+        <li class="{% if tmpl.type == 'income' %}tx-income{% else %}tx-expense{% endif %}">
 
-          <!-- Row 1: name only -->
-          <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ tmpl.name }}">{{ tmpl.name }}</strong>
+          <div class="tx-main">
+            <div class="rr-info-col">
+              <strong class="expense-name" title="{{ tmpl.name }}">{{ tmpl.name }}</strong>
+              <span class="expense-meta">
+                {{ tmpl.amount | fmt_money }} //
+                <span class="freq-label">{{ tmpl.frequency }}</span> //
+                {{ tmpl.category_name }} //
+                <span class="due-label">next: {{ tmpl.next_due }}</span>
+              </span>
+            </div>
+          </div>
 
-          <!-- Row 2: all metadata -->
-          <span style="color: #888; font-size: 0.8em;">
-            {{ tmpl.amount | fmt_money }} &middot;
-            <span style="color: {% if tmpl.type == 'income' %}#00ff66{% else %}#00ccff{% endif %};">{{ tmpl.frequency }}</span> &middot;
-            {{ tmpl.category_name }} &middot;
-            <span style="color: #ffcc00; white-space: nowrap;">next: {{ tmpl.next_due }}</span>
-          </span>
-
-          <!-- Delete button: absolutely positioned, never affects text layout -->
-          <form method="post" action="{{ url_for('delete_recurring', tmpl_id=tmpl.id) }}" class="delete-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="button" class="delete-btn" style="position: absolute; right: 15px; top: 15px;">[X]</button>
-          </form>
+          <div class="tx-actions">
+            <form method="post" action="{{ url_for('delete_recurring', tmpl_id=tmpl.id) }}" class="delete-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="button" class="delete-btn">[X]</button>
+            </form>
+          </div>
 
         </li>
       {% endfor %}
     </ul>
     {% else %}
-      <p style="color: #555; text-align: center; padding: 30px 0;">No recurring transactions configured.</p>
+      <p style="color: var(--color-text-muted); text-align: center; padding: 30px 0;">No recurring transactions configured.</p>
     {% endif %}
   </div>
 
-  <p style="color: #888; font-size: 0.85em; margin-bottom: 30px;">Scheduled transactions are automatically created when you open the dashboard. Capped at 24 cycles per visit to prevent runaway backfill.</p>
+  <p class="page-note">Scheduled transactions are automatically created when you open the dashboard. Capped at 24 cycles per visit to prevent runaway backfill.</p>
 
   <!-- Add Recurring Modal -->
   <div class="modal" id="addRecurringModal">
     <div class="modal-content">
 
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
-        <h2 style="margin: 0; color: #e0e0e0; font-size: 1.5em; text-transform: uppercase;">Add Recurring</h2>
+      <div class="modal-hdr">
+        <h2>Add Recurring</h2>
         <span class="close-modal" id="closeAddRecurringBtn">[X]</span>
       </div>
 
@@ -70,13 +184,13 @@
           <label for="recurIncomeType" class="toggle-btn income-toggle">[INCOME]</label>
         </div>
 
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; color: #888; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Transaction Name</label>
-          <input type="text" name="item_name" placeholder="e.g. Rent, Netflix" maxlength="100" autocapitalize="words" required style="width: 100%;">
+        <div class="modal-field">
+          <label class="modal-label">Transaction Name</label>
+          <input type="text" name="item_name" placeholder="e.g. Rent, Netflix" maxlength="100" autocapitalize="words" required>
         </div>
 
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; color: #888; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Amount</label>
+        <div class="modal-field">
+          <label class="modal-label">Amount</label>
           <div class="currency-group">
             <input type="number" class="no-spinner" name="cost" placeholder="0.00" step="0.01" min="0" inputmode="decimal" required>
             <select name="currency">
@@ -86,32 +200,32 @@
           </div>
         </div>
 
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; color: #888; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Frequency</label>
-          <select name="frequency" style="width: 100%;">
+        <div class="modal-field">
+          <label class="modal-label">Frequency</label>
+          <select name="frequency">
             <option value="monthly">Monthly</option>
             <option value="weekly">Weekly</option>
             <option value="daily">Daily</option>
           </select>
         </div>
 
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; color: #888; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">First Due Date</label>
-          <input type="date" name="start_date" id="recurStartDate" required style="width: 100%;">
+        <div class="modal-field">
+          <label class="modal-label">First Due Date</label>
+          <input type="date" name="start_date" id="recurStartDate" required>
         </div>
 
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; color: #888; font-size: 0.8em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Category</label>
+        <div class="modal-field">
+          <label class="modal-label">Category</label>
           <select name="category_dropdown" id="recurExpenseCategorySelect" required>
             <option value="" disabled selected>Select an expense category...</option>
             {{ category_options(expense_categories) }}
           </select>
-          <select name="category_dropdown" id="recurIncomeCategorySelect" disabled style="display: none;" required>
+          <select name="category_dropdown" id="recurIncomeCategorySelect" disabled class="rr-hidden" required>
             <option value="" disabled selected>Select an income type...</option>
             {{ category_options(income_categories) }}
           </select>
-          <label id="recurNewCategoryLabel" style="display: none; color: #888; font-size: 0.8em; margin-top: 10px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">New Category Name</label>
-          <input type="text" name="new_category" id="recurNewCategoryInput" placeholder="New category name" maxlength="50" autocapitalize="words" style="display: none; width: 100%;">
+          <label class="modal-label rr-hidden" id="recurNewCategoryLabel">New Category Name</label>
+          <input type="text" name="new_category" id="recurNewCategoryInput" placeholder="New category name" maxlength="50" autocapitalize="words" class="rr-hidden">
         </div>
 
         <div class="checkbox-wrapper" id="recurInvestmentWrapper">
@@ -119,9 +233,9 @@
           <label for="recurIsInvestment">Mark as Investment</label>
         </div>
 
-        <div class="modal-actions" style="margin-top: 20px;">
+        <div class="modal-actions">
           <button type="button" id="cancelAddRecurringBtn" class="mobile-only-cancel cancel-btn">[CANCEL]</button>
-          <button type="submit" id="recurSubmitBtn" style="margin: 0;">[ + ADD ]</button>
+          <button type="submit" id="submitBtn">[ + ADD ]</button>
         </div>
       </form>
 
@@ -130,17 +244,17 @@
 
   <!-- Delete Confirm Modal -->
   <div class="modal" id="deleteModal">
-    <div class="modal-content" style="border: 2px solid #ff003c; max-width: 400px; text-align: center;">
-      <h2 style="color: #ff003c; margin-top: 0; text-transform: uppercase;">Delete Template</h2>
-      <p style="color: #e0e0e0; margin-bottom: 30px;">Remove this recurring template? Past transactions are unaffected.</p>
-      <div style="display: flex; gap: 15px; justify-content: center;">
-        <button type="button" id="cancelDeleteBtn" style="background-color: #111; color: #888; border: 1px solid #555; cursor: pointer; padding: 10px 20px; flex: 1; margin: 0;">[CANCEL]</button>
-        <button type="button" id="confirmDeleteBtn" style="background-color: rgba(255,0,60,0.1); color: #ff003c; border: 1px solid #ff003c; cursor: pointer; font-weight: bold; padding: 10px 20px; flex: 1; margin: 0;">[CONFIRM DELETE]</button>
+    <div class="modal-content rr-modal-content">
+      <h2 class="rr-modal-title">Delete Template</h2>
+      <p class="rr-modal-text">Remove this recurring template? Past transactions are unaffected.</p>
+      <div class="rr-modal-actions">
+        <button type="button" id="cancelDeleteBtn">[CANCEL]</button>
+        <button type="button" id="confirmDeleteBtn">[CONFIRM DELETE]</button>
       </div>
     </div>
   </div>
 
-  <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a>
+  <!-- <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a> -->
 
   <script>
     // --- ADD RECURRING MODAL ---
@@ -205,7 +319,7 @@
     recurIncomeSelect.addEventListener('change', function() { handleCategoryChange(this, recurNewCatInput); });
 
     // --- TYPE RADIO TOGGLE ---
-    const recurSubmitBtn = document.getElementById('recurSubmitBtn');
+    const submitBtn = document.getElementById('submitBtn');
 
     document.querySelectorAll('input[name="entry_type"]').forEach(radio => {
       radio.addEventListener('change', (e) => {
@@ -217,7 +331,7 @@
           recurInvestmentWrapper.style.display = 'none';
           document.getElementById('recurIsInvestment').checked = false;
           handleCategoryChange(recurIncomeSelect, recurNewCatInput);
-          recurSubmitBtn.classList.add('income-submit');
+          submitBtn.classList.add('income-submit');
         } else {
           recurIncomeSelect.style.display = 'none';
           recurIncomeSelect.disabled = true;
@@ -225,10 +339,10 @@
           recurExpenseSelect.disabled = false;
           recurInvestmentWrapper.style.display = '';
           handleCategoryChange(recurExpenseSelect, recurNewCatInput);
-          recurSubmitBtn.classList.remove('income-submit');
+          submitBtn.classList.remove('income-submit');
         }
       });
     });
   </script>
-</body>
-</html>
+
+{% endblock %}

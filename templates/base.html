@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Wealth Engine{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div style="border-bottom: 3px solid #ff003c; padding-bottom: 10px; margin-bottom: 20px;">
+    <h1 style="border-bottom: none; padding-bottom: 0; margin: 0;">Root Access Wealth Engine</h1>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div style="color: #ff003c; background: rgba(255,0,60,0.1); border: 1px solid #ff003c; padding: 10px 15px; margin-bottom: 15px; font-weight: bold;">[!] {{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- System Nav -->
+  <div class="sys-nav-scroll">
+    <nav class="sys-nav">
+      <a href="{{ url_for('home') }}" class="sys-nav-link{% if request.endpoint == 'home' %} nav-active{% endif %}">HOME</a>
+      <a href="{{ url_for('manage_categories') }}" class="sys-nav-link{% if request.endpoint == 'manage_categories' %} nav-active{% endif %}">CATEGORIES</a>
+      <a href="{{ url_for('manage_recurring') }}" class="sys-nav-link{% if request.endpoint == 'manage_recurring' %} nav-active{% endif %}">RECURRING</a>
+      <a href="{{ url_for('net_worth') }}" class="sys-nav-link{% if request.endpoint == 'net_worth' %} nav-active{% endif %}">NET WORTH</a>
+      <a href="{{ url_for('export_data') }}" id="exportBtn" class="sys-nav-link{% if request.endpoint == 'export_data' %} nav-active{% endif %}">EXPORT</a>
+      <a href="{{ url_for('trash') }}" class="sys-nav-link nav-red{% if request.endpoint == 'trash' %} nav-active{% endif %}">TRASH</a>
+    </nav>
+  </div>
+
+  {% block content %}{% endblock %}
+</body>
+</html>

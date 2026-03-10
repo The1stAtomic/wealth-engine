@@ -919,6 +919,26 @@ def edit_expense(expense_id):
 def manage_categories():
     if request.method == 'POST':
         action = request.form.get('action')
+
+        if action == 'add':
+            new_name = request.form.get('new_category_name', '').strip().title()[:50]
+            if new_name and not Category.query.filter_by(name=new_name).first():
+                budget = None
+                raw_budget = request.form.get('monthly_budget', '').strip()
+                if raw_budget:
+                    try:
+                        budget = Decimal(str(max(0.0, float(raw_budget)))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    except (ValueError, TypeError):
+                        pass
+                db.session.add(Category(name=new_name, type='expense', monthly_budget=budget))
+                try:
+                    db.session.commit()
+                    logger.info("CAT_MGMT: Added category '%s'.", new_name)
+                except Exception:
+                    db.session.rollback()
+                    logger.exception("CAT_MGMT: Failed to add category '%s'.", new_name)
+            return redirect(url_for('manage_categories'))
+
         # FIX: guard against None/empty old_category and verify it's a real category
         old_category = request.form.get('old_category', '').strip()
         if not old_category or not Category.query.filter_by(name=old_category).first():

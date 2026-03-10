@@ -1,39 +1,12 @@
+{% extends 'base.html' %}
+{% block extra_head %}<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>{% endblock %}
+{% block content %}
 {% macro category_options(categories) %}
   {% for cat in categories %}
     <option value="{{ cat }}">{{ cat }}</option>
   {% endfor %}
   <option value="add_new">Add new category...</option>
 {% endmacro %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wealth Engine</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-  <div style="border-bottom: 3px solid #ff003c; padding-bottom: 10px; margin-bottom: 20px;">
-    <h1 style="border-bottom: none; padding-bottom: 0; margin: 0;">Root Access Wealth Engine</h1>
-  </div>
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for category, message in messages %}
-      <div style="color: #ff003c; background: rgba(255,0,60,0.1); border: 1px solid #ff003c; padding: 10px 15px; margin-bottom: 15px; font-weight: bold;">[!] {{ message }}</div>
-    {% endfor %}
-  {% endwith %}
-
-  <!-- System Nav -->
-  <div class="sys-nav-scroll">
-    <nav class="sys-nav">
-      <a href="{{ url_for('manage_categories') }}" class="sys-nav-link{% if request.endpoint == 'manage_categories' %} nav-active{% endif %}">CATEGORIES</a>
-      <a href="{{ url_for('manage_recurring') }}" class="sys-nav-link{% if request.endpoint == 'manage_recurring' %} nav-active{% endif %}">RECURRING</a>
-      <a href="{{ url_for('net_worth') }}" class="sys-nav-link{% if request.endpoint == 'net_worth' %} nav-active{% endif %}">NET WORTH</a>
-      <a href="{{ url_for('export_data') }}" id="exportBtn" class="sys-nav-link{% if request.endpoint == 'export_data' %} nav-active{% endif %}">EXPORT</a>
-      <a href="{{ url_for('trash') }}" class="sys-nav-link nav-red{% if request.endpoint == 'trash' %} nav-active{% endif %}">TRASH</a>
-    </nav>
-  </div>
 
   <div class="financial-controls-container">
 
@@ -129,13 +102,13 @@
 
     <form action="/" method="get" id="searchForm" style="margin: 0; background: none; border: none; padding: 0; box-shadow: none; display: flex; flex-direction: column; width: 100%;">
 
-      <div class="search-bar-row" style="display: flex; gap: 10px; width: 100%; height: 36px;">
+      <div class="search-bar-row" style="display: flex; gap: 10px; width: 100%;">
 
-        <input type="text" name="search" placeholder="Search..." value="{{ current_search }}" onfocus="this.select()" style="margin: 0; flex-grow: 1; padding: 8px 12px; font-size: 0.9em; background-color: #000; color: #00ff66; border: 1px solid #00ff66; font-family: inherit; outline: none; box-sizing: border-box; min-width: 0;" autocomplete="off">
+        <input type="text" name="search" class="search-input" placeholder="Search..." value="{{ current_search }}" onfocus="this.select()" autocomplete="off">
 
-        <button type="submit" style="margin: 0; padding: 0 15px; width: auto; background-color: rgba(0, 255, 102, 0.1); color: #00ff66; border: 1px solid #00ff66; font-family: inherit; font-weight: bold; cursor: pointer; flex-shrink: 0;">[GO]</button>
+        <button type="submit" class="search-go-btn">[GO]</button>
 
-        <button type="button" id="toggleFiltersBtn" style="margin: 0; padding: 0 15px; width: auto; background-color: #111; color: #00ccff; border: 1px solid #00ccff; font-family: inherit; font-weight: bold; cursor: pointer; flex-shrink: 0;">[+] FILTERS</button>
+        <button type="button" id="toggleFiltersBtn" class="filter-toggle-btn">[+] FILTERS</button>
 
       </div>
 
@@ -203,45 +176,47 @@
           {% set tx_prefix = '[+]' %}
         {% endif %}
 
-        <li class="{{ tx_class }}" style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+        <li class="{{ tx_class }}">
 
-          <div style="display: flex; gap: 10px; align-items: baseline; flex-grow: 1; min-width: 0;">
+          <div class="tx-main">
 
-            <strong class="expense-name" style="font-size: 1.1em; flex-shrink: 0;">{{ tx_prefix }}</strong>
+            <div style="display: flex; gap: 10px; align-items: baseline; flex-grow: 1; min-width: 0;">
 
-            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
-              <span class="expense-name" style="font-size: 1.1em; word-break: break-word; overflow-wrap: break-word;">{{ expense.name }}</span>
-              <span class="expense-meta" style="color: #666; font-size: 0.85em;">
-                [{{ expense.category }}] // [{{ (expense.timestamp | string)[:10] }}]{% if expense.note %} <span title="{{ expense.note }}">[N]</span>{% endif %}{% if expense.has_receipt %} [R]{% endif %}
-              </span>
+              <strong class="expense-name" style="font-size: 1.1em; flex-shrink: 0;">{{ tx_prefix }}</strong>
+
+              <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                <span class="expense-name" style="font-size: 1.1em; word-break: break-word; overflow-wrap: break-word;">{{ expense.name }}</span>
+                <span class="expense-meta" style="color: #666; font-size: 0.85em;">
+                  [{{ expense.category }}] // [{{ (expense.timestamp | string)[:10] }}]{% if expense.note %} <span title="{{ expense.note }}">[N]</span>{% endif %}{% if expense.has_receipt %} [R]{% endif %}
+                </span>
+              </div>
+
             </div>
 
-          </div>
-
-          <div style="display: flex; align-items: center; gap: 20px; flex-shrink: 0;">
-            <strong class="money tx-amount" data-usd="{{ expense.amount | default(0, true) }}">
+            <strong class="money tx-amount" data-usd="{{ expense.amount | default(0, true) }}" style="flex-shrink: 0;">
               {{ expense.amount | default(0, true) | fmt_money }}
             </strong>
 
-            <div class="tx-actions" style="display: flex; gap: 10px;">
-              <button type="button" class="edit-btn trigger-edit-modal"
-                data-id="{{ expense.id }}"
-                data-name="{{ expense.name }}"
-                data-amount="{{ expense.amount }}"
-                data-date="{{ (expense.timestamp | string)[:10] }}"
-                data-type="{{ expense.get('type', 'expense') }}"
-                data-category="{{ expense.category }}"
-                data-invest="{{ 'true' if expense.is_investment else 'false' }}"
-                data-note="{{ expense.note | e }}"
-                data-has-receipt="{{ 'true' if expense.has_receipt else 'false' }}">
-                [EDIT]
-              </button>
+          </div>
 
-              <form action="{{ url_for('delete_expense', expense_id=expense.id) }}" method="post" class="delete-form" style="margin: 0; padding: 0; border: none; background: none;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="delete-btn">[X]</button>
-              </form>
-            </div>
+          <div class="tx-actions">
+            <button type="button" class="edit-btn trigger-edit-modal"
+              data-id="{{ expense.id }}"
+              data-name="{{ expense.name }}"
+              data-amount="{{ expense.amount }}"
+              data-date="{{ (expense.timestamp | string)[:10] }}"
+              data-type="{{ expense.get('type', 'expense') }}"
+              data-category="{{ expense.category }}"
+              data-invest="{{ 'true' if expense.is_investment else 'false' }}"
+              data-note="{{ expense.note | e }}"
+              data-has-receipt="{{ 'true' if expense.has_receipt else 'false' }}">
+              [EDIT]
+            </button>
+
+            <form action="{{ url_for('delete_expense', expense_id=expense.id) }}" method="post" class="delete-form" style="margin: 0; padding: 0; border: none; background: none;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="delete-btn">[X]</button>
+            </form>
           </div>
 
         </li>
@@ -1211,5 +1186,4 @@
     // Init every select on the page
     document.querySelectorAll('select').forEach(initCustomSelect);
   </script>
-</body>
-</html>
+{% endblock %}

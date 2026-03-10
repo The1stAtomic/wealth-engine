@@ -1,176 +1,308 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manage Categories | Wealth Engine</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    /* ── Category rows ── */
-    .scroll-box ul li {
-      display: flex;
-      flex-direction: column;
-      box-sizing: border-box;
-      width: 100%;
-      transition: background-color 0.1s ease-in-out, padding-left 0.1s ease-in-out;
-    }
-    .scroll-box ul li:hover {
-      background-color: #0f0f0f;
-      padding-left: 18px;
-    }
+{% extends 'base.html' %}
 
-    /* ── Plain text action buttons — no box ── */
-    .cat-action-btn {
-      background: none;
-      border: none;
-      font-family: inherit;
-      font-size: 0.8em;
-      padding: 0;
-      cursor: pointer;
-      letter-spacing: 1px;
-      transition: filter 0.1s ease-in-out;
-    }
-    .cat-edit-btn { color: var(--color-cyan); }
-    .cat-edit-btn:hover { filter: brightness(1.5); }
-    .cat-delete-btn { color: var(--color-red); }
-    .cat-delete-btn:hover { filter: brightness(1.5); }
+{% block extra_head %}
+<title>Manage Categories | Wealth Engine</title>
+<style>
+  /* ── Local li override: row+wrap so edit-mode takes full-width row ── */
+  .scroll-box ul li {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 0;
+    transition: background-color 0.1s ease-in-out;
+  }
+  .scroll-box ul li:hover {
+    background-color: #0f0f0f;
+  }
 
-    /* ── Edit form inputs — bottom border only, transparent bg ── */
-    .edit-mode input[type="text"],
-    .edit-mode input[type="number"] {
-      background: transparent;
-      border: none;
-      border-bottom: 1px solid var(--color-border-muted);
-      padding: 4px 0;
-    }
-    .edit-mode input[type="text"]:focus,
-    .edit-mode input[type="number"]:focus {
-      border-bottom-color: var(--color-cyan);
-      outline: none;
-      box-shadow: none;
-    }
+  /* ── Edit mode: hidden by default, full-width strip when open ── */
+  .edit-mode {
+    display: none;
+    flex: 0 0 100%;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    border-top: 1px solid var(--color-border);
+  }
 
-    /* ── Edit form save/cancel ── */
-    .cat-save-btn {
-      background: #000;
-      border: 1px solid var(--color-green);
-      color: var(--color-green);
-      font-family: inherit;
-      font-size: 0.85em;
-      padding: 6px 12px;
-      cursor: pointer;
-      flex: 1;
-      letter-spacing: 1px;
-      transition: filter 0.1s ease-in-out;
-    }
-    .cat-save-btn:hover { filter: brightness(1.3); }
+  /* ── Edit form layout ── */
+  .edit-form-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+  }
 
-    .cat-cancel-btn {
-      background: none;
-      border: none;
-      color: var(--color-text-muted);
-      font-family: inherit;
-      font-size: 0.85em;
-      padding: 6px 12px;
-      cursor: pointer;
-      flex: 1;
-      letter-spacing: 1px;
-      transition: filter 0.1s ease-in-out;
-    }
-    .cat-cancel-btn:hover { filter: brightness(1.5); }
+  /* ── Category info column (name + budget stacked) ── */
+  .cat-info-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex-grow: 1;
+    gap: 2px;
+  }
 
-    /* ── Delete modal buttons ── */
-    #cancelDeleteBtn {
-      background: none;
-      border: 1px dashed var(--color-border);
-      color: var(--color-text-muted);
-      font-family: inherit;
-      font-size: inherit;
-      padding: 10px 20px;
-      cursor: pointer;
-      flex: 1;
-      white-space: nowrap;
-      transition: color 0.1s ease-in-out, border-color 0.1s ease-in-out;
-    }
-    #cancelDeleteBtn:hover { color: var(--color-text); border-color: #555; }
+  .cat-name {
+    font-size: 1.1em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-    #confirmDeleteBtn {
-      background-color: #000;
-      color: var(--color-red);
-      border: 1px solid var(--color-red);
-      font-family: inherit;
-      font-size: inherit;
-      font-weight: bold;
-      padding: 10px 20px;
-      cursor: pointer;
-      flex: 1;
-      white-space: nowrap;
-      transition: filter 0.1s ease-in-out;
-    }
-    #confirmDeleteBtn:hover { filter: brightness(1.2); }
+  .cat-budget-label {
+    color: var(--color-text-muted);
+    font-size: 0.75em;
+  }
 
-    /* ── Return home ── */
-    #returnHomeBtn {
-      display: inline-block;
-      color: var(--color-text);
-      text-decoration: none;
-      font-size: 0.8em;
-      letter-spacing: 1px;
-      opacity: 0.5;
-      margin-top: 24px;
-      transition: opacity 0.1s ease-in-out;
+  .cat-budget-amount {
+    color: var(--color-yellow);
+  }
+
+  /* ── Add form section label ── */
+  .cat-form-title {
+    color: var(--color-text-muted);
+    font-size: 0.75em;
+    letter-spacing: 1px;
+  }
+
+  /* ── Budget row: label + number input ── */
+  .cat-budget-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .cat-form-label {
+    color: var(--color-text-muted);
+    font-size: 0.8em;
+    flex-shrink: 0;
+  }
+
+  /* ── Inputs (shared between add form and edit form) ── */
+  .cat-name-input {
+    width: 100%;
+    margin: 0;
+  }
+
+  .cat-budget-input {
+    flex: 1;
+    min-width: 80px;
+    margin: 0;
+    color: var(--color-yellow);
+  }
+
+  /* ── Edit / Add form inputs — bottom border only, transparent bg ── */
+  /* !important needed to beat global input[type="number"] and input:focus rules */
+  .edit-mode input[type="text"],
+  .edit-mode input[type="number"],
+  .add-category-form input[type="text"],
+  .add-category-form input[type="number"] {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid var(--color-border-muted) !important;
+    padding: 4px 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+  .edit-mode input[type="text"]:focus,
+  .edit-mode input[type="number"]:focus,
+  .add-category-form input[type="text"]:focus,
+  .add-category-form input[type="number"]:focus {
+    border-bottom-color: var(--color-cyan) !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  /* ── Hover-reveal: reinforce desktop hide — mobile global rule uses !important ── */
+  @media (hover: hover) {
+    .scroll-box ul li .tx-actions {
+      opacity: 0 !important;
+      pointer-events: none !important;
     }
-    #returnHomeBtn:hover { opacity: 1; }
-  </style>
-</head>
-<body>
+    .scroll-box ul li:hover .tx-actions,
+    .scroll-box ul li:focus-within .tx-actions {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+  }
+
+  /* ── Save/Cancel button row ── */
+  .cat-btn-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+
+  /* ── Save / Add submit button — cyan border, no fill ── */
+  .cat-save-btn {
+    background: #000;
+    border: 1px solid var(--color-cyan);
+    color: var(--color-cyan);
+    font-family: inherit;
+    font-size: 0.85em;
+    padding: 6px 12px;
+    cursor: pointer;
+    flex: 1;
+    letter-spacing: 1px;
+    transition: filter 0.1s ease-in-out;
+  }
+  .cat-save-btn:hover { background-color: rgba(0, 204, 255, 0.08); color: var(--color-cyan); }
+
+  /* ── Cancel — dim border, muted text, same size as save ── */
+  .cat-cancel-btn {
+    background: #000;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-family: inherit;
+    font-size: 0.85em;
+    padding: 6px 12px;
+    cursor: pointer;
+    flex: 1;
+    letter-spacing: 1px;
+    transition: filter 0.1s ease-in-out;
+  }
+  .cat-cancel-btn:hover { background-color: rgba(255, 255, 255, 0.05); color: var(--color-text-muted); border-color: #555; }
+
+  /* ── Add Category form container ── */
+  .add-category-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+  }
+
+  /* ── Delete modal ── */
+  .cat-modal-content {
+    max-width: 400px;
+    text-align: center;
+  }
+  .cat-modal-title {
+    color: var(--color-red);
+    margin-top: 0;
+    text-transform: uppercase;
+  }
+  .cat-modal-text {
+    margin-bottom: 8px;
+  }
+  .cat-modal-note {
+    color: var(--color-text-muted);
+    font-size: 0.85em;
+    margin-bottom: 24px;
+  }
+  .cat-modal-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+  }
+
+  /* ── Delete modal buttons ── */
+  #cancelDeleteBtn {
+    background: none;
+    border: 1px dashed var(--color-border);
+    color: var(--color-text-muted);
+    font-family: inherit;
+    font-size: inherit;
+    padding: 10px 20px;
+    cursor: pointer;
+    flex: 1;
+    white-space: nowrap;
+    transition: color 0.1s ease-in-out, border-color 0.1s ease-in-out;
+  }
+  #cancelDeleteBtn:hover { background-color: rgba(255, 255, 255, 0.05); color: var(--color-text); border-color: #555; }
+
+  #confirmDeleteBtn {
+    background-color: #000;
+    color: var(--color-red);
+    border: 1px solid var(--color-red);
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: bold;
+    padding: 10px 20px;
+    cursor: pointer;
+    flex: 1;
+    white-space: nowrap;
+    transition: filter 0.1s ease-in-out;
+  }
+  #confirmDeleteBtn:hover { background-color: rgba(255, 0, 60, 0.12); color: var(--color-red); filter: brightness(1.2); }
+</style>
+{% endblock %}
+
+{% block content %}
 
   <div class="section-hdr">
     <span class="section-hdr-title">[ CATEGORIES — {{ categories|length }} RECORDS ]</span>
   </div>
+
+  <!-- Add Category Form -->
+  <form method="post" action="{{ url_for('manage_categories') }}" class="add-category-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="add">
+
+    <span class="cat-form-title">NEW CATEGORY</span>
+
+    <input type="text" name="new_category_name" autocapitalize="words"
+           placeholder="Category name" maxlength="50" required
+           class="cat-name-input">
+
+    <div class="cat-budget-row">
+      <span class="cat-form-label">Monthly Budget ($):</span>
+      <input type="number" name="monthly_budget" step="0.01" min="0"
+             placeholder="No budget"
+             class="cat-budget-input no-spinner">
+    </div>
+
+    <button type="submit" class="cat-save-btn">[ADD CATEGORY]</button>
+  </form>
 
   <div class="scroll-box">
     <ul>
       {% for category in categories %}
         <li>
 
-          <div class="display-mode" style="display: flex; justify-content: space-between; align-items: center; gap: 15px; width: 100%;">
-
-            <div style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1; gap: 2px;">
-              <strong style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ category.name }}">{{ category.name }}</strong>
+          <div class="tx-main">
+            <div class="cat-info-col">
+              <strong class="cat-name" title="{{ category.name }}">{{ category.name }}</strong>
               {% if category.monthly_budget %}
-                <span style="color: var(--color-text-muted); font-size: 0.75em;">Budget: <span style="color: #ffcc00;">{{ category.monthly_budget | fmt_money }}</span>/mo</span>
+                <span class="cat-budget-label">Budget: <span class="cat-budget-amount">{{ category.monthly_budget | fmt_money }}</span>/mo</span>
               {% endif %}
             </div>
-
-            <div class="tx-actions" style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
-              <button type="button" class="cat-action-btn cat-edit-btn toggle-edit-btn">[EDIT]</button>
-              <form method="post" style="display: contents;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="old_category" value="{{ category.name }}">
-                <input type="hidden" name="action" value="delete">
-                <button type="button" class="cat-action-btn cat-delete-btn cat-delete-trigger">[X]</button>
-              </form>
-            </div>
-
           </div>
 
-          <div class="edit-mode" style="display: none; flex-direction: column; gap: 12px; width: 100%; margin-top: 10px;">
-            <form method="post" style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin: 0; padding: 0; border: none; background: none;">
+          <div class="tx-actions">
+            <button type="button" class="edit-btn toggle-edit-btn">[EDIT]</button>
+            <form method="post" class="delete-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="old_category" value="{{ category.name }}">
+              <input type="hidden" name="action" value="delete">
+              <button type="button" class="delete-btn cat-delete-trigger">[X]</button>
+            </form>
+          </div>
+
+          <div class="edit-mode">
+            <form method="post" class="edit-form-layout">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="old_category" value="{{ category.name }}">
               <input type="hidden" name="action" value="save">
 
-              <input type="text" name="new_category" autocapitalize="words" value="{{ category.name }}" style="width: 100%; margin: 0;" maxlength="50" required>
+              <input type="text" name="new_category" autocapitalize="words"
+                     value="{{ category.name }}" class="cat-name-input" maxlength="50" required>
 
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="color: var(--color-text-muted); font-size: 0.8em; flex-shrink: 0;">Monthly Budget ($):</span>
-                <input type="number" name="monthly_budget" step="0.01" min="0" placeholder="No budget"
+              <div class="cat-budget-row">
+                <span class="cat-form-label">Monthly Budget ($):</span>
+                <input type="number" name="monthly_budget" step="0.01" min="0"
+                       placeholder="No budget"
                        value="{{ category.monthly_budget if category.monthly_budget else '' }}"
-                       style="flex: 1; min-width: 80px; margin: 0; color: #ffcc00;">
+                       class="cat-budget-input no-spinner">
               </div>
 
-              <div style="display: flex; gap: 10px; width: 100%;">
+              <div class="cat-btn-row">
                 <button type="submit" class="cat-save-btn">[SAVE]</button>
                 <button type="button" class="cat-cancel-btn toggle-edit-btn">[CANCEL]</button>
               </div>
@@ -183,18 +315,16 @@
   </div>
 
   <div class="modal" id="deleteModal">
-    <div class="modal-content" style="max-width: 400px; text-align: center;">
-      <h2 style="color: var(--color-red); margin-top: 0; text-transform: uppercase;">Category Purge</h2>
-      <p style="margin-bottom: 8px;">Are you sure? Deleting this category will mark all associated transactions as "Uncategorized".</p>
-      <p style="color: var(--color-text-muted); font-size: 0.85em; margin-bottom: 24px;">Note: renaming a category updates ALL past expenses with that category.</p>
-      <div style="display: flex; gap: 15px; justify-content: center;">
+    <div class="modal-content cat-modal-content">
+      <h2 class="cat-modal-title">Category Purge</h2>
+      <p class="cat-modal-text">Are you sure? Deleting this category will mark all associated transactions as "Uncategorized".</p>
+      <p class="cat-modal-note">Note: renaming a category updates ALL past expenses with that category.</p>
+      <div class="cat-modal-actions">
         <button type="button" id="cancelDeleteBtn">[CANCEL]</button>
         <button type="button" id="confirmDeleteBtn">[CONFIRM DELETE]</button>
       </div>
     </div>
   </div>
-
-  <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a>
 
   <script>
     const deleteModal = document.getElementById('deleteModal');
@@ -222,11 +352,13 @@
     // Highlander Protocol — only one row open at a time
     function closeAllEditRows() {
       document.querySelectorAll('li').forEach(li => {
-        const otherDisplay = li.querySelector('.display-mode');
         const otherEdit = li.querySelector('.edit-mode');
-        if (otherEdit && otherDisplay && otherDisplay.style.display === 'none') {
-          otherDisplay.style.display = 'flex';
+        if (otherEdit && otherEdit.style.display === 'flex') {
           otherEdit.style.display = 'none';
+          const txMain = li.querySelector('.tx-main');
+          if (txMain) txMain.style.display = '';
+          const otherActions = li.querySelector('.tx-actions');
+          if (otherActions) otherActions.style.display = '';
           const nameInput = otherEdit.querySelector('input[type="text"]');
           const hiddenInput = otherEdit.querySelector('input[name="old_category"]');
           if (nameInput && hiddenInput) nameInput.value = hiddenInput.value;
@@ -238,21 +370,24 @@
       button.addEventListener('click', function(e) {
         e.preventDefault();
         const currentLi = this.closest('li');
-        const displayMode = currentLi.querySelector('.display-mode');
         const editMode = currentLi.querySelector('.edit-mode');
+        const txMain = currentLi.querySelector('.tx-main');
+        const txActions = currentLi.querySelector('.tx-actions');
         const inputField = editMode.querySelector('input[type="text"]');
         const originalName = editMode.querySelector('input[name="old_category"]').value;
 
-        if (displayMode.style.display === 'none') {
-          displayMode.style.display = 'flex';
+        if (editMode.style.display === 'flex') {
           editMode.style.display = 'none';
+          if (txMain) txMain.style.display = '';
+          if (txActions) txActions.style.display = '';
           inputField.value = originalName;
           return;
         }
 
         closeAllEditRows();
-        displayMode.style.display = 'none';
         editMode.style.display = 'flex';
+        if (txMain) txMain.style.display = 'none';
+        if (txActions) txActions.style.display = 'none';
         inputField.focus();
         inputField.select();
       });
@@ -264,5 +399,5 @@
       }
     });
   </script>
-</body>
-</html>
+
+{% endblock %}

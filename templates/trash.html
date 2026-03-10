@@ -1,55 +1,155 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trash | Wealth Engine</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% extends 'base.html' %}
+{% block title %}Trash | Wealth Engine{% endblock %}
+{% block extra_head %}
   <style>
-    /* Trash li mobile layout:
-       Row 1 — checkbox + text info side-by-side (keeps visual association)
-       Row 2 — amount + action buttons full width */
-    @media (max-width: 768px) {
-      .scroll-box li {
-        flex-direction: row !important;
-        flex-wrap: wrap !important;
-        align-items: flex-start !important;
-        gap: 10px !important;
-      }
-      /* Text div: flex-grow to fill row 1 after the checkbox */
-      .scroll-box li > div:nth-child(2) {
-        flex: 1 !important;
-        min-width: 0 !important;
-        align-items: flex-start !important;
-        justify-content: flex-start !important;
-        margin-top: 0 !important;
-        width: auto !important;
-      }
-      /* Buttons div: push to its own full-width row 2 */
-      .scroll-box li > div:nth-child(3) {
-        width: 100% !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        margin-top: 0 !important;
-        flex-shrink: 0 !important;
-      }
+    /* ── Trash row layout ── */
+    .trash-row {
+      display: flex;
+      flex-direction: row;
+      border-left: 4px solid var(--color-red);
+      padding: 12px 16px;
+      gap: 16px;
+      align-items: flex-start;
     }
+    .trash-select-col {
+      display: flex;
+      align-items: flex-start;
+      padding-top: 2px;
+      flex-shrink: 0;
+    }
+    .trash-data-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      min-width: 0;
+    }
+    .trash-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .trash-name {
+      font-size: 1em;
+      color: var(--color-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+      font-weight: bold;
+    }
+    .trash-amount {
+      font-size: 1.1em;
+      font-weight: bold;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .trash-amount--income { color: var(--color-green); }
+    .trash-amount--expense { color: var(--color-red); }
+    .trash-meta {
+      color: var(--color-text-muted);
+      font-size: 0.75em;
+      letter-spacing: 0.3px;
+    }
+    .trash-actions {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-top: 4px;
+    }
+    /* Plain-text action buttons with invisible touch padding */
+    .trash-action-btn {
+      padding: 10px 14px 10px 0 !important;
+      margin: 0 !important;
+      font-size: 0.85em !important;
+    }
+
+    /* ── Configure strip ── */
+    .trash-configure-btn {
+      width: auto;
+      background: none;
+      border: none;
+      color: var(--color-yellow);
+      font-family: inherit;
+      font-size: 0.72em;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      padding: 10px 0;
+      margin: -10px 0;
+      flex-shrink: 0;
+    }
+    .trash-configure-btn:hover { color: #fff; background: none; }
+
+    .trash-save-btn {
+      margin: 0;
+      padding: 0 12px;
+      height: 30px;
+      width: auto;
+      background: transparent;
+      color: var(--color-cyan);
+      border: none;
+      font-family: inherit;
+      font-size: 0.8em;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .trash-save-btn:hover { color: #fff; background: transparent; }
+
+    /* ── Bulk action bar buttons ── */
+    .trash-bulk-restore-btn {
+      flex: 1;
+      width: auto;
+      min-width: 0;
+      margin: 0;
+      padding: 0 8px;
+      min-height: 44px;
+      background: transparent;
+      color: var(--color-cyan);
+      border: none;
+      font-family: inherit;
+      font-size: 0.78em;
+      font-weight: bold;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-align: left;
+    }
+    .trash-bulk-restore-btn:hover { color: #fff; background: transparent; }
+
+    .trash-bulk-purge-btn {
+      flex: 1;
+      width: auto;
+      min-width: 0;
+      margin: 0;
+      padding: 0 8px;
+      min-height: 44px;
+      background: transparent;
+      color: var(--color-red);
+      border: none;
+      font-family: inherit;
+      font-size: 0.78em;
+      font-weight: bold;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-align: left;
+    }
+    .trash-bulk-purge-btn:hover { color: #ff6b6b; background: transparent; }
   </style>
-</head>
-<body>
-  <div style="border-bottom: 3px solid #ff003c; padding-bottom: 10px; margin-bottom: 20px;">
-    <h1 style="border-bottom: none; padding-bottom: 0; margin: 0; color: #ff003c;">Trash</h1>
+{% endblock %}
+{% block content %}
+  <div class="section-hdr" style="margin-bottom: 24px;">
+    <span class="section-hdr-title">[ TRASH &mdash; {{ deleted|length if deleted else 0 }} RECORDS ]</span>
   </div>
 
   <!-- Collapsible auto-purge strip -->
   <div style="margin-bottom: 20px;">
     <div style="display: flex; align-items: center; justify-content: space-between; background: #0d0d0d; border: 1px dashed #2a2a2a; border-left: 3px solid #333; padding: 10px 16px;">
-      <span style="color: #555; font-size: 0.75em; text-transform: uppercase; letter-spacing: 2px;">
-        Auto-purge after <strong style="color: #aaa;">{{ expiry_days }}</strong> day{{ 's' if expiry_days != 1 else '' }}
+      <span style="color: var(--color-text-muted); font-size: 0.75em; text-transform: uppercase; letter-spacing: 2px;">
+        Auto-purge after <strong style="color: var(--color-text);">{{ expiry_days }}</strong> day{{ 's' if expiry_days != 1 else '' }}
       </span>
-      <button type="button" id="configureExpiryBtn"
-              style="width: auto; background: none; border: none; color: #444; font-family: inherit; font-size: 0.72em; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; padding: 0; margin: 0; flex-shrink: 0;">
-        [CONFIGURE ▾]
+      <button type="button" id="configureExpiryBtn" class="trash-configure-btn">
+        [CONFIGURE]
       </button>
     </div>
     <div class="filter-drawer-wrapper" id="expiryDrawer">
@@ -62,10 +162,7 @@
             <input type="number" class="no-spinner" name="trash_expiry_days" value="{{ expiry_days }}" min="1" max="365"
                    style="width: 70px; margin: 0; padding: 4px 8px; height: 30px; font-family: inherit; font-size: 0.9em; background: #000; color: #aaa; border: 1px solid #444; box-sizing: border-box; text-align: center;">
           </div>
-          <button type="submit"
-                  style="margin: 0; padding: 0 12px; height: 30px; width: auto; background: #111; color: #888; border: 1px solid #444; font-family: inherit; font-size: 0.8em; cursor: pointer; flex-shrink: 0;">
-            [SAVE]
-          </button>
+          <button type="submit" class="trash-save-btn">[SAVE]</button>
         </form>
       </div>
     </div>
@@ -88,12 +185,10 @@
       </div>
       <!-- Row 2: action buttons — each takes half the row, no overflow possible -->
       <div style="display: flex; gap: 8px;">
-        <button type="button" id="bulkRestoreBtn"
-                style="flex: 1; width: auto; min-width: 0; margin: 0; padding: 6px 8px; background: rgba(0,255,102,0.07); color: #00ff66; border: 1px solid #00ff66; font-family: inherit; font-size: 0.78em; font-weight: bold; cursor: pointer; letter-spacing: 1px; text-align: center;">
+        <button type="button" id="bulkRestoreBtn" class="trash-bulk-restore-btn">
           [RESTORE SELECTED (<span id="restoreCount">0</span>)]
         </button>
-        <button type="button" id="bulkPurgeBtn"
-                style="flex: 1; width: auto; min-width: 0; margin: 0; padding: 6px 8px; background: rgba(255,0,60,0.07); color: #ff003c; border: 1px solid #ff003c; font-family: inherit; font-size: 0.78em; font-weight: bold; cursor: pointer; letter-spacing: 1px; text-align: center;">
+        <button type="button" id="bulkPurgeBtn" class="trash-bulk-purge-btn">
           [PURGE SELECTED (<span id="purgeCount">0</span>)]
         </button>
       </div>
@@ -102,34 +197,34 @@
     <div class="scroll-box">
       <ul>
         {% for tx in deleted %}
-          <li style="border-left: 4px solid #ff003c; padding: 14px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+          <li class="trash-row">
 
-            <input type="checkbox" class="tx-checkbox custom-checkbox" value="{{ tx.id }}">
-
-            <div style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1; gap: 3px;">
-              <strong style="font-size: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #ccc;" title="{{ tx.name }}">
-                {{ tx.name }}
-              </strong>
-              <span style="color: #777; font-size: 0.75em;">deleted {{ tx.deleted_at[:10] }}</span>
-              <span style="color: #555; font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.5px;">
-                {{ tx.category_name }} &middot; {{ tx.type }} &middot; {{ tx.timestamp[:10] }}
-              </span>
+            <div class="trash-select-col">
+              <input type="checkbox" class="tx-checkbox custom-checkbox" value="{{ tx.id }}">
             </div>
 
-            <div style="display: flex; align-items: center; gap: 20px; flex-shrink: 0;">
-              <span style="font-size: 1em; font-weight: bold; color: {% if tx.type == 'income' %}#00ff66{% else %}#ff003c{% endif %}; padding-right: 12px; border-right: 1px solid #222;">
-                {{ tx.amount | fmt_money }}
-              </span>
+            <div class="trash-data-col">
+              <div class="trash-main">
+                <strong class="trash-name" title="{{ tx.name }}">{{ tx.name }}</strong>
+                <strong class="trash-amount {{ 'trash-amount--income' if tx.type == 'income' else 'trash-amount--expense' }}">
+                  {{ tx.amount | fmt_money }}
+                </strong>
+              </div>
 
-              <form method="post" action="{{ url_for('restore_transaction', tx_id=tx.id) }}" style="display: contents;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="edit-btn" style="color: #00ff66; border-color: #00ff66;">[RESTORE]</button>
-              </form>
+              <div class="trash-meta">
+                deleted {{ tx.deleted_at[:10] }} // {{ tx.category_name }} // {{ tx.type }} // {{ tx.timestamp[:10] }}
+              </div>
 
-              <form method="post" action="{{ url_for('purge_transaction', tx_id=tx.id) }}" class="purge-form" style="margin-left: auto; display: contents;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="button" class="delete-btn">[PURGE]</button>
-              </form>
+              <div class="trash-actions">
+                <form method="post" action="{{ url_for('restore_transaction', tx_id=tx.id) }}" style="display: contents;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="edit-btn trash-action-btn">[RESTORE]</button>
+                </form>
+                <form method="post" action="{{ url_for('purge_transaction', tx_id=tx.id) }}" class="purge-form" style="display: contents;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="button" class="delete-btn trash-action-btn">[PURGE]</button>
+                </form>
+              </div>
             </div>
 
           </li>
@@ -141,9 +236,9 @@
     <p style="color: #555; text-align: center; padding: 40px 0;">Trash is empty.</p>
   {% endif %}
 
-  <div style="margin-top: 24px;">
+  <!-- <div style="margin-top: 24px;">
     <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a>
-  </div>
+  </div> -->
 
   <!-- Single-item purge modal -->
   <div class="modal" id="purgeModal">
@@ -188,8 +283,7 @@
     if (configureExpiryBtn) {
       configureExpiryBtn.addEventListener('click', () => {
         expiryDrawer.classList.toggle('is-open');
-        configureExpiryBtn.textContent = expiryDrawer.classList.contains('is-open')
-          ? '[CONFIGURE ▴]' : '[CONFIGURE ▾]';
+        configureExpiryBtn.textContent = '[CONFIGURE]';
       });
     }
 
@@ -326,5 +420,4 @@
       if (e.target === bulkRestoreModal) { bulkRestoreModal.style.display = 'none'; }
     });
   </script>
-</body>
-</html>
+{% endblock %}
