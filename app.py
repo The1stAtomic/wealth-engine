@@ -77,6 +77,18 @@ def fmt_money(value):
         return f'-${abs(v):,.2f}'
     return f'${v:,.2f}'
 
+@app.template_filter('fmt_short_date')
+def fmt_short_date(value):
+    """Convert 'YYYY-MM-DD HH:MM:SS' string to 'DD MMM' (e.g., '09 MAR')."""
+    try:
+        # Parse the string into a real Python datetime object
+        dt = datetime.strptime(value, TIMESTAMP_FORMAT)
+        # Format it and uppercase it for the terminal aesthetic
+        return dt.strftime('%d %b').upper()
+    except (ValueError, TypeError):
+        # Fallback safeguard: if parsing fails, just slice the YYYY-MM-DD part
+        return str(value)[:10]
+
 # --- STARTUP CREDENTIAL GUARD ---
 # If any of these env vars are missing, crash immediately rather than run with weak defaults.
 _secret_key = os.environ.get('FLASK_SECRET_KEY')

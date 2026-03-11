@@ -55,7 +55,7 @@
 
   .cat-budget-label {
     color: var(--color-text-muted);
-    font-size: 0.75em;
+    font-size: 0.9em;
   }
 
   .cat-budget-amount {
@@ -65,7 +65,7 @@
   /* ── Add form section label ── */
   .cat-form-title {
     color: var(--color-text-muted);
-    font-size: 0.75em;
+    font-size: 0.9em;
     letter-spacing: 1px;
   }
 
@@ -78,7 +78,7 @@
 
   .cat-form-label {
     color: var(--color-text-muted);
-    font-size: 0.8em;
+    font-size: 1em;
     flex-shrink: 0;
   }
 
@@ -143,8 +143,9 @@
     border: 1px solid var(--color-cyan);
     color: var(--color-cyan);
     font-family: inherit;
-    font-size: 0.85em;
-    padding: 6px 12px;
+    font-size: 1em;
+    font-weight: bold;
+    padding: 10px 12px;
     cursor: pointer;
     flex: 1;
     letter-spacing: 1px;
@@ -158,8 +159,9 @@
     border: 1px solid var(--color-border);
     color: var(--color-text-muted);
     font-family: inherit;
-    font-size: 0.85em;
-    padding: 6px 12px;
+    font-size: 1em;
+    font-weight: bold;
+    padding: 10px 12px;
     cursor: pointer;
     flex: 1;
     letter-spacing: 1px;
@@ -240,39 +242,31 @@
     <span class="section-hdr-title">[ CATEGORIES — {{ categories|length }} RECORDS ]</span>
   </div>
 
-  <!-- Add Category Form -->
-  <form method="post" action="{{ url_for('manage_categories') }}" class="add-category-form">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="action" value="add">
-
-    <span class="cat-form-title">NEW CATEGORY</span>
-
-    <input type="text" name="new_category_name" autocapitalize="words"
-           placeholder="Category name" maxlength="50" required
-           class="cat-name-input">
-
-    <div class="cat-budget-row">
-      <span class="cat-form-label">Monthly Budget ($):</span>
-      <input type="number" name="monthly_budget" step="0.01" min="0"
-             placeholder="No budget"
-             class="cat-budget-input no-spinner">
-    </div>
-
-    <button type="submit" class="cat-save-btn">[ADD CATEGORY]</button>
-  </form>
+  <!-- Add Category -->
+  <button id="openCategoryModalBtn" class="openModalBtn">
+    [+ ADD CATEGORY]
+  </button>
 
   <div class="scroll-box">
     <ul>
       {% for category in categories %}
         <li>
 
-          <div class="tx-main">
-            <div class="cat-info-col">
-              <strong class="cat-name" title="{{ category.name }}">{{ category.name }}</strong>
-              {% if category.monthly_budget %}
-                <span class="cat-budget-label">Budget: <span class="cat-budget-amount">{{ category.monthly_budget | fmt_money }}</span>/mo</span>
-              {% endif %}
-            </div>
+          <div class="tx-main" style="display: flex; justify-content: space-between; align-items: center; width: 100%; min-width: 0; padding: 12px; gap: 10px;">
+            
+            <strong class="cat-name" title="{{ category.name }}" style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              {{ category.name }}
+            </strong>
+            
+            {% if category.monthly_budget %}
+              <div style="display: flex; align-items: baseline; gap: 6px; flex-shrink: 0;">
+                <span style="color: #555; font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px;">BUDGET:</span>
+                <span style="color: var(--color-yellow); font-size: 1.1em; font-weight: bold;">
+                  {{ category.monthly_budget | fmt_money }}<span style="font-size: 0.75em; color: #555; font-weight: normal; letter-spacing: 0;">/mo</span>
+                </span>
+              </div>
+            {% endif %}
+
           </div>
 
           <div class="tx-actions">
@@ -291,15 +285,17 @@
               <input type="hidden" name="old_category" value="{{ category.name }}">
               <input type="hidden" name="action" value="save">
 
-              <input type="text" name="new_category" autocapitalize="words"
-                     value="{{ category.name }}" class="cat-name-input" maxlength="50" required>
+              <div style="display: grid; grid-template-columns: max-content 1fr; column-gap: 12px; row-gap: 12px; align-items: baseline; margin-bottom: 16px;">
+                
+                <span style="color: #555; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px;">NAME:</span>
+                <input type="text" name="new_category" autocapitalize="words" value="{{ category.name }}" class="cat-name-input" maxlength="50" required>
 
-              <div class="cat-budget-row">
-                <span class="cat-form-label">Monthly Budget ($):</span>
-                <input type="number" name="monthly_budget" step="0.01" min="0"
-                       placeholder="No budget"
-                       value="{{ category.monthly_budget if category.monthly_budget else '' }}"
-                       class="cat-budget-input no-spinner">
+                <span style="color: #555; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px;">BUDGET:</span>
+                <div style="display: flex; align-items: baseline; gap: 4px;">
+                  <span style="color: var(--color-yellow); font-weight: bold;">$</span>
+                  <input type="number" name="monthly_budget" step="0.01" min="0" placeholder="0.00" value="{{ category.monthly_budget if category.monthly_budget else '' }}" class="cat-budget-input no-spinner" style="max-width: 120px;">
+                </div>
+
               </div>
 
               <div class="cat-btn-row">
@@ -323,6 +319,40 @@
         <button type="button" id="cancelDeleteBtn">[CANCEL]</button>
         <button type="button" id="confirmDeleteBtn">[CONFIRM DELETE]</button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal" id="addCategoryModal">
+    <div class="modal-content">
+
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
+        <h2 style="margin: 0; color: #e0e0e0; font-size: 1.5em; text-transform: uppercase;">New Category</h2>
+        <span class="close-modal" id="closeCategoryModalBtn">[X]</span>
+      </div>
+
+      <form method="post" action="{{ url_for('manage_categories') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="add">
+
+        <div style="display: grid; grid-template-columns: max-content 1fr; column-gap: 12px; row-gap: 12px; align-items: baseline; margin-bottom: 20px;">
+          
+          <span style="color: #555; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px;">NAME:</span>
+          <input type="text" name="new_category_name" autocapitalize="words" placeholder="e.g. Groceries" maxlength="50" required style="background: transparent; border: none; border-bottom: 1px solid var(--color-border-muted); color: var(--color-text); padding: 8px 0;">
+
+          <span style="color: #555; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px;">BUDGET:</span>
+          <div style="display: flex; align-items: baseline; gap: 4px;">
+            <span style="color: var(--color-yellow); font-weight: bold;">$</span>
+            <input type="number" name="monthly_budget" step="0.01" min="0" placeholder="0.00" class="no-spinner" style="max-width: 120px; background: transparent; border: none; border-bottom: 1px solid var(--color-border-muted); color: var(--color-text); padding: 8px 0;">
+          </div>
+
+        </div>
+
+        <div class="modal-actions" style="display: flex; gap: 12px; margin-top: 20px;">
+          <button type="button" id="mobileCancelCatBtn" class="mobile-only-cancel cancel-btn" style="flex: 1;">[CANCEL]</button>
+          <button type="submit" id="submitBtn" style="margin: 0; flex: 2; background-color: #000; border: 1px solid var(--color-green); color: var(--color-green);">[ADD CATEGORY]</button>
+        </div>
+      </form>
+
     </div>
   </div>
 
@@ -397,6 +427,26 @@
       if (event.target === deleteModal) {
         deleteModal.style.display = 'none';
       }
+    });
+
+    // --- MODAL ENGINE ---
+    const catModal = document.getElementById('addCategoryModal');
+    const openCatBtn = document.getElementById('openCategoryModalBtn');
+    const closeCatBtn = document.getElementById('closeCategoryModalBtn');
+    const mobileCancelCatBtn = document.getElementById('mobileCancelCatBtn');
+
+    const openModal = () => { catModal.style.display = 'block'; };
+    const closeModal = () => { catModal.style.display = 'none'; };
+
+    openCatBtn.addEventListener('click', openModal);
+    closeCatBtn.addEventListener('click', closeModal);
+    if (mobileCancelCatBtn) {
+      mobileCancelCatBtn.addEventListener('click', closeModal);
+    }
+
+    // Close on backdrop click
+    window.addEventListener('click', (e) => {
+      if (e.target === catModal) closeModal();
     });
   </script>
 

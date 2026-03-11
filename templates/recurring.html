@@ -40,7 +40,8 @@
   /* ── Page note ── */
   .page-note {
     color: var(--color-text-muted);
-    font-size: 0.85em;
+    font-size: 0.95em;
+    line-height: 1.5;
     margin-bottom: 30px;
   }
 
@@ -64,10 +65,10 @@
   .modal-label {
     display: block;
     color: var(--color-text-muted);
-    font-size: 0.8em;
+    font-size: 0.9em;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
   }
 
   /* ── Form field spacing ── */
@@ -120,7 +121,10 @@
   {% for cat in categories %}
     <option value="{{ cat }}">{{ cat }}</option>
   {% endfor %}
-  <option value="add_new">Add new category...</option>
+  
+  <option disabled>────────────────────</option>
+  
+  <option value="add_new" style="color: var(--color-cyan); font-weight: bold;">[+ CREATE NEW ]</option>
 {% endmacro %}
 
   <div class="section-hdr">
@@ -136,16 +140,29 @@
       {% for tmpl in templates %}
         <li class="{% if tmpl.type == 'income' %}tx-income{% else %}tx-expense{% endif %}">
 
-          <div class="tx-main">
-            <div class="rr-info-col">
-              <strong class="expense-name" title="{{ tmpl.name }}">{{ tmpl.name }}</strong>
-              <span class="expense-meta">
-                {{ tmpl.amount | fmt_money }} //
-                <span class="freq-label">{{ tmpl.frequency }}</span> //
-                {{ tmpl.category_name }} //
-                <span class="due-label">next: {{ tmpl.next_due }}</span>
+          <div class="tx-main" style="display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 100%; min-width: 0; padding: 12px;">
+
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
+              <strong class="expense-name" title="{{ tmpl.name }}" style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ tmpl.name }}</strong>
+              
+              <span class="tx-amount {% if tmpl.type == 'income' %}budget-positive{% else %}budget-negative{% endif %}" style="font-size: 1.1em; font-weight: bold; flex-shrink: 0;">
+                {% if tmpl.type == 'expense' %}-{% endif %}{{ tmpl.amount | fmt_money }}
               </span>
             </div>
+
+            <div class="expense-meta" style="display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; row-gap: 4px; font-size: 0.9em; margin-top: 4px; letter-spacing: 0.5px;">
+              
+              <span style="color: #555;">FRQ:</span>
+              <span style="color: var(--color-cyan);">{{ tmpl.frequency }}</span>
+
+              <span style="color: #555;">CAT:</span>
+              <span style="color: #888; text-transform: uppercase;">[{{ tmpl.category_name }}]</span>
+
+              <span style="color: #555;">NXT:</span>
+              <span style="color: var(--color-yellow);">{{ tmpl.next_due }}</span>
+              
+            </div>
+
           </div>
 
           <div class="tx-actions">

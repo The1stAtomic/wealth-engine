@@ -89,8 +89,9 @@
     border: 1px solid var(--color-cyan);
     color: var(--color-cyan);
     font-family: inherit;
-    font-size: 0.85em;
-    padding: 6px 12px;
+    font-size: 1em;
+    font-weight: bold;
+    padding: 10px 12px;
     cursor: pointer;
     flex: 1;
     letter-spacing: 1px;
@@ -104,8 +105,9 @@
     border: 1px solid var(--color-border);
     color: var(--color-text-muted);
     font-family: inherit;
-    font-size: 0.85em;
-    padding: 6px 12px;
+    font-size: 1em;
+    font-weight: bold;
+    padding: 10px 12px;
     cursor: pointer;
     flex: 1;
     letter-spacing: 1px;
@@ -114,19 +116,10 @@
   .cat-cancel-btn:hover { background-color: rgba(255, 255, 255, 0.05); border-color: #555; }
 
   /* ── Empty state ── */
-  .li-empty { color: var(--color-text-muted); padding: 20px 0; }
-
-  /* ── Hover-reveal: desktop only ── */
-  @media (hover: hover) {
-    .scroll-box ul li .tx-actions {
-      opacity: 0 !important;
-      pointer-events: none !important;
-    }
-    .scroll-box ul li:hover .tx-actions,
-    .scroll-box ul li:focus-within .tx-actions {
-      opacity: 1 !important;
-      pointer-events: auto !important;
-    }
+  .li-empty {
+    color: var(--color-text-muted);
+    padding: 20px 0;
+    font-size: 0.95em;
   }
 
   /* ── Modal header ── */
@@ -149,10 +142,10 @@
   .modal-label {
     display: block;
     color: var(--color-text-muted);
-    font-size: 0.8em;
+    font-size: 0.9em;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
   }
 
   /* ── Form field spacing ── */
@@ -212,7 +205,7 @@
       <span class="stat-value stat-value--green">{{ total_assets | fmt_money }}</span>
     </div>
     <div class="stat-box stat-box--expense">
-      <span class="stat-label">Total Liabilities</span>
+      <span class="stat-label">Total Losses</span>
       <span class="stat-value stat-value--red">{{ total_liabilities | fmt_money }}</span>
     </div>
     <div class="stat-box {% if net_worth_value >= 0 %}stat-box--income{% else %}stat-box--expense{% endif %}">
@@ -222,7 +215,7 @@
       </span>
     </div>
     <div class="stat-box stat-box--info">
-      <span class="stat-label">Invested (Transactions)</span>
+      <span class="stat-label">Total Invested</span>
       <span class="stat-value stat-value--cyan">{{ investment_total | fmt_money }}</span>
     </div>
   </div>
@@ -241,12 +234,20 @@
         {% for item in assets %}
           <li class="tx-income">
 
-            <div class="tx-main">
-              <div class="nw-info-col">
-                <strong class="expense-name" title="{{ item.name }}">{{ item.name }}</strong>
-                <span class="expense-meta">{{ item.category }} // updated {{ item.last_updated }}</span>
+            <div class="tx-main" style="display: flex; flex-direction: column; gap: 4px; width: 100%; min-width: 0; padding: 12px; align-items: stretch;">
+              
+              <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
+                <strong class="expense-name" title="{{ item.name }}" style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ item.name }}</strong>
+                <span class="tx-amount budget-positive" style="font-size: 1.1em; font-weight: bold; flex-shrink: 0;">{{ item.balance | fmt_money }}</span>
               </div>
-              <span class="tx-amount budget-positive">{{ item.balance | fmt_money }}</span>
+
+              <div class="expense-meta" style="display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; row-gap: 4px; font-size: 0.9em; margin-top: 4px; letter-spacing: 0.5px;">
+                <span style="color: #555;">CAT:</span>
+                <span style="color: #888; text-transform: uppercase;">[{{ item.category }}]</span>
+                <span style="color: #555;">UPD:</span>
+                <span style="color: #888;">{{ item.last_updated }}</span>
+              </div>
+              
             </div>
 
             <div class="tx-actions">
@@ -307,12 +308,20 @@
         {% for item in liabilities %}
           <li class="tx-expense">
 
-            <div class="tx-main">
-              <div class="nw-info-col">
-                <strong class="expense-name" title="{{ item.name }}">{{ item.name }}</strong>
-                <span class="expense-meta">{{ item.category }} // updated {{ item.last_updated }}</span>
+            <div class="tx-main" style="display: flex; flex-direction: column; gap: 4px; width: 100%; min-width: 0; padding: 12px; align-items: stretch;">
+              
+              <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
+                <strong class="expense-name" title="{{ item.name }}" style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ item.name }}</strong>
+                <span class="tx-amount budget-negative" style="font-size: 1.1em; font-weight: bold; flex-shrink: 0;">-{{ item.balance | fmt_money }}</span>
               </div>
-              <span class="tx-amount budget-negative">-{{ item.balance | fmt_money }}</span>
+
+              <div class="expense-meta" style="display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; row-gap: 4px; font-size: 0.9em; margin-top: 4px; letter-spacing: 0.5px;">
+                <span style="color: #555;">CAT:</span>
+                <span style="color: #888; text-transform: uppercase;">[{{ item.category }}]</span>
+                <span style="color: #555;">UPD:</span>
+                <span style="color: #888;">{{ item.last_updated }}</span>
+              </div>
+              
             </div>
 
             <div class="tx-actions">

@@ -5,7 +5,10 @@
   {% for cat in categories %}
     <option value="{{ cat }}">{{ cat }}</option>
   {% endfor %}
-  <option value="add_new">Add new category...</option>
+  
+  <option disabled>────────────────────</option>
+  
+  <option value="add_new" style="color: var(--color-cyan); font-weight: bold;">[+ CREATE NEW ]</option>
 {% endmacro %}
 
   <div class="financial-controls-container">
@@ -34,21 +37,23 @@
     <!-- Target Savings with inline editing -->
     <div class="stat-box no-spinner" style="display: flex; flex-direction: column; justify-content: space-between;">
 
-      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-        <span class="stat-label">Saving Target ({{ target_savings_percentage }}%)</span>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+        <span class="stat-label" style="margin: 0;">Saving Target ({{ target_savings_percentage }}%)</span>
         <a href="#" id="editSavingsBtn">[EDIT]</a>
       </div>
 
       <span class="stat-value money" id="savingsDisplayValue" data-usd="{{ target_savings | default(0, true) }}">{{ target_savings | default(0, true) | fmt_money }}</span>
 
       <div class="savings-edit-wrapper" id="savingsEditWrapper">
-        <div class="savings-edit-inner">
-          <form action="/update_savings" method="post" id="savingsEditForm" style="display: flex; align-items: center; margin: 0; padding: 0; border: none; background: none; gap: 8px; width: fit-content;">
+        <div class="savings-edit-inner" style="padding-top: 16px;"> <form action="/update_savings" method="post" id="savingsEditForm" style="display: flex; align-items: center; margin: 0; padding: 0; border: none; background: none; gap: 12px; width: fit-content;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div style="position: relative; width: 100px; height: 36px; flex-shrink: 0;">
-              <input type="number" class="no-spinner" id="savingsPercentInput" name="target_savings_percentage" step="0.01" inputmode="decimal" value="{{ target_savings_percentage }}" style="width: 100%; height: 100%; padding: 5px 25px 5px 10px; background-color: #000; color: #ffcc00; border: none; border-bottom: 1px solid var(--color-yellow); font-family: 'Courier New', monospace; font-size: 1.1em; outline: none; box-sizing: border-box; text-align: right; margin: 0;" required>
-              <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #666; font-size: 0.9em; pointer-events: none;">%</span>
+            
+            <div style="position: relative; width: 80px; height: 32px; flex-shrink: 0;">
+              <input type="number" class="no-spinner" id="savingsPercentInput" name="target_savings_percentage" step="0.01" inputmode="decimal" value="{{ target_savings_percentage }}" style="width: 100%; height: 100%; padding: 0 20px 0 0; background-color: transparent; color: var(--color-yellow); border: none; border-bottom: 1px solid var(--color-yellow); font-family: inherit; font-size: 1.2em; outline: none; box-sizing: border-box; text-align: left; margin: 0;" required>
+              
+              <span style="position: absolute; right: 0; bottom: 6px; color: #666; font-size: 0.9em; pointer-events: none;">%</span>
             </div>
+            
             <button type="submit" class="savings-save-btn">[SAVE]</button>
           </form>
         </div>
@@ -112,12 +117,12 @@
 
       </div>
 
-      {% set filters_active = current_category_filter != 'all' or current_timeframe != 'all_time' or current_sort != 'date_desc' %}
+      {% set filters_active = current_category_filter != 'all' or current_timeframe != 'all_time' %}
 
       <div id="filterDrawerWrapper" class="filter-drawer-wrapper {{ 'is-open' if filters_active else '' }}">
         <div class="filter-drawer-inner">
 
-          <div id="advancedFiltersPanel" style="display: flex; flex-wrap: wrap; gap: 10px; width: 100%; margin-top: 15px; padding: 15px; background-color: #0d0d0d; border: 1px dashed #333; border-left: 3px solid #00ccff; box-sizing: border-box;">
+          <div id="advancedFiltersPanel" style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; width: 100%; margin-top: 15px; padding: 15px; background-color: #0d0d0d; border: 1px dashed #333; border-left: 3px solid #00ccff; box-sizing: border-box;">
 
             <div style="width: 100%; margin-bottom: 5px;">
               <span style="color: #666; font-size: 0.75em; text-transform: uppercase; letter-spacing: 2px;">/// Advanced Filters</span>
@@ -178,26 +183,37 @@
 
         <li class="{{ tx_class }}">
 
-          <div class="tx-main">
-
-            <div style="display: flex; gap: 10px; align-items: baseline; flex-grow: 1; min-width: 0;">
-
-              <strong class="expense-name" style="font-size: 1.1em; flex-shrink: 0;">{{ tx_prefix }}</strong>
-
-              <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
-                <span class="expense-name" style="font-size: 1.1em; word-break: break-word; overflow-wrap: break-word;">{{ expense.name }}</span>
-                <span class="expense-meta" style="color: #666; font-size: 0.85em;">
-                  [{{ expense.category }}] // [{{ (expense.timestamp | string)[:10] }}]{% if expense.note %} <span title="{{ expense.note }}">[N]</span>{% endif %}{% if expense.has_receipt %} [R]{% endif %}
+          <div class="tx-main" style="display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 100%; min-width: 0; padding: 12px;">
+              
+              <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
+                <strong class="expense-name" title="{{ expense.name }}" style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  {{ expense.name }}
+                </strong>
+                <span class="tx-amount {% if expense.type == 'income' %}budget-positive{% else %}budget-negative{% endif %}" style="font-size: 1.1em; font-weight: bold; flex-shrink: 0;">
+                  {% if expense.type == 'expense' %}-{% endif %}{{ expense.amount | fmt_money }}
                 </span>
               </div>
 
+              <div class="expense-meta" style="display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; row-gap: 4px; font-size: 0.9em; margin-top: 4px; letter-spacing: 0.5px;">
+                <span style="color: #555;">DAT:</span>
+                <span style="color: #888;">{{ expense.timestamp | fmt_short_date }}</span>
+                
+                <span style="color: #555;">CAT:</span>
+                <span style="color: #888; text-transform: uppercase;">[{{ expense.category }}]</span>
+              </div>
+
+              {% if expense.has_note or expense.has_receipt %}
+                <div style="display: flex; gap: 12px; margin-top: 6px; align-items: center;">
+                  {% if expense.has_note %}
+                    <span style="color: var(--color-cyan); font-size: 0.85em; font-weight: bold; letter-spacing: 1px;">[NOTE]</span>
+                  {% endif %}
+                  {% if expense.has_receipt %}
+                    <span style="color: var(--color-yellow); font-size: 0.85em; font-weight: bold; letter-spacing: 1px;">[RCPT]</span>
+                  {% endif %}
+                </div>
+              {% endif %}
+
             </div>
-
-            <strong class="money tx-amount" data-usd="{{ expense.amount | default(0, true) }}" style="flex-shrink: 0;">
-              {{ expense.amount | default(0, true) | fmt_money }}
-            </strong>
-
-          </div>
 
           <div class="tx-actions">
             <button type="button" class="edit-btn trigger-edit-modal"
@@ -1078,112 +1094,5 @@
         envelopeToggle.textContent = envelopeSection.classList.contains('collapsed') ? '[UNCOLLAPSE]' : '[COLLAPSE]';
       });
     }
-
-    // ============================================================
-    // CUSTOM SELECT ENGINE
-    // Wraps every <select> with a terminal-styled custom dropdown.
-    // The native select stays hidden for form submission.
-    // ============================================================
-    function initCustomSelect(select) {
-      // Skip already-wrapped, file inputs, or hidden inputs
-      if (select.classList.contains('cs-native')) return;
-      if (select.type === 'file') return;
-
-      const isReadOnly = select.style.pointerEvents === 'none' || select.disabled;
-
-      // --- Create DOM structure ---
-      const wrapper = document.createElement('div');
-      wrapper.className = 'cs-wrapper';
-      if (isReadOnly) wrapper.classList.add('cs-readonly');
-
-      const display = document.createElement('div');
-      display.className = 'cs-display';
-
-      const list = document.createElement('div');
-      list.className = 'cs-list';
-
-      // --- Helpers ---
-      function buildList() {
-        list.innerHTML = '';
-        Array.from(select.options).forEach(opt => {
-          if (opt.disabled) return; // hide the "Select a …" placeholder option
-          const item = document.createElement('div');
-          item.className = 'cs-option';
-          item.dataset.value = opt.value;
-          item.textContent = opt.textContent.trim();
-          if (opt.value && opt.value === select.value) item.classList.add('cs-selected');
-          if (!isReadOnly) {
-            item.addEventListener('mousedown', e => {
-              e.preventDefault(); // prevent blur before selection registers
-              select.value = opt.value;
-              select.dispatchEvent(new Event('change', { bubbles: true }));
-              updateDisplay();
-              closeList();
-            });
-          }
-          list.appendChild(item);
-        });
-      }
-
-      function updateDisplay() {
-        const sel = select.options[select.selectedIndex];
-        if (sel && sel.value) {
-          display.textContent = sel.textContent.trim();
-          display.classList.remove('cs-placeholder');
-        } else {
-          display.textContent = sel ? sel.textContent.trim() : '';
-          display.classList.add('cs-placeholder');
-        }
-        // Re-sync the arrow (textContent wipe removes ::after — display is a div so ::after is CSS)
-        list.querySelectorAll('.cs-option').forEach(item => {
-          item.classList.toggle('cs-selected', item.dataset.value === select.value);
-        });
-      }
-
-      function openList() {
-        if (isReadOnly) return;
-        // Close any other open lists first
-        document.querySelectorAll('.cs-list.cs-open').forEach(l => l.classList.remove('cs-open'));
-        list.classList.add('cs-open');
-      }
-
-      function closeList() {
-        list.classList.remove('cs-open');
-      }
-
-      display.addEventListener('click', e => {
-        e.stopPropagation();
-        list.classList.contains('cs-open') ? closeList() : openList();
-      });
-
-      // Expose a refresh hook for programmatic value/option changes
-      select._refreshCustom = () => { buildList(); updateDisplay(); };
-
-      // --- Wire into DOM ---
-      select.parentNode.insertBefore(wrapper, select);
-      wrapper.appendChild(display);
-      wrapper.appendChild(list);
-      select.classList.add('cs-native');
-
-      // Preserve initial display:none (hidden selects in modal toggle logic)
-      if (select.style.display === 'none') wrapper.style.display = 'none';
-
-      // Mirror style changes (display:none/block toggled by modal JS)
-      new MutationObserver(() => {
-        wrapper.style.display = select.style.display === 'none' ? 'none' : '';
-        updateDisplay(); // re-sync value in case it changed along with visibility
-      }).observe(select, { attributes: true, attributeFilter: ['style'] });
-
-      buildList();
-      updateDisplay();
-    }
-
-    // Close all dropdowns on outside click
-    document.addEventListener('click', () => {
-      document.querySelectorAll('.cs-list.cs-open').forEach(l => l.classList.remove('cs-open'));
-    });
-
-    // Init every select on the page
-    document.querySelectorAll('select').forEach(initCustomSelect);
   </script>
 {% endblock %}
