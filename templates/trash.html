@@ -4,15 +4,15 @@
 
 {% block content %}
 
-  <div class="section-hdr" style="margin-bottom: 24px;">
+  <div class="section-hdr section-hdr--mb-lg">
     <span class="section-hdr-title">[ TRASH &mdash; {{ deleted|length if deleted else 0 }} RECORDS ]</span>
   </div>
 
   <!-- Collapsible auto-purge strip -->
-  <div style="margin-bottom: 20px;">
-    <div style="display: flex; align-items: center; justify-content: space-between; background: #0d0d0d; border: 1px dashed #2a2a2a; border-left: 3px solid #333; padding: 10px 16px;">
-      <span style="color: var(--color-text-muted); font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px;">
-        Auto-purge after <strong style="color: var(--color-text);">{{ expiry_days }}</strong> day{{ 's' if expiry_days != 1 else '' }}
+  <div class="trash-strip-wrapper">
+    <div class="trash-strip">
+      <span class="trash-strip-text">
+        Auto-purge after <strong class="text-primary">{{ expiry_days }}</strong> day{{ 's' if expiry_days != 1 else '' }}
       </span>
       <button type="button" id="configureExpiryBtn" class="trash-configure-btn">
         [CONFIGURE]
@@ -20,13 +20,11 @@
     </div>
     <div class="filter-drawer-wrapper" id="expiryDrawer">
       <div class="filter-drawer-inner">
-        <form method="post" action="{{ url_for('update_trash_expiry') }}"
-              style="display: flex; align-items: center; gap: 8px; background: #080808; border: 1px dashed #2a2a2a; border-top: none; border-left: 3px solid #333; padding: 10px 16px;">
+        <form method="post" action="{{ url_for('update_trash_expiry') }}" class="trash-expiry-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <label style="color: #555; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; margin: 0;">Expiry (days):</label>
-            <input type="number" class="no-spinner" name="trash_expiry_days" value="{{ expiry_days }}" min="1" max="365"
-                   style="width: 70px; margin: 0; padding: 4px 8px; height: 30px; font-family: inherit; font-size: 0.9em; background: #000; color: #aaa; border: 1px solid #444; box-sizing: border-box; text-align: center;">
+          <div class="trash-expiry-row">
+            <label class="trash-label">Expiry (days):</label>
+            <input type="number" class="trash-expiry-input no-spinner" name="trash_expiry_days" value="{{ expiry_days }}" min="1" max="365">
           </div>
           <button type="submit" class="trash-save-btn">[SAVE]</button>
         </form>
@@ -36,21 +34,21 @@
 
   {% if deleted %}
     <!-- Hidden bulk-action form — JS populates tx_ids before submit -->
-    <form id="bulkForm" method="post" action="{{ url_for('bulk_trash_action') }}" style="display: none;">
+    <form id="bulkForm" method="post" action="{{ url_for('bulk_trash_action') }}" class="hidden">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="bulk_action" id="bulkAction" value="">
     </form>
 
     <!-- Sticky action bar (shown when ≥1 checkbox is checked) -->
-    <div id="actionBar" style="display: none; flex-direction: column; gap: 8px; background: #0d0d0d; border: 1px solid #2a2a2a; padding: 10px 16px; margin-bottom: 12px;">
+    <div id="actionBar" class="action-bar">
       <!-- Row 1: select-all + count -->
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <input type="checkbox" id="selectAll" class="custom-checkbox">
-        <span style="color: #555; font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; user-select: none;" onclick="document.getElementById('selectAll').click()">ALL</span>
-        <span id="selectionCount" style="color: #666; font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px;"></span>
+      <div class="checkbox-wrapper checkbox-danger">
+        <input type="checkbox" id="selectAll">
+        <span class="action-bar-all" onclick="document.getElementById('selectAll').click()">ALL</span>
+        <span id="selectionCount" class="selection-count"></span>
       </div>
       <!-- Row 2: action buttons — each takes half the row, no overflow possible -->
-      <div style="display: flex; gap: 8px;">
+      <div class="action-btn-row">
         <button type="button" id="bulkRestoreBtn" class="trash-bulk-restore-btn">
           [RESTORE SELECTED (<span id="restoreCount">0</span>)]
         </button>
@@ -65,29 +63,29 @@
         {% for tx in deleted %}
           <li class="{{ 'tx-income' if tx.type == 'income' else 'tx-expense' }}">
 
-            <div class="tx-main" style="display: flex; gap: 12px; width: 100%; align-items: flex-start;">
-              
-              <div style="display: flex; padding-top: 3px; flex-shrink: 0;">
-                <input type="checkbox" class="tx-checkbox custom-checkbox" value="{{ tx.id }}">
+            <div class="tx-main tx-main--trash">
+
+              <div class="checkbox-wrapper checkbox-danger">
+                <input type="checkbox" class="tx-checkbox" value="{{ tx.id }}">
               </div>
 
-              <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0;">
-                
-                <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
-                  <strong class="trash-name" title="{{ tx.name }}" style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ tx.name }}</strong>
-                  <strong class="trash-amount {{ 'trash-amount--income' if tx.type == 'income' else 'trash-amount--expense' }}" style="font-size: 1.1em; flex-shrink: 0;">
+              <div class="trash-content">
+
+                <div class="tx-row-hdr">
+                  <strong class="trash-name" title="{{ tx.name }}">{{ tx.name }}</strong>
+                  <strong class="trash-amount {{ 'trash-amount--income' if tx.type == 'income' else 'trash-amount--expense' }}">
                     {{ tx.amount | fmt_money }}
                   </strong>
                 </div>
 
-                <div class="trash-meta" style="display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; row-gap: 4px; font-size: 0.9em; margin-top: 6px; letter-spacing: 0.5px;">
-                  
-                  <span style="color: #555;">ORG:</span>
-                  <span style="color: #888;">{{ tx.timestamp | fmt_short_date }} <span style="color: #444; margin: 0 4px;">//</span> [{{ tx.category_name }}]</span>
-                  
-                  <span style="color: #555;">DEL:</span>
-                  <span style="color: rgba(255, 0, 60, 0.6);">{{ tx.deleted_at | fmt_short_date }}</span>
-                  
+                <div class="trash-meta">
+
+                  <span class="meta-lbl">ORG:</span>
+                  <span>{{ tx.timestamp | fmt_short_date }} <span class="meta-sep">//</span> [{{ tx.category_name }}]</span>
+
+                  <span class="meta-lbl">DEL:</span>
+                  <span class="trash-del-date">{{ tx.deleted_at | fmt_short_date }}</span>
+
                 </div>
 
                 <div class="trash-inline-actions">
@@ -110,45 +108,41 @@
     </div>
 
   {% else %}
-    <p style="color: #555; text-align: center; padding: 40px 0;">Trash is empty.</p>
+    <p class="li-empty li-empty--center">Trash is empty.</p>
   {% endif %}
-
-  <!-- <div style="margin-top: 24px;">
-    <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a>
-  </div> -->
 
   <!-- Single-item purge modal -->
   <div class="modal" id="purgeModal">
-    <div class="modal-content" style="border: 2px solid #ff003c; max-width: 400px; text-align: center;">
-      <h2 style="color: #ff003c; margin-top: 0; text-transform: uppercase;">Permanent Delete</h2>
-      <p style="color: #e0e0e0; margin-bottom: 24px;">This cannot be undone. Remove this transaction forever?</p>
-      <div style="display: flex; gap: 15px; justify-content: center;">
-        <button type="button" id="cancelPurgeBtn" style="background-color: #111; color: #888; border: 1px solid #555; cursor: pointer; padding: 10px 20px; flex: 1; margin: 0;">[CANCEL]</button>
-        <button type="button" id="confirmPurgeBtn" style="background-color: rgba(255,0,60,0.1); color: #ff003c; border: 1px solid #ff003c; cursor: pointer; font-weight: bold; padding: 10px 20px; flex: 1; margin: 0;">[CONFIRM PURGE]</button>
+    <div class="modal-content modal-danger">
+      <h2>Permanent Delete</h2>
+      <p>This cannot be undone. Remove this transaction forever?</p>
+      <div class="modal-actions">
+        <button type="button" id="cancelPurgeBtn" class="cancel-btn">[CANCEL]</button>
+        <button type="button" id="confirmPurgeBtn" class="btn-danger">[PURGE]</button>
       </div>
     </div>
   </div>
 
   <!-- Bulk purge / Purge All modal -->
   <div class="modal" id="purgeAllModal">
-    <div class="modal-content" style="border: 2px solid #ff003c; max-width: 400px; text-align: center;">
-      <h2 style="color: #ff003c; margin-top: 0; text-transform: uppercase;" id="purgeAllModalTitle">Purge</h2>
-      <p style="color: #e0e0e0; margin-bottom: 24px;" id="purgeAllModalBody"></p>
-      <div style="display: flex; gap: 15px; justify-content: center;">
-        <button type="button" id="cancelPurgeAllBtn" style="background-color: #111; color: #888; border: 1px solid #555; cursor: pointer; padding: 10px 20px; flex: 1; margin: 0;">[CANCEL]</button>
-        <button type="button" id="confirmPurgeAllBtn" style="background-color: rgba(255,0,60,0.1); color: #ff003c; border: 1px solid #ff003c; cursor: pointer; font-weight: bold; padding: 10px 20px; flex: 1; margin: 0;">[CONFIRM]</button>
+    <div class="modal-content modal-danger">
+      <h2 id="purgeAllModalTitle">Purge</h2>
+      <p id="purgeAllModalBody"></p>
+      <div class="modal-actions">
+        <button type="button" id="cancelPurgeAllBtn" class="cancel-btn">[CANCEL]</button>
+        <button type="button" id="confirmPurgeAllBtn" class="btn-danger">[PURGE]</button>
       </div>
     </div>
   </div>
 
   <!-- Bulk restore modal -->
   <div class="modal" id="bulkRestoreModal">
-    <div class="modal-content" style="border: 2px solid #00ff66; max-width: 400px; text-align: center;">
-      <h2 style="color: #00ff66; margin-top: 0; text-transform: uppercase;">Restore Selected</h2>
-      <p style="color: #e0e0e0; margin-bottom: 24px;" id="bulkRestoreBody"></p>
-      <div style="display: flex; gap: 15px; justify-content: center;">
-        <button type="button" id="cancelBulkRestoreBtn" style="background-color: #111; color: #888; border: 1px solid #555; cursor: pointer; padding: 10px 20px; flex: 1; margin: 0;">[CANCEL]</button>
-        <button type="button" id="confirmBulkRestoreBtn" style="background-color: rgba(0,255,102,0.1); color: #00ff66; border: 1px solid #00ff66; cursor: pointer; font-weight: bold; padding: 10px 20px; flex: 1; margin: 0;">[CONFIRM RESTORE]</button>
+    <div class="modal-content modal-success">
+      <h2>Restore Selected</h2>
+      <p id="bulkRestoreBody"></p>
+      <div class="modal-actions">
+        <button type="button" id="cancelBulkRestoreBtn" class="cancel-btn">[CANCEL]</button>
+        <button type="button" id="confirmBulkRestoreBtn" class="btn-success">[RESTORE]</button>
       </div>
     </div>
   </div>

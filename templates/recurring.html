@@ -8,9 +8,9 @@
   {% for cat in categories %}
     <option value="{{ cat }}">{{ cat }}</option>
   {% endfor %}
-  
+
   <option disabled>────────────────────</option>
-  
+
   <option value="add_new" style="color: var(--color-cyan); font-weight: bold;">[+ CREATE NEW ]</option>
 {% endmacro %}
 
@@ -27,27 +27,27 @@
       {% for tmpl in templates %}
         <li class="{% if tmpl.type == 'income' %}tx-income{% else %}tx-expense{% endif %}">
 
-          <div class="tx-main" style="display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 100%; min-width: 0; padding: 12px;">
+          <div class="tx-main tx-main--col">
 
-            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
-              <strong class="expense-name" title="{{ tmpl.name }}" style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ tmpl.name }}</strong>
-              
-              <span class="tx-amount {% if tmpl.type == 'income' %}budget-positive{% else %}budget-negative{% endif %}" style="font-size: 1.1em; font-weight: bold; flex-shrink: 0;">
+            <div class="tx-row-hdr">
+              <strong class="expense-name expense-name--truncate" title="{{ tmpl.name }}">{{ tmpl.name }}</strong>
+
+              <span class="tx-amount {% if tmpl.type == 'income' %}budget-positive{% else %}budget-negative{% endif %}">
                 {% if tmpl.type == 'expense' %}-{% endif %}{{ tmpl.amount | fmt_money }}
               </span>
             </div>
 
-            <div class="expense-meta" style="display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; row-gap: 4px; font-size: 0.9em; margin-top: 4px; letter-spacing: 0.5px;">
-              
-              <span style="color: #555;">FRQ:</span>
-              <span style="color: var(--color-cyan);">{{ tmpl.frequency }}</span>
+            <div class="expense-meta">
 
-              <span style="color: #555;">CAT:</span>
-              <span style="color: #888; text-transform: uppercase;">[{{ tmpl.category_name }}]</span>
+              <span class="meta-lbl">FRQ:</span>
+              <span class="freq-label">{{ tmpl.frequency }}</span>
 
-              <span style="color: #555;">NXT:</span>
-              <span style="color: var(--color-yellow);">{{ tmpl.next_due }}</span>
-              
+              <span class="meta-lbl">CAT:</span>
+              <span class="text-upper">[{{ tmpl.category_name }}]</span>
+
+              <span class="meta-lbl">NXT:</span>
+              <span class="due-label">{{ tmpl.next_due }}</span>
+
             </div>
 
           </div>
@@ -63,7 +63,7 @@
       {% endfor %}
     </ul>
     {% else %}
-      <p style="color: var(--color-text-muted); text-align: center; padding: 30px 0;">No recurring transactions configured.</p>
+      <p class="li-empty li-empty--center">No recurring transactions configured.</p>
     {% endif %}
   </div>
 
@@ -139,7 +139,7 @@
 
         <div class="modal-actions">
           <button type="button" id="cancelAddRecurringBtn" class="mobile-only-cancel cancel-btn">[CANCEL]</button>
-          <button type="submit" id="submitBtn">[ + ADD ]</button>
+          <button type="submit" id="submitBtn" class="submit-btn">[ + ADD ]</button>
         </div>
       </form>
 
@@ -148,17 +148,15 @@
 
   <!-- Delete Confirm Modal -->
   <div class="modal" id="deleteModal">
-    <div class="modal-content rr-modal-content">
-      <h2 class="rr-modal-title">Delete Template</h2>
-      <p class="rr-modal-text">Remove this recurring template? Past transactions are unaffected.</p>
-      <div class="rr-modal-actions">
-        <button type="button" id="cancelDeleteBtn">[CANCEL]</button>
-        <button type="button" id="confirmDeleteBtn">[CONFIRM DELETE]</button>
+    <div class="modal-content modal-danger">
+      <h2>Delete Template</h2>
+      <p>Remove this recurring template? Past transactions are unaffected.</p>
+      <div class="modal-actions">
+        <button type="button" id="cancelDeleteBtn" class="cancel-btn">[CANCEL]</button>
+        <button type="button" id="confirmDeleteBtn" class="btn-danger">[DELETE]</button>
       </div>
     </div>
   </div>
-
-  <!-- <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a> -->
 
 
 {% endblock %}

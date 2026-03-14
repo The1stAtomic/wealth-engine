@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>System Login | Wealth Engine</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
 </head>
 <body class="login-page">
 
@@ -18,29 +19,29 @@
       <div class="sys-log">> init protocol...&nbsp;[OK]</div>
       <div class="sys-log">> p2p handshake...&nbsp;[OK]</div>
       <div class="sys-log">> encryption: AES-256</div>
-      <div class="sys-log" style="color: #00ff66;">> AWAITING ROOT CREDENTIALS_</div>
+      <div class="sys-log sys-log--ready">> AWAITING ROOT CREDENTIALS_</div>
     </div>
 
     {% if error %}
       <div class="error-message">[!] {{ error }}</div>
     {% endif %}
-    <div id="loginFormArea" style="opacity: 0; transition: opacity 0.4s ease-in-out;">
+    <div id="loginFormArea" class="login-form-area">
       <form action="{{ url_for('login') }}" method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <label>Username:</label>
         <input type="text" name="username" autocapitalize="none" required autofocus>
-        
+
         <label>Password:</label>
         <div class="password-wrapper">
           <input type="password" name="password" id="loginPassword" required>
           <span id="togglePassword">[SHOW]</span>
         </div>
-        
+
         <button type="submit">[AUTHENTICATE]</button>
       </form>
     </div>
-    
+
   </div>
 
   <script src="{{ url_for('static', filename='js/login.js') }}"></script>

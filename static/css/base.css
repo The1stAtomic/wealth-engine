@@ -109,6 +109,15 @@ h2 {
   display: none !important;
 }
 
+/* JS-controlled initial hidden state */
+.hidden { display: none; }
+
+/* Bring text back to primary colour (within muted contexts) */
+.text-primary { color: var(--color-text); }
+
+/* Force uppercase on an inline span */
+.text-upper { text-transform: uppercase; }
+
 /* ==========================================
    GLOBAL INTERACTION SYSTEM
    Transitions and press effects for all interactive elements.

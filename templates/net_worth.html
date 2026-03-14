@@ -44,20 +44,20 @@
         {% for item in assets %}
           <li class="tx-income">
 
-            <div class="tx-main" style="display: flex; flex-direction: column; gap: 4px; width: 100%; min-width: 0; padding: 12px; align-items: stretch;">
-              
-              <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
-                <strong class="expense-name" title="{{ item.name }}" style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ item.name }}</strong>
-                <span class="tx-amount budget-positive" style="font-size: 1.1em; font-weight: bold; flex-shrink: 0;">{{ item.balance | fmt_money }}</span>
+            <div class="tx-main tx-main--col">
+
+              <div class="tx-row-hdr">
+                <strong class="expense-name expense-name--truncate" title="{{ item.name }}">{{ item.name }}</strong>
+                <span class="tx-amount budget-positive">{{ item.balance | fmt_money }}</span>
               </div>
 
-              <div class="expense-meta" style="display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; row-gap: 4px; font-size: 0.9em; margin-top: 4px; letter-spacing: 0.5px;">
-                <span style="color: #555;">CAT:</span>
-                <span style="color: #888; text-transform: uppercase;">[{{ item.category }}]</span>
-                <span style="color: #555;">UPD:</span>
-                <span style="color: #888;">{{ item.last_updated }}</span>
+              <div class="expense-meta">
+                <span class="meta-lbl">CAT:</span>
+                <span class="text-upper">[{{ item.category }}]</span>
+                <span class="meta-lbl">UPD:</span>
+                <span>{{ item.last_updated }}</span>
               </div>
-              
+
             </div>
 
             <div class="tx-actions">
@@ -118,20 +118,20 @@
         {% for item in liabilities %}
           <li class="tx-expense">
 
-            <div class="tx-main" style="display: flex; flex-direction: column; gap: 4px; width: 100%; min-width: 0; padding: 12px; align-items: stretch;">
-              
-              <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
-                <strong class="expense-name" title="{{ item.name }}" style="font-size: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ item.name }}</strong>
-                <span class="tx-amount budget-negative" style="font-size: 1.1em; font-weight: bold; flex-shrink: 0;">-{{ item.balance | fmt_money }}</span>
+            <div class="tx-main tx-main--col">
+
+              <div class="tx-row-hdr">
+                <strong class="expense-name expense-name--truncate" title="{{ item.name }}">{{ item.name }}</strong>
+                <span class="tx-amount budget-negative">-{{ item.balance | fmt_money }}</span>
               </div>
 
-              <div class="expense-meta" style="display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; row-gap: 4px; font-size: 0.9em; margin-top: 4px; letter-spacing: 0.5px;">
-                <span style="color: #555;">CAT:</span>
-                <span style="color: #888; text-transform: uppercase;">[{{ item.category }}]</span>
-                <span style="color: #555;">UPD:</span>
-                <span style="color: #888;">{{ item.last_updated }}</span>
+              <div class="expense-meta">
+                <span class="meta-lbl">CAT:</span>
+                <span class="text-upper">[{{ item.category }}]</span>
+                <span class="meta-lbl">UPD:</span>
+                <span>{{ item.last_updated }}</span>
               </div>
-              
+
             </div>
 
             <div class="tx-actions">
@@ -197,9 +197,9 @@
         <!-- Type toggle -->
         <div class="type-toggle modal-field">
           <input type="radio" name="item_type" id="typeAsset" value="asset" checked>
-          <label for="typeAsset" class="toggle-btn expense-toggle">ASSET</label>
+          <label for="typeAsset" class="toggle-btn income-toggle">ASSET</label>
           <input type="radio" name="item_type" id="typeLiability" value="liability">
-          <label for="typeLiability" class="toggle-btn income-toggle">LIABILITY</label>
+          <label for="typeLiability" class="toggle-btn expense-toggle">LIABILITY</label>
         </div>
 
         <div class="modal-field">
@@ -211,22 +211,22 @@
           <label class="modal-label">Category</label>
           <select name="category" id="addCategory">
             <optgroup label="Asset" id="assetOptions">
-              <option value="bank">bank</option>
-              <option value="investment">investment</option>
-              <option value="property">property</option>
-              <option value="other">other</option>
+              <option value="bank">Bank</option>
+              <option value="investment">Investment</option>
+              <option value="property">Property</option>
+              <option value="other">Other</option>
             </optgroup>
             <optgroup label="Liability" id="liabilityOptions" style="display: none;">
-              <option value="loan">loan</option>
-              <option value="credit">credit</option>
-              <option value="other">other</option>
+              <option value="loan">Loan</option>
+              <option value="credit">Credit</option>
+              <option value="other">Other</option>
             </optgroup>
           </select>
         </div>
 
         <div class="modal-field">
           <label class="modal-label">Balance ($)</label>
-          <input type="number" name="balance" step="0.01" min="0" placeholder="0.00" required>
+          <input type="number" class="no-spinner" name="balance" step="0.01" min="0" placeholder="0.00" required>
         </div>
 
         <div class="modal-field">
@@ -236,7 +236,7 @@
 
         <div class="modal-actions">
           <button type="button" id="cancelAddModal" class="mobile-only-cancel cancel-btn">[CANCEL]</button>
-          <button type="submit" class="cat-save-btn">[CONFIRM]</button>
+          <button type="submit" id="submitBtn" class="submit-btn income-submit">[CONFIRM]</button>
         </div>
       </form>
 
@@ -245,17 +245,15 @@
 
   <!-- Delete confirmation modal -->
   <div class="modal" id="deleteModal">
-    <div class="modal-content rr-modal-content">
-      <h2 class="rr-modal-title">Confirm Delete</h2>
-      <p class="rr-modal-text">Remove this item from your net worth tracker?</p>
-      <div class="rr-modal-actions">
-        <button type="button" id="cancelDeleteBtn">[CANCEL]</button>
-        <button type="button" id="confirmDeleteBtn">[CONFIRM DELETE]</button>
+    <div class="modal-content modal-danger">
+      <h2>Confirm Delete</h2>
+      <p>Remove this item from your net worth tracker?</p>
+      <div class="modal-actions">
+        <button type="button" id="cancelDeleteBtn" class="cancel-btn">[CANCEL]</button>
+        <button type="button" id="confirmDeleteBtn" class="btn-danger">[DELETE]</button>
       </div>
     </div>
   </div>
-
-  <!-- <a href="{{ url_for('home') }}" id="returnHomeBtn">[RETURN HOME]</a> -->
 
 
 {% endblock %}

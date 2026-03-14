@@ -10,18 +10,26 @@ openAddBtn.addEventListener('click', () => openModal(addModal));
 closeAddBtn.addEventListener('click', () => closeModal(addModal));
 if (cancelAddBtn) cancelAddBtn.addEventListener('click', () => closeModal(addModal));
 
-// Category optgroup swap on type toggle
+// --- TYPE RADIO TOGGLE (Consolidated) ---
+const submitBtn        = document.getElementById('submitBtn');
 const assetOptions     = document.getElementById('assetOptions');
 const liabilityOptions = document.getElementById('liabilityOptions');
 const addCategory      = document.getElementById('addCategory');
 
 document.querySelectorAll('input[name="item_type"]').forEach(radio => {
-  radio.addEventListener('change', function() {
-    const isLiability = this.value === 'liability';
+  radio.addEventListener('change', function(e) {
+    const isLiability = e.target.value === 'liability';
     assetOptions.style.display     = isLiability ? 'none' : '';
     liabilityOptions.style.display = isLiability ? '' : 'none';
-    const visible = addCategory.querySelectorAll('optgroup:not([style*="display: none"]) option');
-    if (visible.length) addCategory.value = visible[0].value;
+    const visibleOptions = addCategory.querySelectorAll('optgroup:not([style*="display: none"]) option');
+    if (visibleOptions.length) {
+      addCategory.value = visibleOptions[0].value;
+    }
+    if (isLiability) {
+      submitBtn.classList.remove('income-submit');
+    } else {
+      submitBtn.classList.add('income-submit');
+    }
   });
 });
 

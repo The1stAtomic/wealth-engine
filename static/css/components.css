@@ -50,6 +50,9 @@ textarea::placeholder {
 
 /* Row container: vertically center input and text buttons on same baseline */
 .search-bar-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
   align-items: center;
 }
 
@@ -181,6 +184,58 @@ textarea:focus {
   box-shadow: none !important;
 }
 
+.modal-danger, .modal-success {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.modal-danger {
+  border: 2px solid var(--color-red);
+}
+
+.modal-danger h2,
+.modal-success h2,
+.modal-danger p,
+.modal-success p {
+  text-align: center;
+}
+
+.modal-success {
+  border: 2px solid var(--color-green);
+}
+
+.modal-danger h2 {
+  color: var(--color-red);
+  margin-top: 0;
+  text-transform: uppercase;
+}
+
+.modal-success h2 {
+  color: var(--color-green);
+  margin-top: 0;
+  text-transform: uppercase;
+}
+
+.modal-danger p,
+.modal-success p {
+  color: var(--color-text);
+  margin-bottom: 30px;
+}
+
+.modal-danger .modal-note,
+.modal-success .modal-note {
+  color: var(--color-text-muted);
+  font-size: 0.85em;
+  margin-bottom: 24px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
 label {
   display: block;
   margin-top: 10px;
@@ -197,7 +252,7 @@ button {
   border: none;
   font-weight: bold;
   font-family: inherit;
-  font-size: 16px;
+  font-size: 1em;
   cursor: pointer;
   text-transform: uppercase;
   width: 100%;
@@ -205,7 +260,6 @@ button {
 }
 
 button:hover {
-  background-color: var(--color-red);
   color: #fff;
 }
 
@@ -225,43 +279,35 @@ button:hover {
 }
 
 .delete-btn, .edit-btn {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: none !important;
-  border: none !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
   /* invisible tap padding — expands touch target without affecting layout */
-  padding: 12px 8px !important;
-  margin: -12px -8px !important;
-  font-size: 0.8em !important;
-  font-weight: bold !important;
-  font-family: inherit !important;
-  line-height: 1 !important;
-  text-decoration: none !important;
-  cursor: pointer !important;
-  letter-spacing: 1px !important;
-  width: auto !important;
-  height: auto !important;
+  padding: 12px 8px;
+  margin: -12px -8px;
+  font-size: 0.8em;
+  line-height: 1;
+  text-decoration: none;
+  letter-spacing: 1px;
+  width: auto;
+  height: auto;
 }
 
 .delete-btn {
-  color: var(--color-red) !important;
+  color: var(--color-red);
 }
 
 .edit-btn {
-  color: var(--color-cyan) !important;
+  color: var(--color-cyan);
 }
 
 .save-btn {
-  color: var(--color-green) !important;
-  border-color: var(--color-green) !important;
-}
-.edit-btn.save-btn:hover {
-  background-color: var(--color-green) !important;
-  color: var(--color-card) !important;
+  color: var(--color-green);
+  border-color: var(--color-green);
 }
 
-.cancel-btn {
+.cancel-btn.btn-danger.btn-success {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -269,102 +315,121 @@ button:hover {
   box-sizing: border-box;
   padding: 0 15px;
   margin: 0;
-  color: #888;
-  border: 1px solid #444;
+  font-size: 0.9em;
+  letter-spacing: 1px;
+  transition: 0.2s;
+}
+
+.cancel-btn {
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-muted);
   background: transparent;
-  font-family: inherit;
+}
+
+.btn-danger {
+  background-color: rgba(255, 0, 60, 0.1);
+  color: var(--color-red);
+  border: 1px solid var(--color-red);
+}
+
+.btn-success {
+  background-color: rgba(0, 255, 102, 0.1);
+  color: var(--color-green);
+  border: 1px solid var(--color-green);
+}
+
+/* ==========================================
+   SUBMIT BUTTONS
+   ========================================== */
+
+/* Modal submit button — terminal CTA: dark bg, border only, color signals type */
+.submit-btn {
+  background-color: #000;
+  color: var(--color-red);
+  border: 1px solid var(--color-red);
+  width: 100%;
+  margin: 0;
+  padding: 15px;
   font-weight: bold;
+  font-family: inherit;
   font-size: 0.9em;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: 0.2s;
-}
-.cancel-btn:hover {
-  background-color: #333;
-  color: #fff;
-  border-color: #555;
+  transition: none;
 }
 
-/* ==========================================
-   INLINE LINK BUTTONS
-   ========================================== */
-#editSavingsBtn {
-  color: var(--color-yellow);
-  text-decoration: none;
+.submit-btn:hover {
+  background-color: rgba(255, 0, 60, 0.08);
+  color: var(--color-red);
+}
+
+.submit-btn.income-submit {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+
+.submit-btn.income-submit:hover {
+  background-color: rgba(0, 255, 102, 0.08);
+  color: var(--color-green);
+}
+
+.edit-submit-btn {
+  background-color: #000;
+  color: var(--color-red);
+  border: 1px solid var(--color-red);
+  width: 100%;
+  margin: 0;
+  padding: 15px;
   font-weight: bold;
-  font-size: 0.85em;
-  padding: 2px 4px;
-  border: 1px solid transparent;
-  transition: var(--transition-fast);
-  display: inline-block;
-}
-
-#editSavingsBtn:hover {
-  color: #fff;
-}
-
-#editSavingsBtn:active {
-  transform: scale(0.85);
-}
-
-
-#returnHomeBtn {
-  color: var(--color-cyan);
-  text-decoration: none;
-  font-weight: bold;
-  font-size: 1.1em;
+  font-family: inherit;
+  font-size: 0.9em;
   letter-spacing: 1px;
-  padding: 12px 8px;
-  margin: 40px -8px 0;
-  transition: var(--transition-fast);
-  display: block;
-  width: fit-content;
+  cursor: pointer;
+  transition: none;
 }
 
-#returnHomeBtn:hover {
-  color: #fff;
+.edit-submit-btn:hover {
+  background-color: rgba(255, 0, 60, 0.08);
+  color: var(--color-red);
 }
 
-#returnHomeBtn:active {
-  transform: scale(0.85);
+.edit-submit-btn.income-submit {
+  color: var(--color-green);
+  border-color: var(--color-green);
 }
 
-/* ==========================================
-   CANCEL BUTTONS
-   ========================================== */
-
-/* Base normalization for all cancel buttons */
-#cancelDeleteBtn, #cancelBtn, #cancelReturnBtn {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-sizing: border-box !important;
-  font-family: inherit !important;
-  text-decoration: none !important;
-  cursor: pointer !important;
-  letter-spacing: 1px !important;
-  transition: var(--transition-fast) !important;
+.edit-submit-btn.income-submit:hover {
+  background-color: rgba(0, 255, 102, 0.08);
+  color: var(--color-green);
 }
 
-/* Edit-page cancel buttons (block-centered, red) */
-#cancelBtn, #cancelReturnBtn {
-  display: block !important;
-  width: fit-content !important;
-  margin: 40px auto !important;
-  color: var(--color-red) !important;
-  font-weight: bold !important;
-  font-size: 1.1em !important;
-  padding: 5px 10px !important;
-  border: 1px solid transparent !important;
+.openModalBtn {
+  background-color: transparent;
+  color: var(--color-green);
+  border: 1px solid var(--color-green);
+  font-size: 1.1em;
+  margin-bottom: 32px;
+  box-shadow: 0 0 8px rgba(0, 255, 102, 0.1);
+  letter-spacing: 1px;
+  transition: var(--transition-std);
 }
 
-#cancelBtn:hover, #cancelReturnBtn:hover {
-  background-color: var(--color-red) !important;
-  color: var(--color-card) !important;
+.openModalBtn::before {
+  content: '▋';
+  margin-right: 6px;
+  animation: termCursor 1s step-end infinite;
 }
 
-#cancelDeleteBtn:active, #cancelBtn:active, #cancelReturnBtn:active {
-  transform: scale(0.85) !important;
+@keyframes termCursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.openModalBtn:hover {
+  background-color: transparent;
+  color: var(--color-green);
+  border-color: var(--color-green);
+  box-shadow: 0 0 16px rgba(0, 255, 102, 0.35);
 }
 
 /* ==========================================
@@ -536,6 +601,7 @@ button:hover {
 ul {
   list-style-type: none;
   padding: 0;
+  margin: 0;
 }
 
 li {
@@ -572,8 +638,14 @@ li {
 }
 
 .expense-meta {
-  color: var(--color-text-muted);
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 10px;
+  row-gap: 4px;
   font-size: 0.9em;
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
 }
 
 /* ==========================================
@@ -696,7 +768,7 @@ li {
   margin: 0;
   cursor: pointer;
   background-color: #000;
-  border: 1px solid #444;
+  border: 1px solid var(--color-border-muted);
   transition: border-color 0.15s ease-in-out, background-color 0.15s ease-in-out;
   flex-shrink: 0;
 }
@@ -710,6 +782,11 @@ li {
   border-color: var(--color-green);
 }
 
+.checkbox-wrapper.checkbox-danger input[type="checkbox"]:checked {
+  background-color: var(--color-red);
+  border-color: var(--color-red);
+}
+
 .checkbox-wrapper input[type="checkbox"]:checked::after {
   content: '';
   width: 4px;
@@ -719,59 +796,6 @@ li {
   border-left: none;
   transform: rotate(45deg);
   margin-top: -2px; /* optical correction for diagonal stroke */
-}
-
-/* Standalone custom checkbox — red checked state (used in trash view) */
-.custom-checkbox {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 15px;
-  min-width: 15px;
-  margin: 0;
-  cursor: pointer;
-  background-color: #111;
-  border: 1px solid #555;
-  transition: border-color 0.15s ease-in-out, background-color 0.15s ease-in-out;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.custom-checkbox:hover {
-  border-color: #666;
-}
-
-.custom-checkbox:checked {
-  background-color: #ff003c;
-  border-color: #ff003c;
-}
-
-.custom-checkbox:checked::after {
-  content: '';
-  position: absolute;
-  left: 5px;
-  top: 1px;
-  width: 4px;
-  height: 7px;
-  border: 2px solid #000;
-  border-top: none;
-  border-left: none;
-  transform: rotate(45deg);
-}
-
-.custom-checkbox:indeterminate {
-  background-color: #ff003c;
-  border-color: #ff003c;
-}
-
-.custom-checkbox:indeterminate::after {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 6px;
-  width: 7px;
-  height: 2px;
-  background: #000;
 }
 
 .currency-group {
@@ -891,7 +915,7 @@ select {
 
 /* The Fix: Force the native floating dropdown list to use a dark background */
 option, optgroup {
-  background-color: #111 !important;
+  background-color: var(--color-card) !important;
   color: var(--color-text) !important;
 }
 
@@ -923,4 +947,198 @@ select:focus {
   border: none !important;
   border-bottom: 1px solid var(--color-cyan) !important;
   box-shadow: none !important;
+}
+
+/* ==========================================
+   TRANSACTION CARD VARIANTS
+   ========================================== */
+
+/* Column-layout tx-main (used in index, recurring, net_worth) */
+.tx-main--col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 12px;
+}
+
+/* Row header within a card: name left, amount right */
+.tx-row-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+/* Truncating name (overrides .expense-name white-space: normal) */
+.expense-name--truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Note / receipt indicator tags */
+.tx-tags {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  align-items: center;
+}
+
+.tx-tag--note    { color: var(--color-cyan);   font-size: 0.85em; font-weight: bold; letter-spacing: 1px; }
+.tx-tag--receipt { color: var(--color-yellow); font-size: 0.85em; font-weight: bold; letter-spacing: 1px; }
+
+/* Meta grid label / value */
+.meta-lbl { color: #555; }
+.meta-sep { color: #444; margin: 0 4px; }
+
+/* ==========================================
+   MODAL COMPONENTS
+   ========================================== */
+
+/* Variant: align header contents to top (used when subtitle text is present) */
+.modal-hdr--start { align-items: flex-start; }
+
+/* Edit-record subtitle line (ID + type indicator) */
+.modal-id-line {
+  color: #555;
+  font-size: 0.7em;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 1px;
+}
+
+/* Small field label (Note, Receipt) inside modals */
+.form-label--sm {
+  display: block;
+  color: #666;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 18px;
+  margin-bottom: 4px;
+  font-weight: normal;
+}
+
+/* Receipt block sub-label */
+.receipt-lbl {
+  display: block;
+  color: #666;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: normal;
+}
+
+/* File attach / receipt link row */
+.receipt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Existing-receipt info row (hidden by default; JS shows with display:flex) */
+.receipt-block-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* View-receipt link colour */
+.receipt-link {
+  color: var(--color-cyan);
+  font-size: 0.85em;
+}
+
+/* Remove-receipt label (inline flex, danger colour) */
+.remove-receipt-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-red);
+  font-size: 0.8em;
+  cursor: pointer;
+}
+
+/* Warning (yellow) modal variant */
+.modal-warning {
+  border: 2px solid var(--color-yellow);
+  max-width: 400px;
+  text-align: center;
+}
+
+.modal-warning h2 {
+  color: var(--color-yellow);
+  margin-top: 0;
+  text-transform: uppercase;
+}
+
+.modal-warning p {
+  color: var(--color-text);
+  margin-bottom: 30px;
+}
+
+/* Modal textarea — explicit sizing properties */
+.modal-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  padding: 8px 10px;
+  resize: vertical;
+  margin: 0 0 10px;
+}
+
+/* ==========================================
+   BUTTON VARIANTS
+   ========================================== */
+
+/* Warning (yellow) action button */
+.btn-warning {
+  background-color: rgba(255, 204, 0, 0.1);
+  color: var(--color-yellow);
+  border: 1px solid var(--color-yellow);
+}
+
+/* Neutral dark cancel button */
+.btn-cancel-neutral {
+  background-color: #111;
+  color: #888;
+  border: 1px solid #555;
+}
+
+/* Makes a button fill its flex parent */
+.btn-flex { flex: 1; }
+
+/* ==========================================
+   FORM PATTERNS
+   ========================================== */
+
+/* Investment checkbox label: stacks hint text below label text */
+.checkbox-col-label {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hint text beneath a checkbox label */
+.checkbox-hint {
+  color: #666;
+  font-size: 0.8em;
+  font-weight: normal;
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+/* Side-by-side text + date input row inside modals */
+.input-row {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.input-row input[type="text"] { flex: 2; margin: 0; }
+.input-row input[type="date"] { flex: 1; margin: 0; }
+
+/* Read-only locked select (e.g. currency in edit modal) */
+.select-locked {
+  pointer-events: none;
+  color: #888;
 }
