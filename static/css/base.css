@@ -1,0 +1,461 @@
+/* static/css/base.css
+   Foundation layer: tokens, reset, typography, global utilities, responsive.
+   Must be linked FIRST in base.html.
+   ========================================== */
+
+/* ==========================================
+   DESIGN TOKENS
+   ========================================== */
+:root {
+  --color-bg: #0a0a0a;
+  --color-card: #111;
+  --color-border: #333;
+  --color-border-muted: #444;
+  --color-text: #e0e0e0;
+  --color-text-muted: #888;
+  --color-red: #ff003c;
+  --color-green: #00ff66;
+  --color-cyan: #00ccff;
+  --color-yellow: #ffcc00;
+  --transition-fast: all 0.1s ease-in-out;
+  --transition-std: all 0.15s ease-in-out;
+}
+
+/* ==========================================
+   RESET
+   ========================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* ==========================================
+   BASE
+   ========================================== */
+body {
+  background-color: var(--color-bg);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(255, 255, 255, 0.012) 3px,
+    rgba(255, 255, 255, 0.012) 4px
+  );
+  color: var(--color-text);
+  font-family: "Courier New", Courier, monospace;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  position: relative;
+}
+
+h1 {
+  text-transform: uppercase;
+  border-bottom: 3px solid var(--color-red);
+  padding-bottom: 10px;
+  letter-spacing: 2px;
+}
+
+h2 {
+  color: var(--color-green);
+  font-size: 2em;
+}
+
+/* ==========================================
+   TRANSACTION TYPE COLORS
+   ========================================== */
+.tx-income {
+  border-left-color: var(--color-green) !important;
+}
+.tx-income .expense-name {
+  color: var(--color-green);
+}
+
+.tx-investment {
+  border-left-color: var(--color-cyan) !important;
+}
+.tx-investment .expense-name {
+  color: var(--color-cyan);
+}
+
+.tx-expense {
+  border-left-color: var(--color-red) !important;
+}
+.tx-expense .expense-name {
+  color: var(--color-red);
+}
+
+/* ==========================================
+   UTILITY
+   ========================================== */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.no-spinner {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Forbids money amounts from breaking across lines */
+.money {
+  white-space: nowrap;
+}
+
+/* Hidden on desktop; revealed via mobile media query */
+.mobile-only-cancel {
+  display: none !important;
+}
+
+/* ==========================================
+   GLOBAL INTERACTION SYSTEM
+   Transitions and press effects for all interactive elements.
+   ========================================== */
+button,
+.edit-btn,
+.delete-btn,
+#logoutBtn {
+  transition: var(--transition-std) !important;
+  cursor: pointer;
+}
+
+button:active,
+.edit-btn:active,
+.delete-btn:active,
+#logoutBtn:active {
+  transform: scale(0.92) !important;
+}
+
+/* Plain text hover — brightness only, no fill */
+.delete-btn:hover {
+  filter: brightness(1.5) !important;
+}
+
+.edit-btn:hover {
+  filter: brightness(1.5) !important;
+}
+
+#logoutBtn:hover {
+  background-color: var(--color-red) !important;
+  color: var(--color-card) !important;
+}
+
+#exportBtn:hover {
+  background-color: var(--color-green) !important;
+  color: var(--color-card) !important;
+}
+
+#exportBtn:active {
+  transform: scale(0.92) !important;
+}
+
+/* Grey inversion for neutral cancel/close buttons */
+#mobileCancelBtn:hover,
+#cancelLogoutBtn:hover,
+#cancelDeleteBtn:hover {
+  background-color: var(--color-text-muted) !important;
+  color: var(--color-card) !important;
+  border-color: var(--color-text-muted) !important;
+}
+
+/* ==========================================
+   MOBILE RESPONSIVE
+   ========================================== */
+@media (max-width: 768px) {
+
+  /* Shrink h1 so "Root Access Wealth Engine" fits on one line at narrow widths */
+  h1 {
+    font-size: 1.3em;
+    letter-spacing: 1px;
+  }
+
+  /* Nav: single horizontally scrollable command bar — no orphaned buttons */
+  .sys-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    justify-content: flex-start;
+    padding-bottom: 2px;
+  }
+
+  .sys-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Gradient hint: signals more content is scrollable to the right */
+  .sys-nav-scroll::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 48px;
+    background: linear-gradient(to right, transparent, var(--color-bg) 90%);
+    pointer-events: none;
+  }
+
+  /* Envelope row: name(110px) + label(160px) + gaps overflows 280px at 320px */
+  .envelope-label {
+    min-width: 90px;
+  }
+
+  /* letter-spacing: 2px adds ~66px to a 33-char string — kills layout at 320px */
+  .envelope-header {
+    letter-spacing: 0.5px;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 0.85rem !important;
+  }
+
+  /* Envelope collapse toggle: full touch target */
+  #envelopeToggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 44px !important;
+    padding: 0 12px !important;
+  }
+
+  /* Savings edit inline link: full touch target */
+  #editSavingsBtn {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 44px !important;
+    padding: 0 12px !important;
+    margin: -12px -12px -12px 0 !important;
+  }
+
+  /* Search row: wrap buttons below on narrow screens */
+  .search-bar-row {
+    flex-wrap: wrap !important;
+    height: auto !important;
+    gap: 8px !important;
+  }
+
+  .search-bar-row input[type="text"] {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    height: 44px !important;
+  }
+
+  .search-bar-row button {
+    height: 44px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Prevent any base button style from overriding transparent bg on mobile */
+  .openModalBtn {
+    background-color: transparent !important;
+    border: 1px solid var(--color-green) !important;
+  }
+
+  /* Pagination tap targets */
+  .page-btn {
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 0 14px !important;
+  }
+
+  .system-readout {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .financial-controls-container {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  h1 {
+    font-size: 1.5em;
+  }
+
+  h2 {
+    font-size: 1.3em;
+  }
+
+  .chart-row {
+    flex-direction: column !important;
+  }
+
+  /* Ledger rows: stack tx-main (info+amount) above tx-actions */
+  .scroll-box ul li {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+    padding: 0 !important;
+  }
+
+  .tx-main {
+    width: 100% !important;
+    padding: 10px 12px 8px !important;
+  }
+
+  /* Actions strip: full-width, prominent touch targets, faint separator */
+  .tx-actions {
+    position: static !important;
+    height: auto !important;
+    border-left: none !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    display: flex !important;
+    gap: 0 !important;
+    min-height: 44px !important;
+    align-items: stretch !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    background: transparent !important;
+    border-top: 1px dashed var(--color-border-muted) !important;
+    flex-shrink: 0 !important;
+  }
+  .tx-actions:active,
+  .tx-actions:focus-within {
+    opacity: 1 !important;
+  }
+
+  .tx-actions .edit-btn,
+  .tx-actions .delete-btn {
+    flex: 0 0 auto !important;
+    min-height: 44px !important;
+    padding: 0 20px 0 12px !important;
+    margin: 0 !important;
+    justify-content: flex-start !important;
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+
+  .tx-actions .edit-btn {
+    border-right: none !important;
+  }
+
+  .modal-content {
+    width: 90%;
+    padding: 25px 15px;
+    top: 5% !important;
+    transform: translateX(-50%) !important;
+    max-height: 80vh !important;
+  }
+
+  #deleteModal, #logoutModal, .modal-content > div {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  #cancelDeleteBtn, #confirmDeleteBtn,
+  #cancelLogoutBtn, #confirmLogoutBtn {
+    width: 100% !important;
+    height: 44px !important;
+    margin: 0 !important;
+    font-size: 1em !important;
+  }
+
+  #deleteModal .modal-content > div,
+  #logoutModal .modal-content > div {
+    flex-direction: column-reverse !important;
+    gap: 12px !important;
+  }
+
+  .currency-group,
+  #addExpenseModal form > div[style*="display: flex"] {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  #itemNameInput,
+  #expenseDate,
+  .currency-group input,
+  .currency-group select,
+  .currency-group .cs-wrapper {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .scroll-box form {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    gap: 10px !important;
+    margin-top: 10px !important;
+  }
+
+  .scroll-box form input[type="text"] {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .scroll-box form button {
+    flex: 1 !important;
+    height: 44px !important;
+    margin: 0 !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+
+  .scroll-box {
+    max-height: none !important;
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+    padding-right: 0 !important;
+    border-bottom: none !important;
+    touch-action: auto !important;
+  }
+
+  #addExpenseModal .close-modal,
+  #editModal .close-modal,
+  #addRecurringModal .close-modal {
+    display: none !important;
+  }
+
+  .mobile-only-cancel {
+    display: block !important;
+  }
+
+  .modal-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 12px !important;
+  }
+
+  .modal-actions button {
+    flex: 1 !important;
+    height: 44px !important;
+    margin: 0 !important;
+    font-size: 0.85em !important;
+    padding: 0 5px !important;
+    white-space: nowrap !important;
+  }
+
+  /* Currency toggle: drop below the deficit number on mobile */
+  .financial-controls-container {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+  }
+
+  .hud-toggle-btn {
+    width: auto !important;
+    padding: 6px 12px !important;
+    font-size: 0.85em !important;
+    align-self: flex-end !important;
+    margin-top: 4px !important;
+  }
+
+  #currencyToggleBtn {
+    display: inline-flex !important;
+    align-items: center !important;
+    text-align: left !important;
+    padding: 0 12px !important;
+    min-height: 44px !important;
+    color: rgba(0, 204, 255, 0.7) !important;
+    margin-top: 4px !important;
+    align-self: flex-start !important;
+  }
+}

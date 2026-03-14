@@ -1,0 +1,407 @@
+/* static/css/layout.css
+   Structural chrome: app header, nav, session zone, modals, section headers.
+   Must be linked AFTER base.css in base.html.
+   ========================================== */
+
+/* ==========================================
+   APP HEADER (base.html structural elements)
+   ========================================== */
+.app-header {
+  border-bottom: 3px solid #ff003c;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.app-header h1 {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin: 0;
+}
+
+.flash-message {
+  color: #ff003c;
+  background: rgba(255, 0, 60, 0.1);
+  border: 1px solid #ff003c;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+/* ==========================================
+   SYSTEM NAV
+   ========================================== */
+/* Scroll wrapper — owns the margin and the right-edge gradient hint */
+.sys-nav-scroll {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.sys-nav {
+  display: flex;
+  gap: 24px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  margin-bottom: 0;
+  align-items: flex-end;
+}
+
+/* The Fix: Inject invisible scroll space at the end of the menu */
+  .sys-nav::after {
+    content: '';
+    flex: 0 0 16px; /* Matches the exact 48px width of the gradient hint */
+  }
+
+.sys-nav-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1em;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-decoration: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 4px 0;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  transition: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sys-nav-link:hover {
+  color: var(--color-text);
+  opacity: 1;
+}
+
+/* Active tab: white + cyan 2px underline */
+.nav-active {
+  color: var(--color-text);
+  opacity: 1;
+  border-bottom-color: var(--color-cyan);
+}
+
+/* TRASH: always red */
+.nav-red { color: var(--color-red); }
+
+/* TRASH hover */
+.nav-red:hover { color: var(--color-red); }
+
+/* TRASH active: red + red underline */
+.nav-red.nav-active {
+  color: var(--color-red);
+  border-bottom-color: var(--color-red);
+}
+
+.nav-cyan  { color: var(--color-cyan); }
+.nav-green { color: var(--color-green); }
+
+/* ==========================================
+   SECTION HEADER (unified pattern)
+   ========================================== */
+.section-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.section-hdr-title {
+  color: var(--color-text-muted);
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: bold;
+}
+
+.section-hdr-action {
+  font-size: 0.8em;
+  font-weight: bold;
+  text-decoration: none;
+  padding: 12px 8px;
+  margin: -12px -8px;
+  transition: var(--transition-std);
+}
+
+/* ==========================================
+   SESSION ZONE
+   ========================================== */
+.session-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 48px 0 16px;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 24px;
+}
+
+.session-status {
+  color: var(--color-text-muted);
+  font-size: 0.68em;
+  letter-spacing: 3px;
+  opacity: 0.45;
+}
+
+/* ==========================================
+   MODAL
+   ========================================== */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  animation: backdropFade 0.15s ease-out forwards;
+}
+
+@keyframes modalSnap {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes backdropFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-content {
+  background-color: var(--color-bg);
+  padding: 30px;
+  border: none;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: modalSnap 0.15s cubic-bezier(0.0, 0.0, 0.2, 1) forwards;
+}
+
+.close-modal {
+  color: var(--color-text-muted);
+  font-size: 1.2em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+  padding: 4px 8px;
+  margin: -4px -8px; /* expands tap target without shifting visual position */
+}
+
+.close-modal:hover {
+  color: var(--color-red);
+}
+
+/* Receipt block — label + attach button, no container */
+.receipt-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+/* File input — hide native OS button, replace with styled label */
+.file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.file-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid #444;
+  background-color: #111;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: 0.85em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: var(--transition-std);
+  letter-spacing: 1px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.file-trigger-btn:hover {
+  border-color: var(--color-cyan);
+  color: var(--color-cyan);
+  background-color: rgba(0, 204, 255, 0.05);
+}
+
+.file-trigger-btn.file-selected {
+  border-color: var(--color-green);
+  color: var(--color-green);
+}
+
+.file-name-display {
+  font-size: 0.8em;
+  color: #555;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+/* VIEW RECEIPT link */
+#editReceiptLink {
+  transition: var(--transition-fast);
+}
+#editReceiptLink:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* Destructive remove-receipt checkbox — custom rendering, red on check */
+#removeReceiptChk {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  margin: 0;
+  cursor: pointer;
+  background-color: #000;
+  border: 1px solid #444;
+  transition: border-color 0.15s, background-color 0.15s;
+  position: relative;
+  flex-shrink: 0;
+}
+#removeReceiptChk:hover {
+  border-color: var(--color-red);
+}
+#removeReceiptChk:checked {
+  background-color: var(--color-red);
+  border-color: var(--color-red);
+}
+#removeReceiptChk:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0px;
+  width: 4px;
+  height: 7px;
+  border: 2px solid #000;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+/* Type indicator badge in edit modal header */
+#editTypeIndicator {
+  transition: color 0.15s ease-in-out;
+}
+
+/* Modal submit button — terminal CTA: dark bg, border only, color signals type */
+#submitBtn {
+  background-color: #000;
+  color: var(--color-red);
+  border: 1px solid var(--color-red);
+  width: 100%;
+  margin: 0;
+  padding: 15px;
+  font-weight: bold;
+  font-family: inherit;
+  font-size: 0.9em;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: none;
+}
+
+#submitBtn:hover {
+  background-color: rgba(255, 0, 60, 0.08);
+  color: var(--color-red);
+}
+
+#submitBtn.income-submit {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+
+#submitBtn.income-submit:hover {
+  background-color: rgba(0, 255, 102, 0.08);
+  color: var(--color-green);
+}
+
+#editSubmitBtn {
+  background-color: #000;
+  color: var(--color-red);
+  border: 1px solid var(--color-red);
+  width: 100%;
+  margin: 0;
+  padding: 15px;
+  font-weight: bold;
+  font-family: inherit;
+  font-size: 0.9em;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: none;
+}
+
+#editSubmitBtn:hover {
+  background-color: rgba(255, 0, 60, 0.08);
+  color: var(--color-red);
+}
+
+#editSubmitBtn.income-submit {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+
+#editSubmitBtn.income-submit:hover {
+  background-color: rgba(0, 255, 102, 0.08);
+  color: var(--color-green);
+}
+
+.openModalBtn {
+  background-color: transparent;
+  color: var(--color-green);
+  border: 1px solid var(--color-green);
+  font-size: 1.1em;
+  margin-bottom: 32px;
+  box-shadow: 0 0 8px rgba(0, 255, 102, 0.1);
+  letter-spacing: 1px;
+  transition: var(--transition-std);
+}
+
+.openModalBtn::before {
+  content: '▋';
+  margin-right: 6px;
+  animation: termCursor 1s step-end infinite;
+}
+
+@keyframes termCursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.openModalBtn:hover {
+  background-color: transparent;
+  color: var(--color-green);
+  border-color: var(--color-green);
+  box-shadow: 0 0 16px rgba(0, 255, 102, 0.35);
+}
