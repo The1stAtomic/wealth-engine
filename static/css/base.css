@@ -64,21 +64,21 @@ h2 {
    TRANSACTION TYPE COLORS
    ========================================== */
 .tx-income {
-  border-left-color: var(--color-green) !important;
+  border-left-color: var(--color-green);
 }
 .tx-income .expense-name {
   color: var(--color-green);
 }
 
 .tx-investment {
-  border-left-color: var(--color-cyan) !important;
+  border-left-color: var(--color-cyan);
 }
 .tx-investment .expense-name {
   color: var(--color-cyan);
 }
 
 .tx-expense {
-  border-left-color: var(--color-red) !important;
+  border-left-color: var(--color-red);
 }
 .tx-expense .expense-name {
   color: var(--color-red);
@@ -106,7 +106,7 @@ h2 {
 
 /* Hidden on desktop; revealed via mobile media query */
 .mobile-only-cancel {
-  display: none !important;
+  display: none;
 }
 
 /* JS-controlled initial hidden state */
@@ -125,48 +125,48 @@ h2 {
 button,
 .edit-btn,
 .delete-btn,
-#logoutBtn {
-  transition: var(--transition-std) !important;
+.logout-btn {
+  transition: var(--transition-std);
   cursor: pointer;
 }
 
 button:active,
 .edit-btn:active,
 .delete-btn:active,
-#logoutBtn:active {
-  transform: scale(0.92) !important;
+.logout-btn:active {
+  transform: scale(0.92);
 }
 
 /* Plain text hover — brightness only, no fill */
 .delete-btn:hover {
-  filter: brightness(1.5) !important;
+  filter: brightness(1.5);
 }
 
 .edit-btn:hover {
-  filter: brightness(1.5) !important;
+  filter: brightness(1.5);
 }
 
-#logoutBtn:hover {
-  background-color: var(--color-red) !important;
-  color: var(--color-card) !important;
+.logout-btn:hover {
+  background-color: var(--color-red);
+  color: var(--color-card);
 }
 
-#exportBtn:hover {
-  background-color: var(--color-green) !important;
-  color: var(--color-card) !important;
+.export-btn:hover {
+  background-color: var(--color-green);
+  color: var(--color-card);
 }
 
-#exportBtn:active {
-  transform: scale(0.92) !important;
+.export-btn:active {
+  transform: scale(0.92);
 }
 
 /* Grey inversion for neutral cancel/close buttons */
-#mobileCancelBtn:hover,
-#cancelLogoutBtn:hover,
-#cancelDeleteBtn:hover {
-  background-color: var(--color-text-muted) !important;
-  color: var(--color-card) !important;
-  border-color: var(--color-text-muted) !important;
+.mobile-cancel-btn:hover,
+.cancel-logout-btn:hover,
+.cancel-delete-btn:hover {
+  background-color: var(--color-text-muted);
+  color: var(--color-card);
+  border-color: var(--color-text-muted);
 }
 
 /* ==========================================
@@ -221,7 +221,7 @@ button:active,
   }
 
   /* Envelope collapse toggle: full touch target */
-  #envelopeToggle {
+  .envelope-toggle {
     display: inline-flex !important;
     align-items: center !important;
     min-height: 44px !important;
@@ -229,7 +229,7 @@ button:active,
   }
 
   /* Savings edit inline link: full touch target */
-  #editSavingsBtn {
+  .edit-savings-btn {
     display: inline-flex !important;
     align-items: center !important;
     min-height: 44px !important;
@@ -352,33 +352,33 @@ button:active,
     max-height: 80vh !important;
   }
 
-  #deleteModal, #logoutModal, .modal-content > div {
+  .delete-modal, .logout-modal, .modal-content > div {
     flex-direction: column !important;
     gap: 12px !important;
   }
 
-  #cancelDeleteBtn, #confirmDeleteBtn,
-  #cancelLogoutBtn, #confirmLogoutBtn {
+  .cancel-delete-btn, .confirm-delete-btn,
+  .cancel-logout-btn, .confirm-logout-btn {
     width: 100% !important;
     height: 44px !important;
     margin: 0 !important;
     font-size: 1em !important;
   }
 
-  #deleteModal .modal-content > div,
-  #logoutModal .modal-content > div {
+  .delete-modal .modal-content > div,
+  .logout-modal .modal-content > div {
     flex-direction: column-reverse !important;
     gap: 12px !important;
   }
 
   .currency-group,
-  #addExpenseModal form > div[style*="display: flex"] {
+  .add-expense-modal form > div[style*="display: flex"] {
     flex-direction: column !important;
     gap: 10px !important;
   }
 
-  #itemNameInput,
-  #expenseDate,
+  .item-name-input,
+  .expense-date,
   .currency-group input,
   .currency-group select,
   .currency-group .cs-wrapper {
@@ -417,14 +417,14 @@ button:active,
     touch-action: auto !important;
   }
 
-  #addExpenseModal .close-modal,
-  #editModal .close-modal,
-  #addRecurringModal .close-modal {
+  .add-expense-modal .close-modal,
+  .edit-modal .close-modal,
+  .add-recurring-modal .close-modal {
     display: none !important;
   }
 
   .mobile-only-cancel {
-    display: block !important;
+    display: block;
   }
 
   .modal-actions {
@@ -457,7 +457,7 @@ button:active,
     margin-top: 4px !important;
   }
 
-  #currencyToggleBtn {
+  .currency-toggle-btn {
     display: inline-flex !important;
     align-items: center !important;
     text-align: left !important;

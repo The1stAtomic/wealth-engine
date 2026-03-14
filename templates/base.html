@@ -29,7 +29,7 @@
       <a href="{{ url_for('manage_recurring') }}" class="sys-nav-link{% if request.endpoint == 'manage_recurring' %} nav-active{% endif %}">RECURRING</a>
       <a href="{{ url_for('manage_categories') }}" class="sys-nav-link{% if request.endpoint == 'manage_categories' %} nav-active{% endif %}">CATEGORIES</a>
       <a href="{{ url_for('trash') }}" class="sys-nav-link nav-red{% if request.endpoint == 'trash' %} nav-active{% endif %}">TRASH</a>
-      <a href="{{ url_for('export_data') }}" id="exportBtn" class="sys-nav-link{% if request.endpoint == 'export_data' %} nav-active{% endif %}">EXPORT</a>
+      <a href="{{ url_for('export_data') }}" id="exportBtn" class="sys-nav-link export-btn{% if request.endpoint == 'export_data' %} nav-active{% endif %}">EXPORT</a>
     </nav>
   </div>
 

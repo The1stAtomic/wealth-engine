@@ -18,7 +18,7 @@
     <span class="section-hdr-title">[ RECURRING — {{ templates|length }} TEMPLATES ]</span>
   </div>
 
-  <button id="openAddRecurringBtn" class="openModalBtn">[+ ADD RECURRING]</button>
+  <button id="openAddRecurringBtn" class="openModalBtn open-add-recurring-btn">[+ ADD RECURRING]</button>
 
   <!-- Existing Templates -->
   <div class="scroll-box">
@@ -70,7 +70,7 @@
   <p class="page-note">Scheduled transactions are automatically created when you open the dashboard. Capped at 24 cycles per visit to prevent runaway backfill.</p>
 
   <!-- Add Recurring Modal -->
-  <div class="modal" id="addRecurringModal">
+  <div class="modal add-recurring-modal" id="addRecurringModal">
     <div class="modal-content">
 
       <div class="modal-hdr">
@@ -128,7 +128,7 @@
             <option value="" disabled selected>Select an income type...</option>
             {{ category_options(income_categories) }}
           </select>
-          <label class="modal-label rr-hidden" id="recurNewCategoryLabel">New Category Name</label>
+          <label class="modal-label rr-hidden recur-new-category-label" id="recurNewCategoryLabel">New Category Name</label>
           <input type="text" name="new_category" id="recurNewCategoryInput" placeholder="New category name" maxlength="50" autocapitalize="words" class="rr-hidden">
         </div>
 
@@ -138,7 +138,7 @@
         </div>
 
         <div class="modal-actions">
-          <button type="button" id="cancelAddRecurringBtn" class="mobile-only-cancel cancel-btn">[CANCEL]</button>
+          <button type="button" id="cancelAddRecurringBtn" class="mobile-only-cancel cancel-btn mobile-cancel-btn">[CANCEL]</button>
           <button type="submit" id="submitBtn" class="submit-btn">[ + ADD ]</button>
         </div>
       </form>
@@ -147,13 +147,13 @@
   </div>
 
   <!-- Delete Confirm Modal -->
-  <div class="modal" id="deleteModal">
+  <div class="modal delete-modal" id="deleteModal">
     <div class="modal-content modal-danger">
       <h2>Delete Template</h2>
       <p>Remove this recurring template? Past transactions are unaffected.</p>
       <div class="modal-actions">
-        <button type="button" id="cancelDeleteBtn" class="cancel-btn">[CANCEL]</button>
-        <button type="button" id="confirmDeleteBtn" class="btn-danger">[DELETE]</button>
+        <button type="button" id="cancelDeleteBtn" class="cancel-btn cancel-delete-btn">[CANCEL]</button>
+        <button type="button" id="confirmDeleteBtn" class="btn-danger confirm-delete-btn">[DELETE]</button>
       </div>
     </div>
   </div>

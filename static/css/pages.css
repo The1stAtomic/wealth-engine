@@ -193,7 +193,7 @@
   min-height: unset;
   padding: 8px;
   font-size: 0.8em;
-  background-color: #111;
+  background-color: var(--color-card);
   flex: 1;
   min-width: 120px;
   margin: 0;
@@ -327,7 +327,7 @@
 }
 
 /* ── Savings percent input — yellow focus instead of cyan ── */
-#savingsPercentInput:focus {
+.savings-percent-input:focus {
   border-bottom: 1px solid var(--color-yellow) !important;
   box-shadow: none !important;
 }
@@ -355,7 +355,7 @@
   margin-bottom: 12px;
 }
 
-#envelopeToggle {
+.envelope-toggle {
   color: var(--color-cyan);
   text-decoration: none;
   font-weight: bold;
@@ -366,11 +366,11 @@
   display: inline-block;
 }
 
-#envelopeToggle:hover {
+.envelope-toggle:hover {
   color: #fff;
 }
 
-#envelopeToggle:active {
+.envelope-toggle:active {
   transform: scale(0.85);
 }
 
@@ -686,7 +686,7 @@
 /* ==========================================
    PAGE: net-worth
    ========================================== */
-#openAddModal { width: 100%; margin-bottom: 20px; }
+.open-add-modal { width: 100%; margin-bottom: 20px; }
 
 /* ── Info column ── */
 .nw-info-col {
@@ -760,7 +760,7 @@
 /* ==========================================
    PAGE: recurring
    ========================================== */
-#openAddRecurringBtn { width: 100%; margin-bottom: 20px; }
+.open-add-recurring-btn { width: 100%; margin-bottom: 20px; }
 
 /* ── Info column ── */
 .rr-info-col {
@@ -779,7 +779,7 @@
 .rr-hidden { display: none; }
 
 /* ── New category label spacing ── */
-#recurNewCategoryLabel { margin-top: 10px; }
+.recur-new-category-label { margin-top: 10px; }
 
 /* ── Page note ── */
 .page-note {
@@ -808,7 +808,7 @@
 /* Never dim the actions on mobile/touch screens */
 @media (hover: none), (max-width: 768px) {
   .trash-inline-actions {
-    opacity: 1 !important;
+    opacity: 1;
   }
 }
 
@@ -863,12 +863,12 @@
   gap: 16px;
   align-items: flex-start;
 }
-.trash-select-col {
-  display: flex;
-  align-items: flex-start;
-  padding-top: 5px;
-  flex-shrink: 0;
+
+.tx-main--trash .checkbox-wrapper {
+  margin: 0;
+  margin-top: 2px;
 }
+
 .trash-data-col {
   display: flex;
   flex-direction: column;
@@ -986,7 +986,7 @@
   font-size: 0.9em;
   background: #000;
   color: #aaa;
-  border: 1px solid #444;
+  border: 1px solid var(--color-border-muted);
   box-sizing: border-box;
   text-align: center;
 }
@@ -1130,15 +1130,15 @@ body.login-page {
   align-items: center;
   min-height: 100vh;
   margin: 0;
-  background-color: #0a0a0a;
-  max-width: 100% !important;
+  background-color: var(--color-bg);
+  max-width: 100%;
 }
 
 .login-container {
-  background-color: #111;
+  background-color: var(--color-card);
   padding: 40px;
-  border: 1px solid #333;
-  border-top: 4px solid #00ff66;
+  border: 1px solid var(--color-border);
+  border-top: 4px solid var(--color-green);
   width: 90%;
   max-width: 400px;
   box-shadow: 0 0 20px rgba(0, 255, 102, 0.1);
@@ -1154,7 +1154,7 @@ body.login-page {
   padding-bottom: 0;
   margin: 0;
   font-size: 1.8em;
-  color: #00ff66;
+  color: var(--color-green);
   white-space: nowrap;
 }
 
@@ -1168,9 +1168,9 @@ body.login-page {
 }
 
 .error-message {
-  color: #ff003c;
+  color: var(--color-red);
   background-color: rgba(255, 0, 60, 0.1);
-  border: 1px solid #ff003c;
+  border: 1px solid var(--color-red);
   padding: 10px;
   margin-bottom: 20px;
   text-align: center;
@@ -1184,12 +1184,12 @@ body.login-page {
 }
 
 .login-header p {
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 0.9em;
   letter-spacing: 1px;
 }
 
-#bootSequence {
+.boot-sequence {
   color: #555;
   font-size: 0.8em;
   text-align: left;
@@ -1206,17 +1206,17 @@ body.login-page {
   background: none;
 }
 
-#loginPassword { padding-right: 70px; }
+.login-password { padding-right: 70px; }
 
 .password-wrapper { position: relative; }
 
-#togglePassword {
+.toggle-password {
   position: absolute;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 0.85em;
   font-weight: bold;
   user-select: none;
@@ -1225,8 +1225,8 @@ body.login-page {
 
 .login-container button[type="submit"] {
   margin-top: 30px;
-  background-color: #00ff66;
-  color: #111;
+  background-color: var(--color-green);
+  color: var(--color-card);
 }
 
 /* ── Boot sequence "ready" line ── */

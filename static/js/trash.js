@@ -15,7 +15,7 @@ const confirmPurgeBtn = document.getElementById('confirmPurgeBtn');
 let formToSubmit = null;
 
 document.addEventListener('click', function(e) {
-  if (e.target && e.target.classList.contains('delete-btn')) {
+  if (e.target && e.target.classList.contains('trash-cmd-purge')) {
     e.preventDefault();
     formToSubmit = e.target.closest('form');
     openModal(purgeModal);

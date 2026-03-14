@@ -19,7 +19,7 @@
       <h2 class="money {{ 'budget-negative' if budget < 0 else 'budget-positive' }}" data-usd="{{ budget | default(0, true) }}">{{ budget | default(0, true) | fmt_money }}</h2>
     </div>
 
-    <button id="currencyToggleBtn" class="hud-toggle-btn">// USD → KHR</button>
+    <button id="currencyToggleBtn" class="hud-toggle-btn currency-toggle-btn">// USD → KHR</button>
   </div>
 
 
@@ -39,7 +39,7 @@
 
       <div class="stat-box-hdr">
         <span class="stat-label stat-label--nm">Saving Target ({{ target_savings_percentage }}%)</span>
-        <a href="#" id="editSavingsBtn">[EDIT]</a>
+        <a href="#" id="editSavingsBtn" class="edit-savings-btn">[EDIT]</a>
       </div>
 
       <span class="stat-value money" id="savingsDisplayValue" data-usd="{{ target_savings | default(0, true) }}">{{ target_savings | default(0, true) | fmt_money }}</span>
@@ -50,7 +50,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <div class="savings-pct-wrapper">
-              <input type="number" class="no-spinner" id="savingsPercentInput" name="target_savings_percentage" step="0.01" inputmode="decimal" value="{{ target_savings_percentage }}" required>
+              <input type="number" class="no-spinner savings-percent-input" id="savingsPercentInput" name="target_savings_percentage" step="0.01" inputmode="decimal" value="{{ target_savings_percentage }}" required>
 
               <span class="savings-pct-sign">%</span>
             </div>
@@ -73,7 +73,7 @@
   <div class="envelope-section">
     <div class="envelope-header">
       [ CATEGORY ENVELOPES &mdash; {{ now[:7] }} ]
-      <a href="#" id="envelopeToggle">[COLLAPSE]</a>
+      <a href="#" id="envelopeToggle" class="envelope-toggle">[COLLAPSE]</a>
     </div>
     <div class="envelope-body">
       <div class="envelope-body-inner">
@@ -280,22 +280,22 @@
   </div>
 
   <!-- Modal for Confirming Deletion -->
-  <div class="modal" id="deleteModal">
+  <div class="modal delete-modal" id="deleteModal">
     <div class="modal-content modal-danger">
 
       <h2>System Warning</h2>
       <p>Are you sure you want to permanently delete this transaction? This action cannot be undone.</p>
 
       <div class="modal-actions">
-        <button type="button" id="cancelDeleteBtn" class="cancel-btn">[CANCEL]</button>
-        <button type="button" id="confirmDeleteBtn" class="btn-danger">[DELETE]</button>
+        <button type="button" id="cancelDeleteBtn" class="cancel-btn cancel-delete-btn">[CANCEL]</button>
+        <button type="button" id="confirmDeleteBtn" class="btn-danger confirm-delete-btn">[DELETE]</button>
       </div>
 
     </div>
   </div>
 
   <!-- Modal for Adding New Expense -->
-  <div class="modal" id="addExpenseModal">
+  <div class="modal add-expense-modal" id="addExpenseModal">
     <div class="modal-content">
 
       <!-- Modal Header -->
@@ -315,8 +315,8 @@
           <label for="incomeType" class="toggle-btn income-toggle">[INCOME]</label>
         </div>
         <div class="input-row">
-          <input type="text" name="item_name" autocapitalize="words" id="itemNameInput" placeholder="Expense Name" maxlength="100" required>
-          <input type="date" name="date" id="expenseDate" required>
+          <input type="text" name="item_name" autocapitalize="words" id="itemNameInput" class="item-name-input" placeholder="Expense Name" maxlength="100" required>
+          <input type="date" name="date" id="expenseDate" class="expense-date" required>
         </div>
 
         <div class="currency-group">
@@ -360,7 +360,7 @@
         </div>
 
         <div class="modal-actions">
-          <button type="button" id="mobileCancelBtn" class="mobile-only-cancel cancel-btn">[CANCEL]</button>
+          <button type="button" id="mobileCancelBtn" class="mobile-only-cancel cancel-btn mobile-cancel-btn">[CANCEL]</button>
 
           <button type="submit" id="submitBtn" class="submit-btn">ADD EXPENSE</button>
         </div>
@@ -369,13 +369,13 @@
   </div>
 
   <!-- Modal for Editing Existing Expense -->
-  <div class="modal" id="editModal">
+  <div class="modal edit-modal" id="editModal">
     <div class="modal-content">
 
       <div class="modal-hdr modal-hdr--start">
         <div>
           <h2>Edit Record</h2>
-          <span class="modal-id-line">ID: <span id="editIdDisplay"></span><span id="editTypeIndicator"></span></span>
+          <span class="modal-id-line">ID: <span id="editIdDisplay"></span><span id="editTypeIndicator" class="edit-type-indicator"></span></span>
         </div>
         <span class="close-modal" id="closeEditModalBtn">[X]</span>
       </div>
@@ -424,9 +424,9 @@
         <div class="receipt-block">
           <span class="receipt-lbl">Receipt</span>
           <div id="editReceiptBlock" class="receipt-block-row hidden">
-            <a id="editReceiptLink" href="#" target="_blank" class="receipt-link">[VIEW RECEIPT]</a>
+            <a id="editReceiptLink" href="#" target="_blank" class="receipt-link edit-receipt-link">[VIEW RECEIPT]</a>
             <label class="remove-receipt-label">
-              <input type="checkbox" name="remove_receipt" id="removeReceiptChk">
+              <input type="checkbox" name="remove_receipt" id="removeReceiptChk" class="remove-receipt-chk">
               Remove receipt
             </label>
           </div>
@@ -451,20 +451,20 @@
     <span class="session-status">// SESSION: ACTIVE</span>
     <form method="post" action="{{ url_for('logout') }}" id="logoutForm">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="button" id="logoutBtn">[TERMINATE SESSION]</button>
+      <button type="button" id="logoutBtn" class="logout-btn">[TERMINATE SESSION]</button>
     </form>
   </div>
 
   <!-- Modal for Confirming Logout -->
-  <div class="modal" id="logoutModal">
+  <div class="modal logout-modal" id="logoutModal">
     <div class="modal-content modal-warning">
 
       <h2>Terminate Session</h2>
       <p>Are you sure you want to securely disconnect from the Wealth Engine?</p>
 
       <div class="modal-actions">
-        <button type="button" id="cancelLogoutBtn" class="btn-cancel-neutral btn-flex">[CANCEL]</button>
-        <button type="button" id="confirmLogoutBtn" class="btn-warning btn-flex">[DISCONNECT]</button>
+        <button type="button" id="cancelLogoutBtn" class="btn-cancel-neutral btn-flex cancel-logout-btn">[CANCEL]</button>
+        <button type="button" id="confirmLogoutBtn" class="btn-warning btn-flex confirm-logout-btn">[DISCONNECT]</button>
       </div>
 
     </div>

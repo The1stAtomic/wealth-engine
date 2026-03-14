@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>System Login | Wealth Engine</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
 </head>
 <body class="login-page">
@@ -15,7 +16,7 @@
       <p>Wealth Engine v1.0</p>
     </div>
 
-    <div id="bootSequence">
+    <div id="bootSequence" class="boot-sequence">
       <div class="sys-log">> init protocol...&nbsp;[OK]</div>
       <div class="sys-log">> p2p handshake...&nbsp;[OK]</div>
       <div class="sys-log">> encryption: AES-256</div>
@@ -34,11 +35,11 @@
 
         <label>Password:</label>
         <div class="password-wrapper">
-          <input type="password" name="password" id="loginPassword" required>
-          <span id="togglePassword">[SHOW]</span>
+          <input type="password" name="password" id="loginPassword" class="login-password" required>
+          <span id="togglePassword" class="toggle-password">[SHOW]</span>
         </div>
 
-        <button type="submit">[AUTHENTICATE]</button>
+        <button type="submit" class="submit-btn">[AUTHENTICATE]</button>
       </form>
     </div>
 

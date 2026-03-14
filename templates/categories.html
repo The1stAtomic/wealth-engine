@@ -78,14 +78,14 @@
     </ul>
   </div>
 
-  <div class="modal" id="deleteModal">
+  <div class="modal delete-modal" id="deleteModal">
     <div class="modal-content modal-danger">
       <h2>Category Purge</h2>
       <p>Are you sure? Deleting this category will mark all associated transactions as "Uncategorized".</p>
       <p class="modal-note">Note: renaming a category updates ALL past expenses with that category.</p>
       <div class="modal-actions">
-        <button type="button" id="cancelDeleteBtn" class="cancel-btn">[CANCEL]</button>
-        <button type="button" id="confirmDeleteBtn" class="btn-danger">[DELETE]</button>
+        <button type="button" id="cancelDeleteBtn" class="cancel-btn cancel-delete-btn">[CANCEL]</button>
+        <button type="button" id="confirmDeleteBtn" class="btn-danger confirm-delete-btn">[DELETE]</button>
       </div>
     </div>
   </div>
@@ -116,7 +116,7 @@
         </div>
 
         <div class="modal-actions">
-          <button type="button" id="mobileCancelCatBtn" class="mobile-only-cancel cancel-btn btn-flex">[CANCEL]</button>
+          <button type="button" id="mobileCancelCatBtn" class="mobile-only-cancel cancel-btn btn-flex mobile-cancel-btn">[CANCEL]</button>
           <button type="submit" id="submitBtn" class="submit-btn">[ADD CATEGORY]</button>
         </div>
       </form>

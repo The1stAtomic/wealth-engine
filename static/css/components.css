@@ -137,9 +137,9 @@ textarea:hover {
 input:focus,
 select:focus,
 textarea:focus {
-  outline: none !important;
-  border-color: var(--color-cyan) !important;
-  box-shadow: 0 0 8px rgba(0, 204, 255, 0.2) !important;
+  outline: none;
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 8px rgba(0, 204, 255, 0.2);
   transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
@@ -433,9 +433,31 @@ button:hover {
 }
 
 /* ==========================================
+   INLINE LINK BUTTONS
+   ========================================== */
+.edit-savings-btn {
+  color: var(--color-yellow);
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.85em;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  transition: var(--transition-fast);
+  display: inline-block;
+}
+
+.edit-savings-btn:hover {
+  color: #fff;
+}
+
+.edit-savings-btn:active {
+  transform: scale(0.92);
+}
+
+/* ==========================================
    LOGOUT BUTTON
    ========================================== */
-#logoutBtn {
+.logout-btn {
   background: transparent;
   color: var(--color-red);
   border: 1px dashed var(--color-red);
@@ -485,7 +507,7 @@ button:hover {
 }
 
 /* Currency toggle — inline hyperlink style, signals interactivity */
-#currencyToggleBtn {
+.currency-toggle-btn {
   background: none;
   border: none;
   padding: 0;
@@ -497,20 +519,20 @@ button:hover {
   transition: none;
 }
 
-#currencyToggleBtn:hover {
+.currency-toggle-btn:hover {
   background: none;
   color: #fff;
   text-decoration: underline;
 }
 
-#currencyToggleBtn.khr-mode {
+.currency-toggle-btn.khr-mode {
   color: var(--color-yellow);
   border: none;
   background: none;
   text-decoration: underline;
 }
 
-#currencyToggleBtn.khr-mode:hover {
+.currency-toggle-btn.khr-mode:hover {
   background: none;
   color: #fff;
 }
@@ -925,9 +947,9 @@ select:hover {
 }
 
 select:focus {
-  outline: none !important;
-  border-color: var(--color-cyan) !important;
-  box-shadow: 0 0 8px rgba(0, 204, 255, 0.2) !important;
+  outline: none;
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 8px rgba(0, 204, 255, 0.2);
 }
 
 /* Strip down select styles specifically for inside Modals */
@@ -989,7 +1011,7 @@ select:focus {
 
 /* Meta grid label / value */
 .meta-lbl { color: #555; }
-.meta-sep { color: #444; margin: 0 4px; }
+.meta-sep { color: var(--color-border-muted); margin: 0 4px; }
 
 /* ==========================================
    MODAL COMPONENTS
@@ -1100,8 +1122,8 @@ select:focus {
 
 /* Neutral dark cancel button */
 .btn-cancel-neutral {
-  background-color: #111;
-  color: #888;
+  background-color: var(--color-card);
+  color: var(--color-text-muted);
   border: 1px solid #555;
 }
 
@@ -1140,5 +1162,5 @@ select:focus {
 /* Read-only locked select (e.g. currency in edit modal) */
 .select-locked {
   pointer-events: none;
-  color: #888;
+  color: var(--color-text-muted);
 }

@@ -7,7 +7,7 @@
    APP HEADER (base.html structural elements)
    ========================================== */
 .app-header {
-  border-bottom: 3px solid #ff003c;
+  border-bottom: 3px solid var(--color-red);
   padding-bottom: 10px;
   margin-bottom: 20px;
 }
@@ -19,9 +19,9 @@
 }
 
 .flash-message {
-  color: #ff003c;
+  color: var(--color-red);
   background: rgba(255, 0, 60, 0.1);
-  border: 1px solid #ff003c;
+  border: 1px solid var(--color-red);
   padding: 10px 15px;
   margin-bottom: 15px;
   font-weight: bold;
@@ -233,8 +233,8 @@
   display: inline-flex;
   align-items: center;
   padding: 6px 12px;
-  border: 1px solid #444;
-  background-color: #111;
+  border: 1px solid var(--color-border-muted);
+  background-color: var(--color-card);
   color: var(--color-text-muted);
   font-family: inherit;
   font-size: 0.85em;
@@ -268,16 +268,16 @@
 }
 
 /* VIEW RECEIPT link */
-#editReceiptLink {
+.edit-receipt-link {
   transition: var(--transition-fast);
 }
-#editReceiptLink:hover {
+.edit-receipt-link:hover {
   color: #fff;
   text-decoration: underline;
 }
 
 /* Destructive remove-receipt checkbox — custom rendering, red on check */
-#removeReceiptChk {
+.remove-receipt-chk {
   -webkit-appearance: none;
   appearance: none;
   width: 14px;
@@ -286,19 +286,19 @@
   margin: 0;
   cursor: pointer;
   background-color: #000;
-  border: 1px solid #444;
+  border: 1px solid var(--color-border-muted);
   transition: border-color 0.15s, background-color 0.15s;
   position: relative;
   flex-shrink: 0;
 }
-#removeReceiptChk:hover {
+.remove-receipt-chk:hover {
   border-color: var(--color-red);
 }
-#removeReceiptChk:checked {
+.remove-receipt-chk:checked {
   background-color: var(--color-red);
   border-color: var(--color-red);
 }
-#removeReceiptChk:checked::after {
+.remove-receipt-chk:checked::after {
   content: '';
   position: absolute;
   left: 3px;
@@ -312,69 +312,8 @@
 }
 
 /* Type indicator badge in edit modal header */
-#editTypeIndicator {
+.edit-type-indicator {
   transition: color 0.15s ease-in-out;
-}
-
-/* Modal submit button — terminal CTA: dark bg, border only, color signals type */
-#submitBtn {
-  background-color: #000;
-  color: var(--color-red);
-  border: 1px solid var(--color-red);
-  width: 100%;
-  margin: 0;
-  padding: 15px;
-  font-weight: bold;
-  font-family: inherit;
-  font-size: 0.9em;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: none;
-}
-
-#submitBtn:hover {
-  background-color: rgba(255, 0, 60, 0.08);
-  color: var(--color-red);
-}
-
-#submitBtn.income-submit {
-  color: var(--color-green);
-  border-color: var(--color-green);
-}
-
-#submitBtn.income-submit:hover {
-  background-color: rgba(0, 255, 102, 0.08);
-  color: var(--color-green);
-}
-
-#editSubmitBtn {
-  background-color: #000;
-  color: var(--color-red);
-  border: 1px solid var(--color-red);
-  width: 100%;
-  margin: 0;
-  padding: 15px;
-  font-weight: bold;
-  font-family: inherit;
-  font-size: 0.9em;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: none;
-}
-
-#editSubmitBtn:hover {
-  background-color: rgba(255, 0, 60, 0.08);
-  color: var(--color-red);
-}
-
-#editSubmitBtn.income-submit {
-  color: var(--color-green);
-  border-color: var(--color-green);
-}
-
-#editSubmitBtn.income-submit:hover {
-  background-color: rgba(0, 255, 102, 0.08);
-  color: var(--color-green);
 }
 
 .openModalBtn {

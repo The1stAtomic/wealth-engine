@@ -31,7 +31,7 @@
   </div>
 
   <!-- Add Item Button -->
-  <button type="button" class="openModalBtn" id="openAddModal">[+ ADD ITEM]</button>
+  <button type="button" class="openModalBtn open-add-modal" id="openAddModal">[+ ADD ITEM]</button>
 
   <!-- ASSETS -->
   <div class="section-hdr">
@@ -235,7 +235,7 @@
         </div>
 
         <div class="modal-actions">
-          <button type="button" id="cancelAddModal" class="mobile-only-cancel cancel-btn">[CANCEL]</button>
+          <button type="button" id="cancelAddModal" class="mobile-only-cancel cancel-btn mobile-cancel-btn">[CANCEL]</button>
           <button type="submit" id="submitBtn" class="submit-btn income-submit">[CONFIRM]</button>
         </div>
       </form>
@@ -244,13 +244,13 @@
   </div>
 
   <!-- Delete confirmation modal -->
-  <div class="modal" id="deleteModal">
+  <div class="modal delete-modal" id="deleteModal">
     <div class="modal-content modal-danger">
       <h2>Confirm Delete</h2>
       <p>Remove this item from your net worth tracker?</p>
       <div class="modal-actions">
-        <button type="button" id="cancelDeleteBtn" class="cancel-btn">[CANCEL]</button>
-        <button type="button" id="confirmDeleteBtn" class="btn-danger">[DELETE]</button>
+        <button type="button" id="cancelDeleteBtn" class="cancel-btn cancel-delete-btn">[CANCEL]</button>
+        <button type="button" id="confirmDeleteBtn" class="btn-danger confirm-delete-btn">[DELETE]</button>
       </div>
     </div>
   </div>
