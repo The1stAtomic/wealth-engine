@@ -5,115 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>System Login | Wealth Engine</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    /* Specific styles to dead-center the login box */
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      background-color: #0a0a0a;
-      max-width: 100% !important;
-    }
-    
-    .login-container {
-      background-color: #111;
-      padding: 40px;
-      border: 1px solid #333;
-      border-top: 4px solid #00ff66; /* Neon green accent */
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 0 20px rgba(0, 255, 102, 0.1);
-    }
-    
-    .login-header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-    
-    .login-header h1 {
-      border-bottom: none;
-      padding-bottom: 0;
-      margin: 0;
-      font-size: 1.8em;
-      color: #00ff66;
-      white-space: nowrap;
-    }
-
-    .login-header h1::after {
-      content: ' _'; /* The terminal block */
-      animation: blink 1s step-end infinite;
-    }
-
-    @keyframes blink {
-      50% { opacity: 0; }
-    }
-    
-    .error-message {
-      color: #ff003c;
-      background-color: rgba(255, 0, 60, 0.1);
-      border: 1px solid #ff003c;
-      padding: 10px;
-      margin-bottom: 20px;
-      text-align: center;
-      font-weight: bold;
-      animation: flash 0.5s ease-in-out;
-    }
-
-    @keyframes flash {
-      0% { opacity: 0; }
-      100% { opacity: 1; }
-    }
-
-    .login-header p {
-      color: #888;
-      font-size: 0.9em;
-      letter-spacing: 1px;
-    }
-
-    #bootSequence {
-      color: #555;
-      font-size: 0.8em;
-      text-align: left;
-      margin-bottom: 25px;
-      line-height: 1.6;
-    }
-
-    .sys-log { display: none; }
-
-    .login-container form {
-      margin: 0;
-      padding: 0;
-      border: none;
-      background: none;
-    }
-
-    #loginPassword { padding-right: 70px; }
-
-    .password-wrapper { position: relative; }
-
-    #togglePassword {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      cursor: pointer;
-      color: #888;
-      font-size: 0.85em;
-      font-weight: bold;
-      user-select: none;
-      transition: color 0.2s;
-    }
-
-    .login-container button[type="submit"] {
-      margin-top: 30px;
-      background-color: #00ff66;
-      color: #111;
-    }
-  </style>
 </head>
-<body>
+<body class="login-page">
 
   <div class="login-container">
     <div class="login-header">
@@ -150,36 +43,6 @@
     
   </div>
 
-  <script>
-    // --- PASSWORD VISIBILITY ENGINE ---
-    const toggleBtn = document.getElementById('togglePassword');
-    const passInput = document.getElementById('loginPassword');
-
-    toggleBtn.addEventListener('click', () => {
-      // Check the current state
-      const isPassword = passInput.getAttribute('type') === 'password';
-      
-      // Swap the input type
-      passInput.setAttribute('type', isPassword ? 'text' : 'password');
-      
-      // Swap the text and color
-      toggleBtn.textContent = isPassword ? '[HIDE]' : '[SHOW]';
-      toggleBtn.style.color = isPassword ? '#00ff66' : '#888';
-    });
-
-    // --- BOOT SEQUENCE ENGINE ---
-    document.addEventListener("DOMContentLoaded", () => {
-      const logs = document.querySelectorAll('.sys-log');
-      const formArea = document.getElementById('loginFormArea');
-
-      logs.forEach((log, index) => {
-        setTimeout(() => { log.style.display = 'block'; }, index * 250);
-      });
-
-      setTimeout(() => {
-        formArea.style.opacity = '1';
-      }, logs.length * 250 + 200);
-    });
-  </script>
+  <script src="{{ url_for('static', filename='js/login.js') }}"></script>
 </body>
 </html>

@@ -133,7 +133,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_pat
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# FIX: storage URI is now configurable via env var.
 # Default is in-memory (resets on restart — rate limit counters lost on crash/deploy).
 # Set RATELIMIT_STORAGE_URI=redis://localhost:6379 in .env for persistent limits.
 limiter = Limiter(
