@@ -1,8 +1,10 @@
-/* static/style.css — remaining components & pages (base/layout moved to css/) */
-
+/* static/css/pages.css
+   Page-specific overrides, grouped by route.
+   Must be linked LAST in base.html.
+   ========================================== */
 
 /* ==========================================
-   FINANCIAL CONTROLS CONTAINER
+   PAGE: dashboard (home)
    ========================================== */
 .financial-controls-container {
   display: flex;
@@ -36,11 +38,6 @@
 
 .budget-positive { color: var(--color-green); }
 .budget-negative { color: var(--color-red); }
-
-
-/* ==========================================
-   LEDGER ROW
-   ========================================== */
 
 /* Unified row density — applies to ledger and category rows alike */
 .scroll-box ul li {
@@ -86,7 +83,6 @@
   gap: 10px;
 }
 
-
 /* ── Action Reveal: The Flex-Slide Pattern (Desktop) ── */
 @media (hover: hover) {
   .tx-actions {
@@ -103,7 +99,7 @@
     padding-left: 0 !important;
     padding-right: 0 !important;
     overflow: hidden;
-    
+
     /* 3. Smooth animation for width, opacity, and gap */
     transition: max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
                 opacity 0.2s ease-in-out,
@@ -124,17 +120,10 @@
   }
 }
 
-
-/* ==========================================
-   CHART SECTION
-   ========================================== */
 .chart-section {
   margin-bottom: 30px;
 }
 
-/* ==========================================
-   CHART PANEL
-   ========================================== */
 .chart-panel {
   flex: 1;
   background-color: transparent;
@@ -144,9 +133,7 @@
   height: 300px;
 }
 
-/* ==========================================
-   FILTER DRAWER (CSS grid collapse animation)
-   ========================================== */
+/* ── Filter Drawer (CSS grid collapse animation) ── */
 .filter-drawer-wrapper {
   display: grid;
   grid-template-rows: 0fr;
@@ -163,6 +150,7 @@
   min-height: 0;
 }
 
+/* ── Savings edit wrapper (CSS grid collapse animation) ── */
 .savings-edit-wrapper {
   display: grid;
   grid-template-rows: 0fr;
@@ -179,16 +167,14 @@
   min-height: 0;
 }
 
-/* ==========================================
-   SAVINGS INPUT OVERRIDE
-   ========================================== */
+/* ── Savings percent input — yellow focus instead of cyan ── */
 #savingsPercentInput:focus {
   border-bottom: 1px solid var(--color-yellow) !important;
   box-shadow: none !important;
 }
 
 /* ==========================================
-   BUDGET ENVELOPES
+   PAGE: budget
    ========================================== */
 .envelope-section {
   margin-top: 20px;
@@ -290,10 +276,8 @@
   white-space: nowrap;
 }
 
-
-
 /* ==========================================
-   CATEGORIES PAGE
+   PAGE: categories
    ========================================== */
 
 /* ── Local li override: row+wrap so edit-mode takes full-width row ── */
@@ -526,7 +510,7 @@
 #confirmDeleteBtn:hover { background-color: rgba(255, 0, 60, 0.12); color: var(--color-red); filter: brightness(1.2); }
 
 /* ==========================================
-   NET WORTH PAGE
+   PAGE: net-worth
    ========================================== */
 #openAddModal { width: 100%; margin-bottom: 20px; }
 
@@ -606,7 +590,7 @@
 .rr-modal-actions { display: flex; gap: 15px; justify-content: center; }
 
 /* ==========================================
-   RECURRING PAGE
+   PAGE: recurring
    ========================================== */
 #openAddRecurringBtn { width: 100%; margin-bottom: 20px; }
 
@@ -638,7 +622,7 @@
 }
 
 /* ==========================================
-   TRASH PAGE
+   PAGE: trash
    ========================================== */
 
 /* ── Inline Trash Actions (Bottom Left) ── */
@@ -844,7 +828,7 @@
 .trash-bulk-purge-btn:hover { color: #ff6b6b; background: transparent; }
 
 /* ==========================================
-   LOGIN PAGE
+   PAGE: login
    ========================================== */
 
 /* Override body layout for the login page only */
