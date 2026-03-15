@@ -761,6 +761,18 @@ li {
   font-weight: bold;
 }
 
+/* ── System dynamic warnings ── */
+.sys-advisor-warn {
+  color: var(--color-red);
+  font-size: 0.75em;
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-red);
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+  opacity: 0.85;
+}
+
 /* ==========================================
    FORM CONTROLS
    ========================================== */

@@ -60,6 +60,11 @@
         </div>
       </div>
 
+      {% if is_unrealistic %}
+        <div class="sys-advisor-warn">
+          > SYS_WARN: Deficit detected. Max viable rate based on current overhead is {{ max_possible_pct }}%.
+        </div>
+      {% endif %}
     </div>
   </div>
 

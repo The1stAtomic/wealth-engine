@@ -379,17 +379,29 @@ def _save_receipt(tx_id: str, file: Any) -> str | None:
 # SRP: extracted from home() so the route doesn't compute budget math inline
 def _get_budget_stats() -> dict[str, Decimal]:
     settings = Setting.query.first()
-    # target_savings_percentage is Numeric(5,2) → Decimal from SQLAlchemy; default to Decimal('0') if no settings row
     target_pct = settings.target_savings_percentage if settings else Decimal('0')
     total_income   = db.session.query(func.sum(Transaction.amount)).filter_by(type='income').scalar()  or Decimal('0')
     total_expenses = db.session.query(func.sum(Transaction.amount)).filter_by(type='expense').scalar() or Decimal('0')
+    
     target_savings = (target_pct / 100) * total_income
+    budget = total_income - target_savings - total_expenses
+    
+    disposable = total_income - total_expenses
+    max_possible_pct = Decimal('0.00')
+    
+    if total_income > 0 and disposable > 0:
+        max_possible_pct = (disposable / total_income * 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        
+    is_unrealistic = budget < 0 and target_savings > 0
+    
     return {
         'total_income': total_income,
         'total_expenses': total_expenses,
         'target_savings': target_savings,
         'target_savings_percentage': target_pct,
-        'budget': total_income - target_savings - total_expenses,
+        'budget': budget,
+        'max_possible_pct': max_possible_pct,
+        'is_unrealistic': is_unrealistic,
     }
 
 # SRP + DRY: extracted from home(); inner _filter closure eliminates the repeated
