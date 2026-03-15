@@ -377,11 +377,19 @@ def _save_receipt(tx_id: str, file: Any) -> str | None:
 # --- BUSINESS LOGIC HELPERS ---
 
 # SRP: extracted from home() so the route doesn't compute budget math inline
-def _get_budget_stats() -> dict[str, Decimal]:
+def _get_budget_stats(cutoff_str: str | None = None) -> dict[str, any]:
     settings = Setting.query.first()
     target_pct = settings.target_savings_percentage if settings else Decimal('0')
-    total_income   = db.session.query(func.sum(Transaction.amount)).filter_by(type='income').scalar()  or Decimal('0')
-    total_expenses = db.session.query(func.sum(Transaction.amount)).filter_by(type='expense').scalar() or Decimal('0')
+    
+    inc_q = db.session.query(func.sum(Transaction.amount)).filter(Transaction.type == 'income')
+    exp_q = db.session.query(func.sum(Transaction.amount)).filter(Transaction.type == 'expense')
+    
+    if cutoff_str:
+        inc_q = inc_q.filter(Transaction.timestamp >= cutoff_str)
+        exp_q = exp_q.filter(Transaction.timestamp >= cutoff_str)
+        
+    total_income   = inc_q.scalar() or Decimal('0')
+    total_expenses = exp_q.scalar() or Decimal('0')
     
     target_savings = (target_pct / 100) * total_income
     budget = total_income - target_savings - total_expenses
@@ -790,18 +798,12 @@ def logout() -> Response:
 @requires_auth
 def home() -> str | Response:
     if request.method == 'POST':
-        # FIX: surface DB errors to the user instead of silently swallowing them
         if not _handle_add_transaction():
             flash('Transaction could not be saved. Check server logs.', 'error')
         return redirect('/')
 
-    # 1. MATERIALIZE ANY DUE RECURRING TRANSACTIONS
     _materialize_recurring()
 
-    # 2. BUDGET STATS
-    stats = _get_budget_stats()
-
-    # 3. VALIDATE AND PARSE FILTER / SORT PARAMS
     timeframe = request.args.get('timeframe', 'all_time')
     if timeframe != 'all_time' and timeframe not in TIMEFRAME_DELTAS:
         logger.warning("Invalid timeframe '%s' requested. Resetting to all_time.", timeframe)
@@ -815,10 +817,10 @@ def home() -> str | Response:
     search_query = request.args.get('search', '').strip()
     category_filter = request.args.get('category', 'all').strip()
 
-    # 4. BUILD QUERY (timeframe / sort / search / category all handled in helper)
     tx_query, cutoff_str = _build_tx_query(timeframe, sort_by, search_query, category_filter)
+    
+    stats = _get_budget_stats(cutoff_str)
 
-    # 5. PAGINATION
     try:
         page = int(request.args.get('page', 1))
     except (ValueError, TypeError):
@@ -826,15 +828,12 @@ def home() -> str | Response:
     pagination = tx_query.paginate(page=page, per_page=25, error_out=False)
     display_log = [_tx_to_dict(t) for t in pagination.items]
 
-    # 6. CHART DATA
     char_length = TIMEFRAME_CHAR_LENGTHS.get(timeframe, 7)
     charts = _get_chart_data(cutoff_str, char_length)
 
-    # 7. CATEGORY LISTS FOR DROPDOWNS
     expense_categories = [c.name for c in Category.query.filter_by(type='expense').order_by(Category.name).all()]
     income_categories = [c.name for c in Category.query.filter_by(type='income').order_by(Category.name).all()]
 
-    # 8. BUDGET ENVELOPES
     envelopes = _get_envelope_data()
 
     return render_template(

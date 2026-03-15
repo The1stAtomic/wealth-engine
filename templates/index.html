@@ -195,7 +195,8 @@
                 <strong class="expense-name expense-name--truncate" title="{{ expense.name }}">
                   {{ expense.name }}
                 </strong>
-                <span class="tx-amount {% if expense.type == 'income' %}budget-positive{% else %}budget-negative{% endif %}">
+                <span class="tx-amount money {% if expense.type == 'income' %}budget-positive{% else %}budget-negative{% endif %}"
+                      data-usd="{% if expense.type == 'expense' %}-{% endif %}{{ expense.amount }}">
                   {% if expense.type == 'expense' %}-{% endif %}{{ expense.amount | fmt_money }}
                 </span>
               </div>
