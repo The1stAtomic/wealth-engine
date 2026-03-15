@@ -1,12 +1,14 @@
 from decimal import Decimal, ROUND_HALF_UP
+from collections.abc import Callable
 from functools import wraps
+from typing import Any
 from flask import Flask, render_template, request, redirect, url_for, Response, session, make_response, flash, send_file, abort
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import func, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from dateutil.relativedelta import relativedelta
 import bcrypt
 import hmac
@@ -67,7 +69,7 @@ TIMEFRAME_CHAR_LENGTHS = {
 app = Flask(__name__)
 
 @app.template_filter('fmt_money')
-def fmt_money(value):
+def fmt_money(value: object) -> str:
     """Format a number as $1,234.56 with correct sign placement for negatives."""
     try:
         v = float(value)
@@ -78,7 +80,7 @@ def fmt_money(value):
     return f'${v:,.2f}'
 
 @app.template_filter('fmt_short_date')
-def fmt_short_date(value):
+def fmt_short_date(value: object) -> str:
     """Convert 'YYYY-MM-DD HH:MM:SS' string to 'DD MMM' (e.g., '09 MAR')."""
     try:
         # Parse the string into a real Python datetime object
@@ -215,14 +217,14 @@ SORT_COLUMNS = {
 
 # --- AUTH ---
 
-def check_auth(username, password):
+def check_auth(username: str, password: str) -> bool:
     username_ok = hmac.compare_digest(username.encode('utf-8'), ADMIN_USERNAME.encode('utf-8'))
     password_ok = bcrypt.checkpw(password.encode('utf-8'), ADMIN_PASSWORD_HASH)
     # FIX: bitwise & (not 'and') — prevents short-circuit so bcrypt always runs,
     # eliminating the response-time difference that leaks whether the username is valid.
     return username_ok & password_ok
 
-def requires_auth(f):
+def requires_auth(f: Callable) -> Callable:
     """Decorator: redirects to login if there is no active session."""
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -234,14 +236,14 @@ def requires_auth(f):
 # --- SHARED HELPERS ---
 
 # DRY: currency conversion was duplicated in _handle_add_transaction and edit_expense
-def _to_usd(amount, currency):
+def _to_usd(amount: float | Decimal, currency: str) -> Decimal:
     d = Decimal(str(amount))
     if currency == 'KHR':
         return (d / KHR_TO_USD_RATE).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     return d.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
 # DRY: category upsert was duplicated in _handle_add_transaction, edit_expense, and migration
-def _ensure_category(name, type_):
+def _ensure_category(name: str, type_: str) -> None:
     if not Category.query.filter_by(name=name).first():
         try:
             # FIX: savepoint scopes the IntegrityError to this insert only;
@@ -262,7 +264,7 @@ def _archived_to_transaction(archived: 'DeletedTransaction') -> 'Transaction':
     )
 
 # DRY: transaction serialization was duplicated in home() and export_data()
-def _tx_to_dict(t):
+def _tx_to_dict(t: Transaction) -> dict[str, Any]:
     return {
         "id": t.id, "type": t.type, "name": t.name,
         "amount": float(t.amount),  # FIX: Decimal → float for JSON/JS compatibility
@@ -280,7 +282,7 @@ def _parse_price(raw: str | None) -> float:
         return 0.0
 
 
-def _parse_category_choice(form) -> str:
+def _parse_category_choice(form: Any) -> str:
     """Resolve the category dropdown + optional new-category field to a category name."""
     choice = form.get('category_dropdown')
     if choice == ADD_NEW_SENTINEL:
@@ -330,7 +332,7 @@ def _purge_archived(tx: 'DeletedTransaction') -> None:
     db.session.delete(tx)
 
 
-def _save_receipt(tx_id: str, file) -> str | None:
+def _save_receipt(tx_id: str, file: Any) -> str | None:
     """Validate and persist an uploaded receipt image for the given transaction ID.
 
     Checks magic bytes (not just extension), enforces a 5 MB size cap, and saves
@@ -375,7 +377,7 @@ def _save_receipt(tx_id: str, file) -> str | None:
 # --- BUSINESS LOGIC HELPERS ---
 
 # SRP: extracted from home() so the route doesn't compute budget math inline
-def _get_budget_stats():
+def _get_budget_stats() -> dict[str, Decimal]:
     settings = Setting.query.first()
     # target_savings_percentage is Numeric(5,2) → Decimal from SQLAlchemy; default to Decimal('0') if no settings row
     target_pct = settings.target_savings_percentage if settings else Decimal('0')
@@ -392,7 +394,7 @@ def _get_budget_stats():
 
 # SRP + DRY: extracted from home(); inner _filter closure eliminates the repeated
 # "if cutoff_str: query.filter(...)" pattern that appeared on every chart query
-def _get_chart_data(cutoff_str, char_length):
+def _get_chart_data(cutoff_str: str | None, char_length: int) -> dict[str, Any]:
     def _filter(q):
         return q.filter(Transaction.timestamp >= cutoff_str) if cutoff_str else q
 
@@ -436,7 +438,7 @@ def _get_chart_data(cutoff_str, char_length):
     }
 
 
-def _build_tx_query(timeframe: str, sort_by: str, search_query: str, category_filter: str):
+def _build_tx_query(timeframe: str, sort_by: str, search_query: str, category_filter: str) -> tuple[Any, str | None]:
     """Build the filtered/sorted Transaction query for the home view.
 
     Returns (query, cutoff_str) where cutoff_str is None for all_time.
@@ -457,7 +459,7 @@ def _build_tx_query(timeframe: str, sort_by: str, search_query: str, category_fi
     return q, cutoff_str
 
 
-def _handle_add_transaction():
+def _handle_add_transaction() -> bool:
     """Parse, validate, and persist a new transaction from the add-transaction form. Returns True on success."""
     # KISS: collapsed double-assignment to single `or` expression
     expense_name = request.form.get('item_name', '').strip()[:100] or 'Unnamed Transaction'
@@ -499,7 +501,7 @@ def _handle_add_transaction():
         db.session.commit()
         logger.info("Transaction logged: %s | %s %s", expense_name, price, currency)
         return True
-    except Exception:
+    except SQLAlchemyError:
         db.session.rollback()
         _delete_receipt(new_tx.receipt_filename)  # clean up file saved before the failed commit
         logger.exception("DATABASE ERROR: Failed to log '%s'.", expense_name)
@@ -546,7 +548,7 @@ def _materialize_recurring() -> int:
     settings.last_recurring_check = now.strftime(TIMESTAMP_FORMAT)
     try:
         db.session.commit()
-    except Exception:
+    except SQLAlchemyError:
         db.session.rollback()
         logger.exception("RECURRING: Failed to update last_recurring_check.")
         return 0
@@ -577,7 +579,7 @@ def _materialize_recurring() -> int:
         try:
             db.session.commit()
             logger.info("RECURRING: Materialized %d transaction(s).", count)
-        except Exception:
+        except SQLAlchemyError:
             db.session.rollback()
             logger.exception("RECURRING: Failed to materialize transactions.")
             count = 0
@@ -595,14 +597,14 @@ def _autopurge_trash(expiry_days: int) -> int:
     try:
         db.session.commit()
         logger.info("TRASH: Auto-purged %d expired transaction(s).", len(expired))
-    except Exception:
+    except SQLAlchemyError:
         db.session.rollback()
         logger.exception("TRASH: Auto-purge failed.")
         return 0
     return len(expired)
 
 
-def _get_envelope_data() -> list:
+def _get_envelope_data() -> list[dict[str, Any]]:
     """Return current-month spend vs. budget for every budgeted expense category.
 
     Returns a list of dicts sorted by spend percentage (highest first):
@@ -611,7 +613,7 @@ def _get_envelope_data() -> list:
     month_prefix = datetime.now().strftime("%Y-%m")
     cats = (
         Category.query
-        .filter(Category.monthly_budget != None, Category.type == 'expense')
+        .filter(Category.monthly_budget.isnot(None), Category.type == 'expense')
         .order_by(Category.name)
         .all()
     )
@@ -691,25 +693,25 @@ def _migrate_database() -> None:
 # --- GLOBAL ERROR CATCHERS ---
 
 @app.errorhandler(404)
-def not_found_error(error):
+def not_found_error(error: Exception) -> tuple[str, int]:
     logger.warning("404: Attempted access to non-existent route -> %s", request.url)
     return "Page not found.", 404
 
 @app.errorhandler(500)
-def internal_error(error):
+def internal_error(error: Exception) -> tuple[str, int]:
     db.session.rollback()
     logger.critical("500 FATAL CRASH: Triggered by route -> %s", request.url)
     return "Internal Server Error. The admin has been notified in the logs.", 500
 
 @app.errorhandler(429)
-def ratelimit_handler(e):
+def ratelimit_handler(e: Exception) -> tuple[str, int]:
     return render_template('429.html', error=e.description), 429
 
 
 # --- SECURITY HEADERS ---
 
 @app.after_request
-def set_security_headers(response):
+def set_security_headers(response: Response) -> Response:
     # Prevent MIME-type sniffing
     response.headers['X-Content-Type-Options'] = 'nosniff'
     # Clickjacking defence (belt + suspenders alongside CSP frame-ancestors)
@@ -739,7 +741,7 @@ def set_security_headers(response):
 
 @app.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
-def login():
+def login() -> Response:
     error = None
     if request.method == 'POST':
         # FIX: use .get() instead of [] to avoid KeyError on malformed requests
@@ -767,14 +769,14 @@ def login():
 # Now POST-only, protected by CSRF token.
 @app.route('/logout', methods=['POST'])
 @requires_auth
-def logout():
+def logout() -> Response:
     # FIX: was session.pop('logged_in') — clear() removes all session data, not just one key
     session.clear()
     return redirect(url_for('login'))
 
 @app.route('/', methods=['GET', 'POST'])
 @requires_auth
-def home():
+def home() -> str | Response:
     if request.method == 'POST':
         # FIX: surface DB errors to the user instead of silently swallowing them
         if not _handle_add_transaction():
@@ -842,7 +844,7 @@ def home():
 @app.route('/delete/<expense_id>', methods=['POST'])
 @requires_auth
 @limiter.limit("60 per minute")
-def delete_expense(expense_id: str):
+def delete_expense(expense_id: str) -> Response:
     """Soft-delete a transaction by archiving it in DeletedTransaction."""
     tx = db.session.get(Transaction, expense_id)
     if tx:
@@ -859,7 +861,7 @@ def delete_expense(expense_id: str):
         try:
             db.session.commit()
             logger.info("Transaction soft-deleted: ID %s", expense_id)
-        except Exception:
+        except SQLAlchemyError:
             db.session.rollback()
             logger.exception("DELETE: Failed to soft-delete transaction %s.", expense_id)
     return redirect(url_for('home'))
@@ -867,7 +869,7 @@ def delete_expense(expense_id: str):
 @app.route('/edit/<expense_id>', methods=['POST'])
 @requires_auth
 @limiter.limit("60 per minute")
-def edit_expense(expense_id):
+def edit_expense(expense_id: str) -> Response:
     # FIX: Query.get() was deprecated in SQLAlchemy 2.0
     tx = db.session.get(Transaction, expense_id)
     if not tx:
@@ -938,7 +940,7 @@ def edit_expense(expense_id):
     try:
         db.session.commit()
         logger.info("Transaction %s updated.", expense_id)
-    except Exception:
+    except SQLAlchemyError:
         db.session.rollback()
         logger.exception("DATABASE FATAL: Update failed for %s.", expense_id)
 
@@ -947,7 +949,7 @@ def edit_expense(expense_id):
 @app.route('/categories', methods=['GET', 'POST'])
 @requires_auth
 @limiter.limit("30 per minute")  # FIX: missing rate limit; each POST can bulk-UPDATE many rows
-def manage_categories():
+def manage_categories() -> str | Response:
     if request.method == 'POST':
         action = request.form.get('action')
 
@@ -965,7 +967,7 @@ def manage_categories():
                 try:
                     db.session.commit()
                     logger.info("CAT_MGMT: Added category '%s'.", new_name)
-                except Exception:
+                except SQLAlchemyError:
                     db.session.rollback()
                     logger.exception("CAT_MGMT: Failed to add category '%s'.", new_name)
             return redirect(url_for('manage_categories'))
@@ -983,7 +985,7 @@ def manage_categories():
             try:
                 db.session.commit()
                 logger.info("CAT_MGMT: Deleted '%s'. Transactions moved to %s.", old_category, DEFAULT_CATEGORY)
-            except Exception:
+            except SQLAlchemyError:
                 db.session.rollback()
                 logger.exception("CAT_MGMT: Failed to delete '%s'.", old_category)
 
@@ -1006,7 +1008,7 @@ def manage_categories():
             try:
                 db.session.commit()
                 logger.info("CAT_MGMT: Saved '%s' with budget update.", old_category)
-            except Exception:
+            except SQLAlchemyError:
                 db.session.rollback()
                 logger.exception("CAT_MGMT: Failed to save '%s'.", old_category)
 
@@ -1018,7 +1020,7 @@ def manage_categories():
 @app.route('/update_savings', methods=['POST'])
 @requires_auth
 @limiter.limit("20 per minute")
-def update_savings():
+def update_savings() -> Response:
     settings_obj = Setting.query.first()
     if not settings_obj:
         settings_obj = Setting(target_savings_percentage=0.0)
@@ -1039,7 +1041,7 @@ def update_savings():
 @app.route('/export_data', methods=['GET'])
 @requires_auth
 @limiter.limit("10 per minute")
-def export_data():
+def export_data() -> Response:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"wealth_engine_backup_{timestamp}.json"
     logger.info("SECURITY EVENT: Admin triggered full database export -> %s", filename)
@@ -1066,7 +1068,7 @@ def export_data():
 @app.route('/recurring', methods=['GET', 'POST'])
 @requires_auth
 @limiter.limit("30 per minute")
-def manage_recurring():
+def manage_recurring() -> str | Response:
     if request.method == 'POST':
         name = request.form.get('item_name', '').strip()[:100] or 'Unnamed'
 
@@ -1108,7 +1110,7 @@ def manage_recurring():
         try:
             db.session.commit()
             logger.info("RECURRING: Template '%s' created (%s %s).", name, frequency, entry_type)
-        except Exception:
+        except SQLAlchemyError:
             db.session.rollback()
             logger.exception("RECURRING: Failed to create template '%s'.", name)
 
@@ -1128,14 +1130,14 @@ def manage_recurring():
 @app.route('/recurring/delete/<int:tmpl_id>', methods=['POST'])
 @requires_auth
 @limiter.limit("30 per minute")
-def delete_recurring(tmpl_id):
+def delete_recurring(tmpl_id: int) -> Response:
     tmpl = db.session.get(RecurringTransaction, tmpl_id)
     if tmpl:
         db.session.delete(tmpl)
         try:
             db.session.commit()
             logger.info("RECURRING: Template ID %d deleted.", tmpl_id)
-        except Exception:
+        except SQLAlchemyError:
             db.session.rollback()
             logger.exception("RECURRING: Failed to delete template ID %d.", tmpl_id)
     return redirect(url_for('manage_recurring'))
@@ -1156,7 +1158,7 @@ def trash() -> str:
 @app.route('/trash/restore/<tx_id>', methods=['POST'])
 @requires_auth
 @limiter.limit("30 per minute")
-def restore_transaction(tx_id: str):
+def restore_transaction(tx_id: str) -> Response:
     """Move a soft-deleted transaction back to the main Transaction table."""
     archived = db.session.get(DeletedTransaction, tx_id)
     if archived:
@@ -1166,7 +1168,7 @@ def restore_transaction(tx_id: str):
         try:
             db.session.commit()
             logger.info("Transaction restored: ID %s", tx_id)
-        except Exception:
+        except SQLAlchemyError:
             db.session.rollback()
             logger.exception("RESTORE: Failed to restore transaction %s.", tx_id)
     return redirect(url_for('trash'))
@@ -1175,7 +1177,7 @@ def restore_transaction(tx_id: str):
 @app.route('/trash/purge/<tx_id>', methods=['POST'])
 @requires_auth
 @limiter.limit("30 per minute")
-def purge_transaction(tx_id: str):
+def purge_transaction(tx_id: str) -> Response:
     """Permanently delete a soft-deleted transaction and its receipt file."""
     archived = db.session.get(DeletedTransaction, tx_id)
     if archived:
@@ -1183,7 +1185,7 @@ def purge_transaction(tx_id: str):
         try:
             db.session.commit()
             logger.info("Transaction permanently purged: ID %s", tx_id)
-        except Exception:
+        except SQLAlchemyError:
             db.session.rollback()
             logger.exception("TRASH: Failed to purge transaction %s.", tx_id)
     return redirect(url_for('trash'))
@@ -1192,7 +1194,7 @@ def purge_transaction(tx_id: str):
 @app.route('/trash/purge-all', methods=['POST'])
 @requires_auth
 @limiter.limit("10 per minute")
-def purge_all_transactions():
+def purge_all_transactions() -> Response:
     """Permanently delete every item in trash, including receipt files."""
     count = 0
     for tx in DeletedTransaction.query.yield_per(200):
@@ -1202,7 +1204,7 @@ def purge_all_transactions():
         try:
             db.session.commit()
             logger.info("TRASH: Purged all %d transaction(s).", count)
-        except Exception:
+        except SQLAlchemyError:
             db.session.rollback()
             logger.exception("TRASH: Purge-all failed.")
     return redirect(url_for('trash'))
@@ -1211,7 +1213,7 @@ def purge_all_transactions():
 @app.route('/trash/update-expiry', methods=['POST'])
 @requires_auth
 @limiter.limit("20 per minute")
-def update_trash_expiry():
+def update_trash_expiry() -> Response:
     """Update the auto-purge expiry period stored in Settings."""
     settings = Setting.query.first()
     if not settings:
@@ -1231,7 +1233,7 @@ def update_trash_expiry():
 @app.route('/trash/bulk', methods=['POST'])
 @requires_auth
 @limiter.limit("20 per minute")
-def bulk_trash_action():
+def bulk_trash_action() -> Response:
     """Bulk restore or permanently purge a selection of soft-deleted transactions."""
     action = request.form.get('bulk_action')
     tx_ids = request.form.getlist('tx_ids')[:500]  # hard cap — prevents DoS via oversized payload
@@ -1248,7 +1250,7 @@ def bulk_trash_action():
         try:
             db.session.commit()
             logger.info("TRASH: Bulk restored %d transaction(s).", len(archived_list))
-        except Exception:
+        except SQLAlchemyError:
             db.session.rollback()
             logger.exception("TRASH: Bulk restore failed.")
 
@@ -1258,7 +1260,7 @@ def bulk_trash_action():
         try:
             db.session.commit()
             logger.info("TRASH: Bulk purged %d transaction(s).", len(archived_list))
-        except Exception:
+        except SQLAlchemyError:
             db.session.rollback()
             logger.exception("TRASH: Bulk purge failed.")
 
@@ -1268,7 +1270,7 @@ def bulk_trash_action():
 @app.route('/receipt/<tx_id>')
 @requires_auth
 @limiter.limit("60 per minute")
-def serve_receipt(tx_id: str):
+def serve_receipt(tx_id: str) -> Response:
     """Serve a receipt image for the given transaction ID (auth-gated)."""
     tx = db.session.get(Transaction, tx_id)
     if not tx or not tx.receipt_filename:
@@ -1283,7 +1285,7 @@ VALID_NW_CATEGORIES = {'bank', 'investment', 'property', 'loan', 'credit', 'othe
 @app.route('/net-worth', methods=['GET', 'POST'])
 @requires_auth
 @limiter.limit("30 per minute")
-def net_worth():
+def net_worth() -> str | Response:
     """Display and manage net worth items (assets and liabilities)."""
     if request.method == 'POST':
         action = request.form.get('action', '')
@@ -1312,7 +1314,7 @@ def net_worth():
             try:
                 db.session.commit()
                 logger.info("NET WORTH: Added '%s' (%s / %s) = $%s", name, item_type, category, balance)
-            except Exception:
+            except SQLAlchemyError:
                 db.session.rollback()
                 logger.exception("NET WORTH: Failed to add '%s'.", name)
 
@@ -1344,7 +1346,7 @@ def net_worth():
                 try:
                     db.session.commit()
                     logger.info("NET WORTH: Updated item %s.", item_id)
-                except Exception:
+                except SQLAlchemyError:
                     db.session.rollback()
                     logger.exception("NET WORTH: Failed to update item %s.", item_id)
 
@@ -1359,7 +1361,7 @@ def net_worth():
                 try:
                     db.session.commit()
                     logger.info("NET WORTH: Deleted item %s.", item_id)
-                except Exception:
+                except SQLAlchemyError:
                     db.session.rollback()
                     logger.exception("NET WORTH: Failed to delete item %s.", item_id)
 
