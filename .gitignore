@@ -38,11 +38,11 @@ seed.py
 # Local log files
 *.log
 
-trash/*.html
+trash/
 
 CLAUDE.md
 
-.prompts/
+prompts/
 *.md
 
 .claude

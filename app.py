@@ -164,6 +164,7 @@ class Setting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     target_savings_percentage = db.Column(db.Numeric(5, 2), default=0.0)
     trash_expiry_days = db.Column(db.Integer, default=30)
+    last_recurring_check = db.Column(db.String(20), nullable=True)  # 'YYYY-MM-DD HH:MM:SS' — shared across workers
 
 class RecurringTransaction(db.Model):
     id            = db.Column(db.Integer, primary_key=True)
@@ -519,21 +520,36 @@ def _advance_next_due(frequency: str, current_due: str) -> str:
     return dt.strftime(DATE_FORMAT)
 
 
-_last_recurring_check: datetime | None = None
-
-
 def _materialize_recurring() -> int:
     """Create Transaction rows for any recurring templates that are past due.
 
     Throttled to run at most once per 60 seconds to avoid a DB hit on every page load.
+    Uses the Setting table for the last-check timestamp so the throttle is shared
+    across all worker processes instead of living in per-process memory.
     Capped at 24 cycles per template to prevent runaway backfill.
     Returns the total number of transactions created.
     """
-    global _last_recurring_check
     now = datetime.now()
-    if _last_recurring_check and (now - _last_recurring_check).total_seconds() < 60:
+    settings = Setting.query.first()
+    if settings and settings.last_recurring_check:
+        try:
+            last_check = datetime.strptime(settings.last_recurring_check, TIMESTAMP_FORMAT)
+            if (now - last_check).total_seconds() < 60:
+                return 0
+        except ValueError:
+            pass  # malformed timestamp — proceed with the check
+
+    # Update the timestamp before doing any work so concurrent workers see it immediately
+    if not settings:
+        settings = Setting(target_savings_percentage=0, trash_expiry_days=30)
+        db.session.add(settings)
+    settings.last_recurring_check = now.strftime(TIMESTAMP_FORMAT)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logger.exception("RECURRING: Failed to update last_recurring_check.")
         return 0
-    _last_recurring_check = now
 
     today_str = now.strftime(DATE_FORMAT)
     templates = RecurringTransaction.query.all()
@@ -666,6 +682,10 @@ def _migrate_database() -> None:
             conn.execute(text("ALTER TABLE setting ADD COLUMN trash_expiry_days INTEGER DEFAULT 30"))
             conn.commit()
             logger.info("MIGRATION: Added trash_expiry_days column to setting table.")
+        if 'last_recurring_check' not in setting_cols:
+            conn.execute(text("ALTER TABLE setting ADD COLUMN last_recurring_check VARCHAR(20)"))
+            conn.commit()
+            logger.info("MIGRATION: Added last_recurring_check column to setting table.")
 
 
 # --- GLOBAL ERROR CATCHERS ---
@@ -918,9 +938,9 @@ def edit_expense(expense_id):
     try:
         db.session.commit()
         logger.info("Transaction %s updated.", expense_id)
-    except Exception as e:
+    except Exception:
         db.session.rollback()
-        logger.critical("DATABASE FATAL: Update failed for %s. Error: %s", expense_id, e)
+        logger.exception("DATABASE FATAL: Update failed for %s.", expense_id)
 
     return redirect(url_for('home'))
 
@@ -1160,8 +1180,12 @@ def purge_transaction(tx_id: str):
     archived = db.session.get(DeletedTransaction, tx_id)
     if archived:
         _purge_archived(archived)
-        db.session.commit()
-        logger.info("Transaction permanently purged: ID %s", tx_id)
+        try:
+            db.session.commit()
+            logger.info("Transaction permanently purged: ID %s", tx_id)
+        except Exception:
+            db.session.rollback()
+            logger.exception("TRASH: Failed to purge transaction %s.", tx_id)
     return redirect(url_for('trash'))
 
 
